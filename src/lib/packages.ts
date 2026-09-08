@@ -79,30 +79,38 @@ export function getPackages(rootDir: string): Packages {
 }
 
 /**
- * Searches packages by name using case-insensitive matching.
+ * Searches packages by project name or package type, case-insensitively.
+ * A project matches when its name contains the query, or when the query is exactly
+ * its type, in which case every project of that type is returned.
  *
  * @param packages - The packages object from getPackages()
  * @param query - Search query string
- * @returns Matching packages with type, name, versions and url
+ * @returns Matching packages with type, name, versions and url, name matches first
  */
 export function searchPackages(packages: Packages, query: string): SearchResult[] {
-    const results: SearchResult[] = [];
+    const named: SearchResult[] = [];
+    const typed: SearchResult[] = [];
     const q = query.toLowerCase();
     for (const type of Object.keys(packages)) {
+        const typeMatch = type.toLowerCase() === q;
         for (const project of Object.keys(packages[type])) {
             if (project === 'list') continue;
-            if (project.toLowerCase().includes(q)) {
-                const entry = packages[type][project] as PackageProject;
-                results.push({
-                    type,
-                    name: project,
-                    versions: Object.keys(entry.versions),
-                    url: `/${type}/${project}`,
-                });
-            }
+            const nameMatch = project.toLowerCase().includes(q);
+            if (!nameMatch && !typeMatch) continue;
+
+            const entry = packages[type][project] as PackageProject;
+            const result: SearchResult = {
+                type,
+                name: project,
+                versions: Object.keys(entry.versions),
+                url: `/${type}/${project}`,
+            };
+
+            (nameMatch ? named : typed).push(result);
         }
     }
-    return results;
+
+    return [...named, ...typed];
 }
 
 /**
