@@ -87,19 +87,21 @@ app.get('/health', (req: Request, res: Response) => {
     });
 });
 
-// Search packages by name
+// Search packages by name or type
 app.get('/search', (req: Request, res: Response) => {
-    const query = req.query.q as string | undefined;
-    if (!query || query.trim().length === 0) {
+    const raw = req.query.q;
+    const query = typeof raw === 'string' ? raw.trim() : '';
+
+    if (query.length === 0) {
         return res.status(400).jsonResponse({
             message: 'Bad Request',
             error: 'Missing required query parameter: q',
             status: '400',
         });
     }
-    const results = searchPackages(packages, query.trim());
+    const results = searchPackages(packages, query);
     res.jsonResponse({
-        query: query.trim(),
+        query,
         count: results.length,
         results,
     });
