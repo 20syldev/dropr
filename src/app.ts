@@ -7,6 +7,7 @@ import { createLogger } from '@20syldev/logger.ts';
 import { getPackages, searchPackages, countPackages, resolveVersion } from './lib/packages.js';
 import { getFilesSHA256 } from './lib/checksum.js';
 import { safeJoin } from './lib/paths.js';
+import { rateLimit } from './lib/ratelimit.js';
 import { getSizes } from './lib/sizes.js';
 import { sendArchive } from './lib/archive.js';
 import type { PackageProject } from './types/index.js';
@@ -28,11 +29,10 @@ const packages = getPackages(packagesDir);
 // Cumulative directory sizes, indexed once since published versions are immutable
 const sizes = getSizes(packagesDir);
 
-// Define global variables
-let requests = 0,
-    resetTime = Date.now() + 10000;
-
 // ----------- ----------- MIDDLEWARES SETUP ----------- ----------- //
+
+// Behind a reverse proxy, the socket address is the proxy, not the client
+app.set('trust proxy', true);
 
 // CORS & Express setup
 app.use(cors({ methods: ['GET'] }));
@@ -64,14 +64,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 // Too many requests
-app.use((req: Request, res: Response, next: NextFunction) => {
-    if (Date.now() > resetTime) {
-        requests = 0;
-        resetTime = Date.now() + 10000;
-    }
-    if (++requests > 1000) return res.status(429).jsonResponse({ message: 'Too Many Requests' });
-    next();
-});
+app.use(rateLimit);
 
 // Health check endpoint
 app.get('/health', (req: Request, res: Response) => {
