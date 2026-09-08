@@ -42,6 +42,7 @@ curl https://cdn.sylvain.sh/bash/gft@1.0.0?checksums
 ### Rechercher un paquet
 ```
 https://cdn.sylvain.sh/search?q=gft
+https://cdn.sylvain.sh/search?q=npm
 ```
 
 ### Autres endpoints
@@ -53,4 +54,4 @@ https://cdn.sylvain.sh/search?q=gft
 | `/<type>/<projet>@<version>?checksums`   | Checksums SHA256                 |
 | `/<type>/<projet>@<version>?download`    | Archive .tar.gz                  |
 | `/download/<type>/<projet>@<version>`    | Archive .tar.gz (navigateur)     |
-| `/search?q=<nom>`                        | Recherche par nom                |
+| `/search?q=<terme>`                      | Recherche par nom ou type        |
