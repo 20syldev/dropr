@@ -114,6 +114,22 @@ for pat in "${EXCLUDES[@]}"; do
 done
 rsync -a "${RSYNC_EXCLUDES[@]}" "$TMPDIR/repo/" "$DEST/"
 
+# Fetch release date
+if command -v gft &>/dev/null; then
+    PUBLISHED=$(gft "$REPO" "$VERSION" --json 2>/dev/null | sed -n 's/.*"published_at":"\([^"]*\)".*/\1/p')
+else
+    PUBLISHED=$(curl -s "https://api.github.com/repos/$REPO/releases/tags/$VERSION" | grep -o '"published_at":"[^"]*"' | cut -d'"' -f4)
+fi
+
+DATE="${PUBLISHED%%T*}"
+if [ -z "$DATE" ]; then
+    DATE=$(date +%F)
+    warn "No release date found for ${BOLD}$VERSION${NC}, falling back to today."
+fi
+
+node "$CDN_DIR/scripts/versions.mjs" "$CDN_DIR/$PATH_DIR/$NAME/.versions.json" "$VERSION" "$DATE" "$REPO"
+ok "Recorded release date ${BOLD}$DATE${NC}."
+
 echo ""
 ok "Fetched ${BOLD}$NAME${NC}@${BOLD}$VERSION${NC} to ${BOLD}$PATH_DIR/$NAME/$VERSION${NC}"
 echo -e "${DIM}Files:${NC}"
