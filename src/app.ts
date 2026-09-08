@@ -7,6 +7,7 @@ import { createLogger } from '@20syldev/logger.ts';
 import { getPackages, searchPackages, countPackages, resolveVersion } from './lib/packages.js';
 import { getFilesSHA256 } from './lib/checksum.js';
 import { safeJoin } from './lib/paths.js';
+import { getReleaseDates } from './lib/releases.js';
 import { rateLimit } from './lib/ratelimit.js';
 import { getSizes } from './lib/sizes.js';
 import { sendArchive } from './lib/archive.js';
@@ -28,6 +29,9 @@ const packages = getPackages(packagesDir);
 
 // Cumulative directory sizes, indexed once since published versions are immutable
 const sizes = getSizes(packagesDir);
+
+// Release dates recorded at fetch time, indexed alongside the sizes
+const releaseDates = getReleaseDates(packagesDir);
 
 // ----------- ----------- MIDDLEWARES SETUP ----------- ----------- //
 
@@ -224,10 +228,11 @@ app.get('/:type/:project/changelog', (req: Request, res: Response) => {
 
     const changelog = versions.map((version) => {
         const path = join(packagesDir, type, project, version);
-        const stat = fs.statSync(path);
+        const fallback = fs.statSync(path).mtime.toISOString().split('T')[0];
+
         return {
             version,
-            date: stat.mtime.toISOString().split('T')[0],
+            date: releaseDates.get(`${type}/${project}/${version}`) ?? fallback,
             url: `/${type}/${project}@${version}`,
         };
     });
