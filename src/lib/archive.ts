@@ -17,15 +17,19 @@ export function sendArchive(res: Response, type: string, name: string, version: 
     res.setHeader('Content-Disposition', `attachment; filename="${archiveName}"`);
 
     const tar = spawn('tar', ['-czf', '-', '-C', join(rootDir, type, name), version]);
-    const chunks: Buffer[] = [];
-    tar.stdout.on('data', (chunk: Buffer) => chunks.push(chunk));
-    tar.stdout.on('end', () => res.end(Buffer.concat(chunks)));
+
     tar.stderr.on('data', (data: Buffer) => console.error('tar error:', data.toString()));
     tar.on('error', () => {
+        if (res.headersSent) return res.destroy();
+
         res.status(500).jsonResponse({
             message: 'Internal Server Error',
             error: 'Archive creation failed.',
             status: '500',
         });
     });
+
+    res.on('close', () => tar.kill());
+
+    tar.stdout.pipe(res);
 }
