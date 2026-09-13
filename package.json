@@ -1,5 +1,5 @@
 {
-    "version": "3.2.0",
+    "version": "3.2.1",
     "name": "@20syldev/cdn",
     "description": "Self-hosted CDN API to store, version and distribute scripts and packages",
     "main": "dist/app.js",
