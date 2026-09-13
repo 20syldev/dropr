@@ -1,0 +1,51 @@
+import { MAX_URL_LENGTH } from '../../constants.js';
+// Default ports for common URL schemes
+const DEFAULT_PORTS = new Map([
+    ['ftp', 21],
+    ['http', 80],
+    ['https', 443],
+    ['ws', 80],
+    ['wss', 443],
+]);
+/**
+ * Parses a URL into its structural components.
+ *
+ * @param url - Absolute URL to parse, including its scheme (e.g. https://example.com/path?a=1)
+ * @returns Object with the original URL, scheme, host, port, path, query parameters, fragment, and validity status
+ * @throws Error if the URL is empty, exceeds the maximum length, or cannot be parsed
+ */
+export default function parseUrl(url) {
+    if (!url)
+        throw new Error('Please provide a URL (?url={URL})');
+    if (url.length > MAX_URL_LENGTH)
+        throw new Error(`URL cannot exceed ${MAX_URL_LENGTH} characters`);
+    let parsed;
+    try {
+        parsed = new URL(url);
+    }
+    catch {
+        throw new Error('Invalid URL');
+    }
+    const params = {};
+    for (const [key, value] of parsed.searchParams) {
+        const current = params[key];
+        if (current === undefined)
+            params[key] = value;
+        else if (Array.isArray(current))
+            current.push(value);
+        else
+            params[key] = [current, value];
+    }
+    const scheme = parsed.protocol.replace(':', '');
+    return {
+        url,
+        scheme,
+        host: parsed.hostname,
+        port: parsed.port ? parseInt(parsed.port, 10) : (DEFAULT_PORTS.get(scheme) ?? null),
+        path: parsed.pathname,
+        params,
+        fragment: parsed.hash.replace('#', ''),
+        valid: true,
+    };
+}
+//# sourceMappingURL=url.js.map
