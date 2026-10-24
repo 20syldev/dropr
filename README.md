@@ -19,6 +19,8 @@ https://cdn.sylvain.sh/<type>/<projet>@<version>
 https://cdn.sylvain.sh/bash/gft@latest
 https://cdn.sylvain.sh/bash/gft@1.0.0
 ```
+`@latest` et les versions partielles (`@6`, `@6.1`) privilégient la dernière version stable.
+Une préversion n'est choisie que si aucune version stable ne correspond, ou avec son numéro exact (`@6.0.0-pre`).
 
 ### Télécharger un fichier
 ```bash
@@ -55,3 +57,11 @@ https://cdn.sylvain.sh/search?q=npm
 | `/<type>/<projet>@<version>?download`    | Archive .tar.gz                  |
 | `/download/<type>/<projet>@<version>`    | Archive .tar.gz (navigateur)     |
 | `/search?q=<terme>`                      | Recherche par nom ou type        |
+
+### Paquets dépréciés
+Un paquet renommé reste accessible à son ancienne adresse, figé à sa dernière version.
+Ses réponses JSON portent un champ `deprecated` (date, message, successeur).
+Toutes ses réponses, fichiers et archives compris, portent l'en-tête `Deprecation` (date) et l'en-tête `Link` vers le nouveau paquet.
+```
+https://cdn.sylvain.sh/npm/api@6.0.0    →    https://cdn.sylvain.sh/npm/moxon@latest
+```
