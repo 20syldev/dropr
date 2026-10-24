@@ -5,24 +5,55 @@ import type { Packages, PackageProject, SearchResult } from '../types/index.js';
 const EXCLUDED_DIRS = ['node_modules', 'src', 'scripts', 'lib', 'dist', 'public', '.github'];
 
 /**
+ * Splits a version string into its numeric core and its pre-release tag.
+ *
+ * @param version - Version string (e.g., "6.0.0" or "6.0.0-pre")
+ * @returns Numeric core segments and pre-release tag, null for a release
+ */
+function parseVersion(version: string): { core: number[]; pre: string | null } {
+    const dash = version.indexOf('-');
+    if (dash === -1) return { core: version.split('.').map(Number), pre: null };
+
+    return { core: version.slice(0, dash).split('.').map(Number), pre: version.slice(dash + 1) };
+}
+
+/**
  * Compares two semantic version strings numerically.
- * Handles varying version segment counts (e.g., "1.0" vs "1.0.0").
+ * Handles varying version segment counts (e.g., "1.0" vs "1.0.0"), and orders
+ * a pre-release before its release (e.g., "6.0.0-pre" < "6.0.0").
  *
  * @param a - First version string
  * @param b - Second version string
  * @returns Negative if a < b, positive if a > b, zero if equal
  */
 function compareVersions(a: string, b: string): number {
-    const aParts = a.split('.').map(Number);
-    const bParts = b.split('.').map(Number);
+    const aVersion = parseVersion(a);
+    const bVersion = parseVersion(b);
 
-    for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
-        const aPart = aParts[i] || 0;
-        const bPart = bParts[i] || 0;
+    for (let i = 0; i < Math.max(aVersion.core.length, bVersion.core.length); i++) {
+        const aPart = aVersion.core[i] || 0;
+        const bPart = bVersion.core[i] || 0;
         if (aPart !== bPart) return aPart - bPart;
     }
 
-    return 0;
+    if (aVersion.pre === bVersion.pre) return 0;
+    if (aVersion.pre === null) return 1;
+    if (bVersion.pre === null) return -1;
+
+    return aVersion.pre.localeCompare(bVersion.pre, 'en', { numeric: true });
+}
+
+/**
+ * Picks the newest of a list of versions, preferring releases over pre-releases,
+ * so a pre-release is only picked when nothing stable matches.
+ *
+ * @param versions - Candidate version strings
+ * @returns The newest version, or null if the list is empty
+ */
+function pickNewest(versions: string[]): string | null {
+    const releases = versions.filter((v) => parseVersion(v).pre === null);
+
+    return (releases.length > 0 ? releases : versions).sort(compareVersions).at(-1) ?? null;
 }
 
 /**
@@ -140,10 +171,20 @@ export function countPackages(packages: Packages): number {
 export function resolveVersion(versionPattern: string, projectEntry: PackageProject): string | null {
     const normalizedPattern = versionPattern.endsWith('.') ? versionPattern : `${versionPattern}.`;
 
-    return (
-        Object.keys(projectEntry.versions)
-            .filter((v) => v !== 'latest' && (v === versionPattern || v.startsWith(normalizedPattern)))
-            .sort(compareVersions)
-            .at(-1) ?? null
+    return pickNewest(
+        Object.keys(projectEntry.versions).filter(
+            (v) => v !== 'latest' && (v === versionPattern || v.startsWith(normalizedPattern)),
+        ),
     );
+}
+
+/**
+ * Resolves the "latest" alias to the newest release of a project, or to its
+ * newest pre-release when it has no release yet.
+ *
+ * @param projectEntry - The project entry containing all versions
+ * @returns The latest version of the project
+ */
+export function latestVersion(projectEntry: PackageProject): string {
+    return pickNewest(Object.keys(projectEntry.versions).filter((v) => v !== 'latest'))!;
 }
