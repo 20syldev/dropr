@@ -1,0 +1,48 @@
+import { MAX_STRING_LENGTH } from '../../constants.js';
+/**
+ * Computes descriptive statistics for a comma-separated list of numbers.
+ *
+ * @param values - Comma-separated numeric string (e.g. "1,2,3,4,5")
+ * @returns Object containing count, sum, min, max, range, mean, median, mode, variance, and standard deviation
+ * @throws Error if values is missing, contains non-numeric entries, or exceeds the maximum count
+ */
+export default function statistics(values) {
+    if (!values)
+        throw new Error('A list of values is required');
+    if (typeof values !== 'string')
+        throw new Error('Values must be a comma-separated string');
+    const arr = values.split(',').map((v) => Number(v.trim()));
+    if (arr.some(isNaN))
+        throw new Error('Values must contain only numbers');
+    if (arr.length < 1)
+        throw new Error('At least one value is required');
+    if (arr.length > MAX_STRING_LENGTH)
+        throw new Error(`Cannot process more than ${MAX_STRING_LENGTH} values`);
+    const count = arr.length;
+    const sum = arr.reduce((a, b) => a + b, 0);
+    const min = Math.min(...arr);
+    const max = Math.max(...arr);
+    const mean = sum / count;
+    const sorted = [...arr].sort((a, b) => a - b);
+    const median = count % 2 === 0 ? (sorted[count / 2 - 1] + sorted[count / 2]) / 2 : sorted[Math.floor(count / 2)];
+    const counts = new Map();
+    for (const n of arr)
+        counts.set(n, (counts.get(n) ?? 0) + 1);
+    const maxCount = Math.max(...counts.values());
+    const mode = maxCount === 1 ? [] : [...counts.entries()].filter(([, c]) => c === maxCount).map(([n]) => n);
+    const variance = arr.reduce((acc, n) => acc + (n - mean) ** 2, 0) / count;
+    const stddev = Math.sqrt(variance);
+    return {
+        count,
+        sum: +sum.toFixed(6),
+        min,
+        max,
+        range: max - min,
+        mean: +mean.toFixed(6),
+        median: +median.toFixed(6),
+        mode,
+        variance: +variance.toFixed(6),
+        stddev: +stddev.toFixed(6),
+    };
+}
+//# sourceMappingURL=statistics.js.map
