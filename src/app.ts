@@ -4,7 +4,7 @@ import fs from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { createLogger } from '@20syldev/logger.ts';
-import { getPackages, searchPackages, countPackages, resolveVersion } from './lib/packages.js';
+import { getPackages, searchPackages, countPackages, resolveVersion, latestVersion } from './lib/packages.js';
 import { getFilesSHA256 } from './lib/checksum.js';
 import { safeJoin } from './lib/paths.js';
 import { getReleaseDates } from './lib/releases.js';
@@ -180,8 +180,7 @@ app.get('/download/:type/:project', (req: Request, res: Response) => {
     let resolved = version || 'latest';
 
     if (resolved === 'latest') {
-        const versions = Object.keys(entry.versions);
-        resolved = versions[versions.length - 1];
+        resolved = latestVersion(entry);
     } else if (!entry.versions[resolved]) {
         const match = resolveVersion(resolved, entry);
         if (match) {
@@ -274,9 +273,7 @@ app.use('/:type/:project', (req: Request, res: Response, next: NextFunction) => 
     }
 
     if (version === 'latest') {
-        const entry = packages[type][name] as PackageProject;
-        const versions = Object.keys(entry.versions);
-        req.version = versions[versions.length - 1];
+        req.version = latestVersion(packages[type][name] as PackageProject);
     } else {
         const entry = packages[type][name] as PackageProject;
         let resolved = version;
