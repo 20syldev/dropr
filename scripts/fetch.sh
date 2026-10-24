@@ -9,10 +9,10 @@
 #   --exclude <pat>   Exclude file/dir from copy (repeatable)
 #
 # Arguments:
-#   <user/repo>  GitHub repository (e.g. 20syldev/api)
-#   <path>       CDN subdirectory (e.g. npm, bash)
+#   <user/repo>  GitHub repository (e.g. moxondev/api)
+#   <path>       CDN subdirectory (e.g. packages/npm, packages/bash)
 #   [version]    GitHub release tag to fetch (default: latest)
-#   [name]       Override package name (default: repo name)
+#   [name]       Override package name (default: repo name; pass moxon for moxondev/api)
 
 set -euo pipefail
 
@@ -56,6 +56,15 @@ REPO="$1"
 PATH_DIR="$2"
 VERSION="${3:-}"
 NAME="${4:-${REPO##*/}}"
+
+# Deprecated projects are frozen, new versions go to their successor
+DEPRECATED="$CDN_DIR/$PATH_DIR/$NAME/.deprecated.json"
+if [ -f "$DEPRECATED" ]; then
+    SUCCESSOR=$(sed -n 's/.*"successor": *"\([^"]*\)".*/\1/p' "$DEPRECATED")
+    err "${BOLD}$PATH_DIR/$NAME${NC} is deprecated in favour of ${BOLD}$SUCCESSOR${NC}."
+    info "Pass the successor name as ${BOLD}[name]${NC}: ${DIM}$0 $REPO $PATH_DIR ${VERSION:-<version>} ${SUCCESSOR##*/}${NC}"
+    exit 1
+fi
 
 # Resolve version from GitHub
 if command -v gft &>/dev/null; then
