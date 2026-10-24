@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import { createLogger } from '@20syldev/logger.ts';
 import { getPackages, searchPackages, countPackages, resolveVersion, latestVersion } from './lib/packages.js';
 import { getFilesSHA256 } from './lib/checksum.js';
+import { setDeprecationHeaders } from './lib/deprecations.js';
 import { safeJoin } from './lib/paths.js';
 import { getReleaseDates } from './lib/releases.js';
 import { rateLimit } from './lib/ratelimit.js';
@@ -39,7 +40,7 @@ const releaseDates = getReleaseDates(packagesDir);
 app.set('trust proxy', true);
 
 // CORS & Express setup
-app.use(cors({ methods: ['GET'] }));
+app.use(cors({ methods: ['GET'], exposedHeaders: ['Deprecation', 'Link'] }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
@@ -117,6 +118,7 @@ app.get('/download', (req: Request, res: Response) => {
             const entry = packages[type][project] as PackageProject;
             const versions = Object.keys(entry.versions).filter((v) => v !== 'latest');
             downloads[type][project] = {
+                deprecated: entry.deprecated,
                 latest: `/download/${type}/${project}`,
                 versions: versions.reduce<Record<string, string>>((acc, v) => {
                     acc[v] = `/download/${type}/${project}@${v}`;
@@ -149,6 +151,7 @@ app.get('/download/:type', (req: Request, res: Response) => {
         const entry = packages[type][project] as PackageProject;
         const versions = Object.keys(entry.versions).filter((v) => v !== 'latest');
         downloads[project] = {
+            deprecated: entry.deprecated,
             latest: `/download/${type}/${project}`,
             versions: versions.reduce<Record<string, string>>((acc, v) => {
                 acc[v] = `/download/${type}/${project}@${v}`;
@@ -178,6 +181,8 @@ app.get('/download/:type/:project', (req: Request, res: Response) => {
 
     const entry = packages[type][name] as PackageProject;
     let resolved = version || 'latest';
+
+    if (entry.deprecated) setDeprecationHeaders(res, entry.deprecated);
 
     if (resolved === 'latest') {
         resolved = latestVersion(entry);
@@ -227,6 +232,8 @@ app.get('/:type/:project/changelog', (req: Request, res: Response) => {
     const entry = packages[type][project] as PackageProject;
     const versions = Object.keys(entry.versions).filter((v) => v !== 'latest');
 
+    if (entry.deprecated) setDeprecationHeaders(res, entry.deprecated);
+
     const changelog = versions.map((version) => {
         const path = join(packagesDir, type, project, version);
         const fallback = fs.statSync(path).mtime.toISOString().split('T')[0];
@@ -239,7 +246,7 @@ app.get('/:type/:project/changelog', (req: Request, res: Response) => {
     });
 
     res.setHeader('Cache-Control', 'public, max-age=300');
-    res.jsonResponse({ name: project, type, versions: changelog.length, changelog });
+    res.jsonResponse({ name: project, type, deprecated: entry.deprecated, versions: changelog.length, changelog });
 });
 
 // Check if project exists
@@ -259,6 +266,9 @@ app.use('/:type/:project', (req: Request, res: Response, next: NextFunction) => 
         });
     }
 
+    const { deprecated } = packages[type][name] as PackageProject;
+    if (deprecated) setDeprecationHeaders(res, deprecated);
+
     if (!version) {
         const entry = packages[type][name] as PackageProject;
         const versions = Object.keys(entry.versions).reduce<Record<string, string>>((acc, ver) => {
@@ -268,6 +278,7 @@ app.use('/:type/:project', (req: Request, res: Response, next: NextFunction) => 
 
         return res.jsonResponse({
             message: `Available versions for the '${name}' project.`,
+            deprecated,
             versions,
         });
     }
@@ -323,6 +334,7 @@ app.use('/:type/:project/*file', (req: Request, res: Response) => {
             name: req.name,
             version: req.version,
             path: file.replace(/\/$/, ''),
+            deprecated: (packages[type][req.name] as PackageProject).deprecated,
             files,
         });
     }
@@ -369,6 +381,7 @@ app.get('/:type/:project', (req: Request, res: Response) => {
     const name = req.name;
     const version = req.version;
     const path = join(packagesDir, type, name, version);
+    const { deprecated } = packages[type][name] as PackageProject;
 
     // SHA256 checksums for all files
     if (req.query.checksums !== undefined) {
@@ -376,6 +389,7 @@ app.get('/:type/:project', (req: Request, res: Response) => {
         return res.jsonResponse({
             name,
             version,
+            deprecated,
             algorithm: 'sha256',
             checksums,
         });
@@ -406,6 +420,7 @@ app.get('/:type/:project', (req: Request, res: Response) => {
             name: name,
             version,
             current: name + '@' + version,
+            deprecated,
             files,
         });
     });
