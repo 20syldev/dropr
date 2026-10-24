@@ -1,5 +1,6 @@
 import fs from 'fs';
 import { join } from 'path';
+import { getDeprecation } from './deprecations.js';
 import type { Packages, PackageProject, SearchResult } from '../types/index.js';
 
 const EXCLUDED_DIRS = ['node_modules', 'src', 'scripts', 'lib', 'dist', 'public', '.github'];
@@ -98,6 +99,7 @@ export function getPackages(rootDir: string): Packages {
                 versions.forEach((version) => {
                     projectEntry.versions[version] = `/${type}/${project}@${version}`;
                 });
+                projectEntry.deprecated = getDeprecation(projectPath);
 
                 packages[type][project] = projectEntry;
             });
@@ -135,6 +137,7 @@ export function searchPackages(packages: Packages, query: string): SearchResult[
                 name: project,
                 versions: Object.keys(entry.versions),
                 url: `/${type}/${project}`,
+                deprecated: entry.deprecated,
             };
 
             (nameMatch ? named : typed).push(result);
