@@ -1,0 +1,22 @@
+export declare function envList(key: string): string[] | null;
+export declare const env: {
+    PORT: number;
+    TRUSTED_PROXIES: string[] | null;
+    DOCS_URL: string;
+    REPO_URL: string;
+    INSTANCE_CREATED: string;
+    LOGS_TOKEN: string;
+    CHALLENGE_SECRET: string;
+    DEFAULT_LIMIT: number;
+    ADVANCED_LIMIT: number;
+    PRO_LIMIT: number;
+    BUSINESS_LIMIT: number;
+    GLOBAL_LIMIT: number;
+    DEFAULT_BURST: number;
+    ADVANCED_BURST: number;
+    PRO_BURST: number;
+    BUSINESS_BURST: number;
+    BUSINESS_TOKEN_LIST: string[];
+    PRO_TOKEN_LIST: string[];
+    ADVANCED_TOKEN_LIST: string[];
+};

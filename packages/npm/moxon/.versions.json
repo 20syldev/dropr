@@ -2,5 +2,9 @@
     "6.0.0-pre": {
         "date": "2026-10-17",
         "repo": "moxondev/api"
+    },
+    "6.1.0": {
+        "date": "2026-10-22",
+        "repo": "moxondev/api"
     }
 }
