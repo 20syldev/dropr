@@ -1,5 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 
+import { sendError } from './errors.js';
+
 const WINDOW = 10_000;
 const GLOBAL_LIMIT = 1000;
 const CLIENT_LIMIT = 100;
@@ -9,8 +11,8 @@ const hits = new Map<string, number[]>();
 let requests = 0;
 let resetTime = Date.now() + WINDOW;
 
-// Drop clients that went quiet, so the map does not grow unbounded
 setInterval(() => {
+    // Drop clients that went quiet, so the map does not grow unbounded
     const now = Date.now();
     for (const [ip, times] of hits) {
         const recent = times.filter((time) => now - time < WINDOW);
@@ -24,7 +26,7 @@ setInterval(() => {
  * The proxy rewrites CF-Connecting-IP on every request, so it cannot be
  * spoofed by the client, unlike the leftmost X-Forwarded-For entry.
  *
- * @param req - Incoming request
+ * @param req - Request read for its CF-Connecting-IP header, then req.ip and the socket address as fallbacks
  * @returns The client address, or an empty string if unknown
  */
 function getClient(req: Request): string {
@@ -35,13 +37,13 @@ function getClient(req: Request): string {
 }
 
 /**
- * Limits requests globally and per client over a sliding window.
+ * Limits requests globally over a fixed window and per client over a sliding window.
  * The global cap protects the server, the per-client cap keeps a single
  * noisy client from consuming it and locking everyone else out.
  *
- * @param req - Incoming request
- * @param res - Express response object
- * @param next - Next middleware in the chain
+ * @param req - Request whose client, as identified by getClient, is counted against the per-client cap
+ * @param res - Receives a 429 error when the global or the per-client cap is exceeded
+ * @param next - Called only when the request stays within both caps
  */
 export function rateLimit(req: Request, res: Response, next: NextFunction): void {
     const now = Date.now();
@@ -51,11 +53,7 @@ export function rateLimit(req: Request, res: Response, next: NextFunction): void
         resetTime = now + WINDOW;
     }
     if (++requests > GLOBAL_LIMIT) {
-        res.status(429).jsonResponse({
-            message: 'Too Many Requests',
-            error: 'Global rate limit exceeded.',
-            status: '429',
-        });
+        sendError(res, 429, 'Global rate limit exceeded.');
         return;
     }
 
@@ -65,11 +63,7 @@ export function rateLimit(req: Request, res: Response, next: NextFunction): void
     hits.set(client, recent);
 
     if (recent.length > CLIENT_LIMIT) {
-        res.status(429).jsonResponse({
-            message: 'Too Many Requests',
-            error: `You have exceeded the limit of ${CLIENT_LIMIT} requests per ${WINDOW / 1000} seconds.`,
-            status: '429',
-        });
+        sendError(res, 429, `You have exceeded the limit of ${CLIENT_LIMIT} requests per ${WINDOW / 1000} seconds.`);
         return;
     }
 

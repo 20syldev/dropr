@@ -2,12 +2,12 @@ import fs from 'fs';
 import { join } from 'path';
 
 /**
- * Reads the .versions.json metadata of every project into a flat index.
- * These files sit next to the version directories rather than inside them, so
- * their content never shows up in listings, archives or checksums.
+ * Reads the release dates that fetch.sh records in the .versions.json of every project into a flat index.
+ * These files sit next to the version directories, so they never show up in listings, archives or checksums.
  *
- * @param rootDir - Root directory containing package types
- * @returns Map of 'type/project/version' keys to release dates
+ * @param rootDir - Packages root, read as rootDir/{type}/{project}/.versions.json, other entries are skipped
+ * @returns Map of 'type/project/version' keys to YYYY-MM-DD dates, without the versions that have no date and
+ * without the projects whose .versions.json is missing or unreadable
  */
 export function getReleaseDates(rootDir: string): Map<string, string> {
     const dates = new Map<string, string>();

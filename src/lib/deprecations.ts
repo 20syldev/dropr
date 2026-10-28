@@ -1,18 +1,17 @@
 import fs from 'fs';
 import { join } from 'path';
+
 import type { Response } from 'express';
+
 import type { Deprecation } from '../types/index.js';
 
 /**
  * Reads the .deprecated.json notice of a project, if any.
- * Like .versions.json, the notice sits next to the version directories, so it
- * never shows up in listings, archives or checksums.
+ * Like .versions.json, it sits next to the version directories, so listings, archives and checksums never show it.
+ * A notice missing a parsable date, a message or a successor is ignored, since it would produce invalid headers.
  *
- * A notice missing a parsable date, a message or a successor is ignored, since it
- * would produce invalid headers.
- *
- * @param projectPath - Directory of the project
- * @returns The deprecation notice, or undefined if the project is not deprecated
+ * @param projectPath - Project directory, the parent of its version directories
+ * @returns The notice, or undefined when the file is missing, unreadable or incomplete
  */
 export function getDeprecation(projectPath: string): Deprecation | undefined {
     const file = join(projectPath, '.deprecated.json');
@@ -34,11 +33,11 @@ export function getDeprecation(projectPath: string): Deprecation | undefined {
 }
 
 /**
- * Flags a response as deprecated with the Deprecation (RFC 9745) and Link headers,
- * so clients can detect the notice and follow the successor project.
+ * Flags a response as deprecated with the Deprecation (RFC 9745) and Link headers.
+ * Clients can then detect the notice and follow the successor project.
  *
- * @param res - Express response object
- * @param deprecation - Deprecation notice of the project
+ * @param res - Response to flag, before any of its headers are sent
+ * @param deprecation - Notice whose date becomes a Unix timestamp in seconds and whose successor is the Link target
  */
 export function setDeprecationHeaders(res: Response, deprecation: Deprecation): void {
     res.setHeader('Deprecation', `@${Math.floor(Date.parse(deprecation.date) / 1000)}`);

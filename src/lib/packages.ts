@@ -1,14 +1,19 @@
 import fs from 'fs';
 import { join } from 'path';
+
+import type { PackageProject, Packages, SearchResult } from '../types/index.js';
+
 import { getDeprecation } from './deprecations.js';
-import type { Packages, PackageProject, SearchResult } from '../types/index.js';
 
 const EXCLUDED_DIRS = ['node_modules', 'src', 'scripts', 'lib', 'dist', 'public', '.github'];
+
+// Top-level paths taken by the server's own routes, never scanned as package types
+const RESERVED_NAMES = ['download', 'health', 'manifest', 'search'];
 
 /**
  * Splits a version string into its numeric core and its pre-release tag.
  *
- * @param version - Version string (e.g., "6.0.0" or "6.0.0-pre")
+ * @param version - Dotted version, the pre-release tag being everything after the first dash (e.g., "6.0.0-pre")
  * @returns Numeric core segments and pre-release tag, null for a release
  */
 function parseVersion(version: string): { core: number[]; pre: string | null } {
@@ -23,8 +28,8 @@ function parseVersion(version: string): { core: number[]; pre: string | null } {
  * Handles varying version segment counts (e.g., "1.0" vs "1.0.0"), and orders
  * a pre-release before its release (e.g., "6.0.0-pre" < "6.0.0").
  *
- * @param a - First version string
- * @param b - Second version string
+ * @param a - Left-hand version, its missing or non-numeric segments counting as 0
+ * @param b - Right-hand version, parsed the same way as a
  * @returns Negative if a < b, positive if a > b, zero if equal
  */
 function compareVersions(a: string, b: string): number {
@@ -45,10 +50,10 @@ function compareVersions(a: string, b: string): number {
 }
 
 /**
- * Picks the newest of a list of versions, preferring releases over pre-releases,
- * so a pre-release is only picked when nothing stable matches.
+ * Picks the newest of a list of versions, preferring releases over pre-releases.
+ * A pre-release is only picked when the list holds no release.
  *
- * @param versions - Candidate version strings
+ * @param versions - Candidate versions, sorted in place when none of them is a release
  * @returns The newest version, or null if the list is empty
  */
 function pickNewest(versions: string[]): string | null {
@@ -60,8 +65,8 @@ function pickNewest(versions: string[]): string | null {
 /**
  * Dynamically scans the filesystem to discover all available packages.
  *
- * @param rootDir - Root directory to scan for package types
- * @returns Structured packages object with types, projects and versions
+ * @param rootDir - Directory whose subfolders are the package types, hidden, excluded and reserved names aside
+ * @returns Types, projects and version URLs, partial when a read fails since the error is logged, not thrown
  */
 export function getPackages(rootDir: string): Packages {
     const packages: Packages = {};
@@ -71,15 +76,16 @@ export function getPackages(rootDir: string): Packages {
             .readdirSync(rootDir, { withFileTypes: true })
             .filter((dirent) => dirent.isDirectory() && !dirent.name.startsWith('.'))
             .map((dirent) => dirent.name)
-            .filter((name) => !EXCLUDED_DIRS.includes(name));
+            .filter((name) => !EXCLUDED_DIRS.includes(name) && !RESERVED_NAMES.includes(name));
 
         packageTypes.forEach((type) => {
             const typePath = join(rootDir, type);
             packages[type] = { list: `/${type}` };
 
+            // 'list' is the key of the type's own listing, it cannot be a project
             const projects = fs
                 .readdirSync(typePath, { withFileTypes: true })
-                .filter((dirent) => dirent.isDirectory())
+                .filter((dirent) => dirent.isDirectory() && dirent.name !== 'list')
                 .map((dirent) => dirent.name);
 
             projects.forEach((project) => {
@@ -112,12 +118,53 @@ export function getPackages(rootDir: string): Packages {
 }
 
 /**
+ * Tells whether a package type exists.
+ * Only own keys count, so names like '__proto__' or 'constructor' never match.
+ *
+ * @param packages - The packages object from getPackages()
+ * @param type - Untrusted package type from the URL
+ * @returns True if the type was found on disk
+ */
+export function hasType(packages: Packages, type: string): boolean {
+    return Object.hasOwn(packages, type);
+}
+
+/**
+ * Looks up a project of a package type.
+ * Only own keys count and the 'list' key of a type is not a project, so
+ * '/npm/list' or '/npm/__proto__' resolve to nothing.
+ *
+ * @param packages - The packages object from getPackages()
+ * @param type - Untrusted package type from the URL
+ * @param name - Untrusted project name from the URL
+ * @returns The project entry, or undefined if the type or the project does not exist
+ */
+export function getProject(packages: Packages, type: string, name: string): PackageProject | undefined {
+    if (!hasType(packages, type) || name === 'list' || !Object.hasOwn(packages[type], name)) return undefined;
+
+    return packages[type][name] as PackageProject;
+}
+
+/**
+ * Lists the projects of a package type, without its 'list' key.
+ *
+ * @param packages - The packages object from getPackages()
+ * @param type - Existing package type
+ * @returns Pairs of project names and entries, in scan order
+ */
+export function listProjects(packages: Packages, type: string): [string, PackageProject][] {
+    return Object.entries(packages[type])
+        .filter(([name]) => name !== 'list')
+        .map(([name, entry]) => [name, entry as PackageProject]);
+}
+
+/**
  * Searches packages by project name or package type, case-insensitively.
  * A project matches when its name contains the query, or when the query is exactly
  * its type, in which case every project of that type is returned.
  *
  * @param packages - The packages object from getPackages()
- * @param query - Search query string
+ * @param query - Text matched in any case, an empty query matching every project
  * @returns Matching packages with type, name, versions and url, name matches first
  */
 export function searchPackages(packages: Packages, query: string): SearchResult[] {
@@ -151,7 +198,7 @@ export function searchPackages(packages: Packages, query: string): SearchResult[
  * Counts the total number of packages across all types.
  *
  * @param packages - The packages object from getPackages()
- * @returns Total package count
+ * @returns Number of projects across all types, the 'list' keys left out
  */
 export function countPackages(packages: Packages): number {
     let count = 0;
@@ -165,11 +212,11 @@ export function countPackages(packages: Packages): number {
 
 /**
  * Resolves partial version patterns to the latest matching full version.
- * Examples: "3" -> "3.5.0", "3.0" -> "3.0.2"
+ * For example, "3" resolves to "3.5.0" and "3.0" to "3.0.2" when those are the newest matches.
  *
- * @param versionPattern - Partial version pattern (e.g., "3", "3.0")
- * @param projectEntry - The project entry containing all versions
- * @returns The resolved full version or null if no match found
+ * @param versionPattern - Leading segments such as "3" or "3.0", with or without a trailing dot, or a full version
+ * @param projectEntry - Project entry whose version keys are searched, the 'latest' alias skipped
+ * @returns The newest matching version, a release when one matches, or null if no match found
  */
 export function resolveVersion(versionPattern: string, projectEntry: PackageProject): string | null {
     const normalizedPattern = versionPattern.endsWith('.') ? versionPattern : `${versionPattern}.`;
@@ -182,11 +229,11 @@ export function resolveVersion(versionPattern: string, projectEntry: PackageProj
 }
 
 /**
- * Resolves the "latest" alias to the newest release of a project, or to its
- * newest pre-release when it has no release yet.
+ * Resolves the "latest" alias to the newest version of a project.
+ * The newest release wins, a pre-release is only returned when the project has no release yet.
  *
- * @param projectEntry - The project entry containing all versions
- * @returns The latest version of the project
+ * @param projectEntry - Project entry holding at least one version besides the 'latest' alias
+ * @returns The newest version key, never the 'latest' alias itself
  */
 export function latestVersion(projectEntry: PackageProject): string {
     return pickNewest(Object.keys(projectEntry.versions).filter((v) => v !== 'latest'))!;
