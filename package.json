@@ -9,8 +9,8 @@
         "start": "node dist/app.js",
         "build": "tsc",
         "fetch": "bash scripts/fetch.sh",
-        "check": "tsc --noEmit && eslint src/",
-        "format": "prettier --write src/ && eslint --fix src/",
+        "check": "tsc --noEmit && eslint src/ scripts/",
+        "format": "prettier --write src/ scripts/ && eslint --fix src/ scripts/",
         "upgrade:minor": "npm upgrade",
         "upgrade:major": "npx npm-check-updates -u && npm install"
     },
@@ -26,6 +26,7 @@
         "@types/node": "^25.5.0",
         "eslint": "^10.1.0",
         "eslint-config-prettier": "^10.1.8",
+        "globals": "^17.13.0",
         "npm-check-updates": "latest",
         "prettier": "^3.8.1",
         "tsx": "^4.21.0",
