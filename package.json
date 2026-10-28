@@ -1,7 +1,7 @@
 {
     "version": "3.2.2",
-    "name": "@20syldev/cdn",
-    "description": "Self-hosted CDN API to store, version and distribute scripts and packages",
+    "name": "@20syldev/dropr",
+    "description": "dropr, a self-hosted CDN to store, version and distribute scripts and packages",
     "main": "dist/app.js",
     "type": "module",
     "scripts": {
@@ -34,7 +34,7 @@
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/20syldev/cdn.git"
+        "url": "git+https://github.com/20syldev/dropr.git"
     },
     "keywords": [
         "cdn",
@@ -44,7 +44,7 @@
     "author": "Sylvain L.",
     "license": "BSD 3-Clause",
     "bugs": {
-        "url": "https://github.com/20syldev/cdn/issues"
+        "url": "https://github.com/20syldev/dropr/issues"
     },
-    "homepage": "https://cdn.sylvain.sh"
+    "homepage": "https://dropr.sylvain.sh"
 }
