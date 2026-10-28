@@ -1,19 +1,33 @@
+import fs from 'fs';
+import { dirname, join, relative, sep } from 'path';
+import { fileURLToPath } from 'url';
+
+import { createLogger } from '@20syldev/logger.ts';
 import cors from 'cors';
 import express from 'express';
-import fs from 'fs';
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
-import { createLogger } from '@20syldev/logger.ts';
-import { getPackages, searchPackages, countPackages, resolveVersion, latestVersion } from './lib/packages.js';
+import type { NextFunction, Request, Response } from 'express';
+
+import { sendArchive } from './lib/archive.js';
 import { getFilesSHA256 } from './lib/checksum.js';
 import { setDeprecationHeaders } from './lib/deprecations.js';
+import { sendError } from './lib/errors.js';
+import { contentType } from './lib/mime.js';
+import {
+    countPackages,
+    getPackages,
+    getProject,
+    hasType,
+    latestVersion,
+    listProjects,
+    resolveVersion,
+    searchPackages,
+} from './lib/packages.js';
 import { safeJoin } from './lib/paths.js';
-import { getReleaseDates } from './lib/releases.js';
 import { rateLimit } from './lib/ratelimit.js';
+import { getReleaseDates } from './lib/releases.js';
 import { getSizes } from './lib/sizes.js';
-import { sendArchive } from './lib/archive.js';
+import { getManifest } from './manifest.js';
 import type { PackageProject } from './types/index.js';
-import type { Request, Response, NextFunction } from 'express';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -23,34 +37,68 @@ const packagesDir = join(rootDir, 'packages');
 const app = express();
 const logger = createLogger({ theme: 'colored', order: 'desc' });
 const pkg = JSON.parse(fs.readFileSync(join(rootDir, 'package.json'), 'utf-8'));
+const port = Number(process.env.PORT ?? 4000);
 const startTime = Date.now();
 
-// Dynamic packages object
 const packages = getPackages(packagesDir);
-
-// Cumulative directory sizes, indexed once since published versions are immutable
 const sizes = getSizes(packagesDir);
-
-// Release dates recorded at fetch time, indexed alongside the sizes
 const releaseDates = getReleaseDates(packagesDir);
 
-// ----------- ----------- MIDDLEWARES SETUP ----------- ----------- //
+/**
+ * Builds the download links of every version of a project.
+ *
+ * @param type - Package type folder name (e.g. npm), inserted as is in the URLs
+ * @param name - Project name without its version suffix, inserted as is in the URLs
+ * @param entry - Project entry, its deprecation notice and its version keys other than the 'latest' alias are read
+ * @returns The deprecation notice, the latest archive URL and one URL per version
+ */
+function downloadLinks(type: string, name: string, entry: PackageProject): Record<string, unknown> {
+    const versions = Object.keys(entry.versions).filter((v) => v !== 'latest');
+
+    return {
+        deprecated: entry.deprecated,
+        latest: `/download/${type}/${name}`,
+        versions: versions.reduce<Record<string, string>>((acc, v) => {
+            acc[v] = `/download/${type}/${name}@${v}`;
+            return acc;
+        }, {}),
+    };
+}
+
+/**
+ * Lists the entries of a directory of a version, with their size.
+ *
+ * @param dirPath - Absolute directory path inside a version, joined from packagesDir so it matches the size index keys
+ * @returns Entries with a trailing slash on directory names and their size in bytes, cumulative for a directory and
+ * null when the directory is missing from the size index
+ */
+function listDirectory(dirPath: string): { name: string; size: number | null; directory: boolean }[] {
+    return fs.readdirSync(dirPath, { withFileTypes: true }).map((ent) => {
+        const fullPath = join(dirPath, ent.name);
+        return {
+            name: ent.isDirectory() ? ent.name + '/' : ent.name,
+            size: ent.isDirectory() ? (sizes.get(fullPath) ?? null) : fs.statSync(fullPath).size,
+            directory: ent.isDirectory(),
+        };
+    });
+}
 
 // Behind a reverse proxy, the socket address is the proxy, not the client
 app.set('trust proxy', true);
 
-// CORS & Express setup
-app.use(cors({ methods: ['GET'], exposedHeaders: ['Deprecation', 'Link'] }));
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
+app.use(
+    cors({
+        methods: ['GET'],
+        exposedHeaders: ['Deprecation', 'Link', 'ETag', 'Content-Disposition', 'X-Content-Type-Options'],
+    }),
+);
 
-// Set favicon for API
+// Browsers request /favicon.ico by default, so the ICO (rendered from the SVG mark) is served next to the SVG
 app.use('/favicon.ico', express.static(join(rootDir, 'public', 'favicon.ico')));
+app.use('/favicon.svg', express.static(join(rootDir, 'public', 'favicon.svg')));
 
-// Display robots.txt
 app.use('/robots.txt', express.static(join(rootDir, 'robots.txt')));
 
-// Return formatted JSON
 app.use((req: Request, res: Response, next: NextFunction) => {
     res.jsonResponse = (data: unknown) => {
         res.setHeader('Content-Type', 'application/json');
@@ -59,7 +107,6 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     next();
 });
 
-// Log requests
 app.use((req: Request, res: Response, next: NextFunction) => {
     const start = Date.now();
     res.on('finish', () => {
@@ -68,14 +115,13 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     next();
 });
 
-// Too many requests
 app.use(rateLimit);
 
-// Health check endpoint
 app.get('/health', (req: Request, res: Response) => {
     const uptime = (Date.now() - startTime) / 1000;
     const mem = process.memoryUsage();
     res.jsonResponse({
+        name: 'dropr',
         status: 'ok',
         version: pkg.version,
         uptime: `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m ${Math.floor(uptime % 60)}s`,
@@ -88,17 +134,17 @@ app.get('/health', (req: Request, res: Response) => {
     });
 });
 
-// Search packages by name or type
+app.get('/manifest', (req: Request, res: Response) => {
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.jsonResponse(getManifest(pkg.version));
+});
+
 app.get('/search', (req: Request, res: Response) => {
     const raw = req.query.q;
     const query = typeof raw === 'string' ? raw.trim() : '';
 
     if (query.length === 0) {
-        return res.status(400).jsonResponse({
-            message: 'Bad Request',
-            error: 'Missing required query parameter: q',
-            status: '400',
-        });
+        return sendError(res, 400, 'Missing required query parameter: q');
     }
     const results = searchPackages(packages, query);
     res.jsonResponse({
@@ -108,23 +154,12 @@ app.get('/search', (req: Request, res: Response) => {
     });
 });
 
-// List all downloadable packages
 app.get('/download', (req: Request, res: Response) => {
     const downloads: Record<string, Record<string, unknown>> = {};
     for (const type of Object.keys(packages)) {
         downloads[type] = {};
-        for (const project of Object.keys(packages[type])) {
-            if (project === 'list' || project === 'download') continue;
-            const entry = packages[type][project] as PackageProject;
-            const versions = Object.keys(entry.versions).filter((v) => v !== 'latest');
-            downloads[type][project] = {
-                deprecated: entry.deprecated,
-                latest: `/download/${type}/${project}`,
-                versions: versions.reduce<Record<string, string>>((acc, v) => {
-                    acc[v] = `/download/${type}/${project}@${v}`;
-                    return acc;
-                }, {}),
-            };
+        for (const [project, entry] of listProjects(packages, type)) {
+            downloads[type][project] = downloadLinks(type, project, entry);
         }
     }
     res.jsonResponse({
@@ -133,31 +168,16 @@ app.get('/download', (req: Request, res: Response) => {
     });
 });
 
-// List downloadable packages for a specific type
 app.get('/download/:type', (req: Request, res: Response) => {
     const type = req.params.type as string;
 
-    if (!packages[type]) {
-        return res.status(404).jsonResponse({
-            message: 'Not Found',
-            error: `Package type '${type}' does not exist.`,
-            status: '404',
-        });
+    if (!hasType(packages, type)) {
+        return sendError(res, 404, `Package type '${type}' does not exist.`);
     }
 
     const downloads: Record<string, unknown> = {};
-    for (const project of Object.keys(packages[type])) {
-        if (project === 'list' || project === 'download') continue;
-        const entry = packages[type][project] as PackageProject;
-        const versions = Object.keys(entry.versions).filter((v) => v !== 'latest');
-        downloads[project] = {
-            deprecated: entry.deprecated,
-            latest: `/download/${type}/${project}`,
-            versions: versions.reduce<Record<string, string>>((acc, v) => {
-                acc[v] = `/download/${type}/${project}@${v}`;
-                return acc;
-            }, {}),
-        };
+    for (const [project, entry] of listProjects(packages, type)) {
+        downloads[project] = downloadLinks(type, project, entry);
     }
     res.jsonResponse({
         message: `Downloadable ${type} packages (.tar.gz).`,
@@ -165,112 +185,90 @@ app.get('/download/:type', (req: Request, res: Response) => {
     });
 });
 
-// Browser-friendly download route
+// Browser-friendly alias of /{type}/{project}@{version}?download, without a query string
 app.get('/download/:type/:project', (req: Request, res: Response) => {
     const type = req.params.type as string;
     const project = req.params.project as string;
     const [name, version] = project.split('@');
+    const entry = getProject(packages, type, name);
 
-    if (!packages[type] || !packages[type][name]) {
-        return res.status(404).jsonResponse({
-            message: 'Not Found',
-            error: `Project '${name}' does not exist in /${type}.`,
-            status: '404',
-        });
+    if (!entry) {
+        return sendError(res, 404, `Project '${name}' does not exist in /${type}.`);
     }
 
-    const entry = packages[type][name] as PackageProject;
     let resolved = version || 'latest';
 
     if (entry.deprecated) setDeprecationHeaders(res, entry.deprecated);
 
     if (resolved === 'latest') {
         resolved = latestVersion(entry);
-    } else if (!entry.versions[resolved]) {
+    } else if (!Object.hasOwn(entry.versions, resolved)) {
         const match = resolveVersion(resolved, entry);
-        if (match) {
-            resolved = match;
-        } else {
-            return res.status(404).jsonResponse({
-                message: 'Not Found',
-                error: `Version ${resolved} does not exist in the '${name}' project.`,
-                status: '404',
-            });
-        }
+        if (!match) return sendError(res, 404, `Version ${resolved} does not exist in the '${name}' project.`);
+        resolved = match;
     }
 
     sendArchive(res, type, name, resolved, packagesDir);
 });
 
-// Check if package type exists
 app.use('/:type', (req: Request, res: Response, next: NextFunction) => {
     const type = req.params.type as string;
 
-    if (!Object.keys(packages).includes(type)) {
-        return res.status(404).jsonResponse({
-            message: 'Not Found',
-            error: `Package type '${type}' does not exist.`,
-            status: '404',
-        });
+    if (!hasType(packages, type)) {
+        return sendError(res, 404, `Package type '${type}' does not exist.`);
     }
     next();
 });
 
-// Changelog endpoint for a project
+// The changelog covers every version, so the version of /{type}/{project}@{version}/changelog is ignored
 app.get('/:type/:project/changelog', (req: Request, res: Response) => {
     const type = req.params.type as string;
-    const project = req.params.project as string;
+    const [name] = (req.params.project as string).split('@');
+    const entry = getProject(packages, type, name);
 
-    if (!packages[type] || !packages[type][project]) {
-        return res.status(404).jsonResponse({
-            message: 'Not Found',
-            error: `Project '${project}' does not exist in /${type}.`,
-            status: '404',
-        });
+    if (!entry) {
+        return sendError(res, 404, `Project '${name}' does not exist in /${type}.`);
     }
 
-    const entry = packages[type][project] as PackageProject;
     const versions = Object.keys(entry.versions).filter((v) => v !== 'latest');
 
     if (entry.deprecated) setDeprecationHeaders(res, entry.deprecated);
 
     const changelog = versions.map((version) => {
-        const path = join(packagesDir, type, project, version);
+        const path = join(packagesDir, type, name, version);
+
+        // Versions missing from .versions.json have no recorded date, the folder mtime (fetch or checkout) stands in
         const fallback = fs.statSync(path).mtime.toISOString().split('T')[0];
 
         return {
             version,
-            date: releaseDates.get(`${type}/${project}/${version}`) ?? fallback,
-            url: `/${type}/${project}@${version}`,
+            date: releaseDates.get(`${type}/${name}/${version}`) ?? fallback,
+            url: `/${type}/${name}@${version}`,
         };
     });
 
     res.setHeader('Cache-Control', 'public, max-age=300');
-    res.jsonResponse({ name: project, type, deprecated: entry.deprecated, versions: changelog.length, changelog });
+    res.jsonResponse({ name, type, deprecated: entry.deprecated, versions: changelog.length, changelog });
 });
 
-// Check if project exists
 app.use('/:type/:project', (req: Request, res: Response, next: NextFunction) => {
     const type = req.params.type as string;
     const project = req.params.project as string;
     const [name, version] = project.split('@');
+    const entry = getProject(packages, type, name);
 
     req.name = name;
     req.version = version;
+    req.pinned = false;
 
-    if (!packages[type] || !packages[type][name]) {
-        return res.status(404).jsonResponse({
-            message: 'Not Found',
-            error: `Project '${name}' does not exist in /${type}.`,
-            status: '404',
-        });
+    if (!entry) {
+        return sendError(res, 404, `Project '${name}' does not exist in /${type}.`);
     }
 
-    const { deprecated } = packages[type][name] as PackageProject;
+    const { deprecated } = entry;
     if (deprecated) setDeprecationHeaders(res, deprecated);
 
     if (!version) {
-        const entry = packages[type][name] as PackageProject;
         const versions = Object.keys(entry.versions).reduce<Record<string, string>>((acc, ver) => {
             acc[ver] = `/${type}/${name}@${ver}`;
             return acc;
@@ -284,80 +282,85 @@ app.use('/:type/:project', (req: Request, res: Response, next: NextFunction) => 
     }
 
     if (version === 'latest') {
-        req.version = latestVersion(packages[type][name] as PackageProject);
+        req.version = latestVersion(entry);
+    } else if (Object.hasOwn(entry.versions, version)) {
+        req.pinned = true;
     } else {
-        const entry = packages[type][name] as PackageProject;
-        let resolved = version;
-
-        if (!entry.versions[version]) {
-            const match = resolveVersion(version, entry);
-            if (match) {
-                resolved = match;
-            } else {
-                return res.status(404).jsonResponse({
-                    message: 'Not Found',
-                    error: `Version ${version} does not exist in the '${name}' project.`,
-                    status: '404',
-                });
-            }
-        }
-        req.version = resolved;
+        const match = resolveVersion(version, entry);
+        if (!match) return sendError(res, 404, `Version ${version} does not exist in the '${name}' project.`);
+        req.version = match;
     }
     next();
 });
 
-// Serve files from specific project versions
 app.use('/:type/:project/*file', (req: Request, res: Response) => {
     const type = req.params.type as string;
     const file = ([] as string[]).concat(req.params.file as string).join('/');
-    const location = safeJoin(packagesDir, type, req.name, req.version, file);
+    const missing = `File '${file}' does not exist in the ${req.version} version of the '${req.name}' project.`;
 
-    if (!location || !fs.existsSync(location)) {
-        return res.status(404).jsonResponse({
-            message: 'Not Found',
-            error: `File '${file}' does not exist in the ${req.version} version of the '${req.name}' project.`,
-            status: '404',
-        });
+    // Resolved inside the version folder only, so '..' cannot reach other projects or the metadata files
+    const versionDir = join(packagesDir, type, req.name, req.version);
+    const location = safeJoin(versionDir, file);
+    let stat: fs.Stats | undefined;
+
+    try {
+        // A symlink is followed only when its target stays inside the version folder
+        const real = location && fs.realpathSync(location);
+        const base = fs.realpathSync(versionDir);
+        if (real && (real === base || real.startsWith(base + sep))) stat = fs.statSync(real);
+    } catch {
+        // ENOENT, or ENOTDIR when a file is used as a folder (package.json/x): both are a missing file
     }
+    if (!location || !stat) return sendError(res, 404, missing);
 
-    if (fs.statSync(location).isDirectory()) {
-        const entries = fs.readdirSync(location, { withFileTypes: true });
-        const files = entries.map((ent) => {
-            const fullPath = join(location, ent.name);
-            return {
-                name: ent.isDirectory() ? ent.name + '/' : ent.name,
-                size: ent.isDirectory() ? (sizes.get(fullPath) ?? null) : fs.statSync(fullPath).size,
-                directory: ent.isDirectory(),
-            };
-        });
+    if (stat.isDirectory()) {
         return res.jsonResponse({
             name: req.name,
             version: req.version,
             path: file.replace(/\/$/, ''),
-            deprecated: (packages[type][req.name] as PackageProject).deprecated,
-            files,
+            deprecated: getProject(packages, type, req.name)?.deprecated,
+            files: listDirectory(location),
         });
     }
 
-    const stat = fs.statSync(location);
     const etag = `"${stat.size.toString(16)}-${stat.mtimeMs.toString(16)}"`;
     res.setHeader('ETag', etag);
-    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+
+    // Only an exact version is immutable: latest and partial versions move to the next release
+    res.setHeader('Cache-Control', req.pinned ? 'public, max-age=31536000, immutable' : 'public, max-age=300');
 
     if (req.headers['if-none-match'] === etag) {
         return res.status(304).end();
     }
 
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.sendFile(location);
+    res.setHeader('Content-Type', contentType(location));
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+
+    /**
+     * Relative to its version folder, so a dot folder above dropr does not hide every file. Dotfiles inside are
+     * listed and checksummed, so they are served too.
+     */
+    res.sendFile(relative(versionDir, location), { root: versionDir, dotfiles: 'allow' }, (err) => {
+        if (!err) return;
+        if (res.headersSent) return void res.destroy();
+
+        res.removeHeader('ETag');
+        res.removeHeader('Cache-Control');
+        res.removeHeader('Last-Modified');
+
+        // A range or precondition the file cannot satisfy keeps its status, anything else reads as a missing file
+        const { status } = err as Error & { status?: number };
+        if (status === 412) return sendError(res, 412, `Precondition failed for file '${file}'.`);
+        if (status === 416) return sendError(res, 416, `Range not satisfiable for file '${file}'.`);
+        res.removeHeader('Content-Range');
+        sendError(res, 404, missing);
+    });
 });
 
-// ----------- ----------- MAIN ENDPOINTS ----------- ----------- //
-
-// Main route
 app.get('/', (req: Request, res: Response) => {
     res.jsonResponse({
         message: 'Use the following routes to access the projects and their versions.',
+        manifest: '/manifest',
         health: '/health',
         search: '/search?q=',
         download: '/download',
@@ -365,7 +368,6 @@ app.get('/', (req: Request, res: Response) => {
     });
 });
 
-// Display projects for a specific type
 app.get('/:type', (req: Request, res: Response) => {
     const type = req.params.type as string;
 
@@ -375,15 +377,13 @@ app.get('/:type', (req: Request, res: Response) => {
     });
 });
 
-// Project version details endpoint
 app.get('/:type/:project', (req: Request, res: Response) => {
     const type = req.params.type as string;
     const name = req.name;
     const version = req.version;
     const path = join(packagesDir, type, name, version);
-    const { deprecated } = packages[type][name] as PackageProject;
+    const { deprecated } = getProject(packages, type, name)!;
 
-    // SHA256 checksums for all files
     if (req.query.checksums !== undefined) {
         const checksums = getFilesSHA256(path);
         return res.jsonResponse({
@@ -395,47 +395,38 @@ app.get('/:type/:project', (req: Request, res: Response) => {
         });
     }
 
-    // Download as .tar.gz archive
     if (req.query.download !== undefined) {
         return sendArchive(res, type, name, version, packagesDir);
     }
 
-    fs.readdir(path, { withFileTypes: true }, (err, entries) => {
-        if (err) {
-            return res.status(500).jsonResponse({
-                message: 'Internal Server Error',
-                error: `Could not read directory: ${err.message}`,
-                status: '500',
-            });
-        }
-        const files = entries.map((ent) => {
-            const fullPath = join(path, ent.name);
-            return {
-                name: ent.isDirectory() ? ent.name + '/' : ent.name,
-                size: ent.isDirectory() ? (sizes.get(fullPath) ?? null) : fs.statSync(fullPath).size,
-                directory: ent.isDirectory(),
-            };
-        });
+    try {
         res.jsonResponse({
             name: name,
             version,
             current: name + '@' + version,
             deprecated,
-            files,
+            files: listDirectory(path),
         });
-    });
+    } catch (error) {
+        sendError(res, 500, `Could not read directory: ${(error as Error).message}`);
+    }
 });
 
-// Internal Server Error
-app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
-    console.error(err.stack);
-    res.status(500).jsonResponse({
-        message: 'Internal Server Error',
-        error: err.message,
-        status: '500',
-    });
+app.use((req: Request, res: Response) => {
+    sendError(res, 404, `Route '${req.originalUrl}' does not exist.`);
 });
 
-// ----------- ----------- SERVER SETUP ----------- ----------- //
+// Also reached by errors Express raises itself (e.g. a malformed URL), which carry their own status
+app.use((err: Error & { status?: number }, req: Request, res: Response, _next: NextFunction) => {
+    const status = err.status && err.status >= 400 && err.status < 600 ? err.status : 500;
 
-app.listen(4000, () => console.log('CDN is running on\n    - http://127.0.0.1:4000\n    - http://localhost:4000'));
+    if (status >= 500) console.error(err.stack);
+    if (res.headersSent) return void res.destroy();
+
+    // Client errors describe the request, server errors may leak internals
+    sendError(res, status, status < 500 ? err.message : 'An unexpected error occurred.');
+});
+
+app.listen(port, () =>
+    console.log(`dropr is running on\n    - http://127.0.0.1:${port}\n    - http://localhost:${port}`),
+);
