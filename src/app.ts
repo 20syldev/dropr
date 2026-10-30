@@ -428,6 +428,9 @@ app.use((err: Error & { status?: number }, req: Request, res: Response, _next: N
     sendError(res, status, status < 500 ? err.message : 'An unexpected error occurred.');
 });
 
-app.listen(port, () =>
-    console.log(`dropr is running on\n    - http://127.0.0.1:${port}\n    - http://localhost:${port}`),
-);
+// Express 5 hands a listen failure (port taken) to this callback, so it must not report the server as running
+app.listen(port, (error) => {
+    if (error) throw error;
+
+    console.log(`dropr is running on\n    - http://127.0.0.1:${port}\n    - http://localhost:${port}`);
+});
