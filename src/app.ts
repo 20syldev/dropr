@@ -404,17 +404,13 @@ app.get('/:type/:project', (req: Request, res: Response) => {
         return sendArchive(res, type, name, version, packagesDir);
     }
 
-    try {
-        res.jsonResponse({
-            name: name,
-            version,
-            current: name + '@' + version,
-            deprecated,
-            files: listDirectory(path, path),
-        });
-    } catch (error) {
-        sendError(res, 500, `Could not read directory: ${(error as Error).message}`);
-    }
+    res.jsonResponse({
+        name: name,
+        version,
+        current: name + '@' + version,
+        deprecated,
+        files: listDirectory(path, path),
+    });
 });
 
 app.use((req: Request, res: Response) => {
