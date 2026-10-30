@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { dirname, join, relative } from 'path';
+import { dirname, join, relative, resolve } from 'path';
 import { fileURLToPath } from 'url';
 
 import { createLogger } from '@20syldev/logger.ts';
@@ -32,7 +32,9 @@ import type { FileEntry, PackageProject } from './types/index.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const rootDir = join(__dirname, '..');
-const packagesDir = join(rootDir, 'packages');
+
+// PACKAGES_DIR serves another tree than packages/, as the tests do with a generated one
+const packagesDir = process.env.PACKAGES_DIR ? resolve(process.env.PACKAGES_DIR) : join(rootDir, 'packages');
 
 const app = express();
 const logger = createLogger({ theme: 'colored', order: 'desc' });
