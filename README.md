@@ -10,8 +10,8 @@ Personal CDN that stores, versions and serves bash scripts, npm packages and sha
 - JSON listings of every type, project, version and folder, with file sizes; SHA-256 checksums of a version (`?checksums`) and its `.tar.gz` archive (`?download` or `/download/...`).
 - Changelog of a project with release dates, search by name or type, route manifest (`/manifest`) and health check (`/health`).
 - Deprecated projects stay reachable at their old address, frozen at their last version: JSON responses carry a `deprecated` field (date, message, successor), and every response under the project a `Deprecation` header and a `Link` to the successor.
-- One error body for every status: `{ "status": 404, "error": "Not Found", "message": "..." }`.
-- Files served from inside their version folder only: no `..`, and a symlink only when its target stays inside.
+- One error body for every status: `{ "status": 404, "error": "Not Found", "message": "..." }`; a method other than `GET` or `HEAD` gets a `405`.
+- Files served from inside their version folder only: no `..`, and a symlink only when its target stays inside; listings, sizes and checksums follow the same rule.
 - Rate limit of 100 requests per 10 seconds per client and 1000 per 10 seconds overall, answered with a `429`; CORS open to every origin, with the `Deprecation`, `Link`, `ETag` and `Content-Disposition` headers exposed.
 
 ## Usage
@@ -68,7 +68,9 @@ Node.js, Express 5, strict TypeScript (ESM), @20syldev/logger.ts
 | `npm run build`         | Compile TypeScript to `dist/`                                 |
 | `npm start`             | Production server on port 4000, or `$PORT`                    |
 | `npm run fetch`         | Publish a version into `packages/` (`scripts/fetch.sh`)       |
-| `npm run check`         | `tsc --noEmit` + ESLint (`src/` and `scripts/`)               |
+| `npm run check`         | `tsc --noEmit` + ESLint (`src/`, `scripts/` and `test/`)      |
+| `npm test`              | Route snapshots on a generated tree, sweep of `packages/`     |
+| `npm run test:update`   | Record the snapshots again after an intended change           |
 | `npm run format`        | Prettier + ESLint (write)                                     |
 | `npm run upgrade:minor` | Update the dependencies within their ranges                   |
 | `npm run upgrade:major` | Move every dependency to its latest major (npm-check-updates) |
@@ -83,13 +85,16 @@ src/app.ts        Express server: middlewares, routes and error handling
 src/manifest.ts   Description of every route, served on /manifest
 src/lib/          Package scan, version resolution, deprecations, release dates, sizes, paths, archives, checksums, MIME types, errors, rate limit
 src/types/        Shared types and the Express request and response augmentations
+test/             Route snapshots on a generated tree (fixture.mjs), sweep of packages/, HTTP and tar helpers
 robots.txt        Crawler rules, served on /robots.txt
 ```
 
 ## Notes
 
 - A full version must exist as is: `@6.0.0` answers 404 while only `6.0.0-pre` is published, whereas `@6.0` resolves to it.
-- Archives are named `<project>-<version>.tar.gz` and unpack into a `<version>/` folder.
+- Archives are named `<project>-<version>.tar.gz` and unpack into a `<version>/` folder. When tar fails midway (an unreadable file), the connection is reset instead of ending, so `curl -f` fails rather than keeping a partial archive.
 - `.versions.json` (release dates) and `.deprecated.json` (deprecation notice) sit next to the version folders of a project, so they never show up in listings, archives or checksums.
-- In production: `npm install && npm run build`, then `npm start`; archives need `tar` on the host.
+- In production: `npm install && npm run build`, then `npm start`; the committed lockfile pins what gets installed, and archives need `tar` on the host.
+- `PACKAGES_DIR` serves another tree than `packages/`; the tests point it at a tree they generate in the system temp folder.
+- The tests need Node 24 and a regular user: root can read a file of mode `000`, so the cases that rely on one are skipped, and `npm run test:update` would then drop their snapshots.
 - Version `3.3.0` changes what clients see: `error` now holds the HTTP reason phrase and `message` the detail (the other way around until `3.2.2`), `status` is a number instead of a string, files carry their own content type instead of `text/plain`, and only exact versions stay immutable (`3.2.2` cached `@latest` for a year).
