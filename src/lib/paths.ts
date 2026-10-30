@@ -1,3 +1,4 @@
+import fs from 'fs';
 import { join, resolve, sep } from 'path';
 
 /**
@@ -17,4 +18,25 @@ export function safeJoin(base: string, ...segments: string[]): string | null {
     if (target !== root && !target.startsWith(root + sep)) return null;
 
     return target;
+}
+
+/**
+ * Stats a path inside a version folder, following symlinks only while their target stays in that folder.
+ * Files, listings, sizes and checksums share this rule, so a symlink out of a version is never read nor measured.
+ *
+ * @param base - Version folder the target must stay in, its own path resolved through symlinks too
+ * @param path - Absolute path inside base, which may be a symlink or sit below one
+ * @returns The stats of the path or of its target, or null when the target escapes base, dangles or cannot be read
+ */
+export function statInside(base: string, path: string): fs.Stats | null {
+    try {
+        const root = fs.realpathSync(base);
+        const real = fs.realpathSync(path);
+        if (real !== root && !real.startsWith(root + sep)) return null;
+
+        return fs.statSync(real);
+    } catch {
+        // ENOENT for a dangling symlink, ENOTDIR when a file is used as a folder (package.json/x): both are missing
+        return null;
+    }
 }
