@@ -123,6 +123,14 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
 app.use(rateLimit);
 
+// Every route only reads, and the app.use() lookups below would otherwise answer or serve files for any method
+app.use((req: Request, res: Response, next: NextFunction) => {
+    if (req.method === 'GET' || req.method === 'HEAD') return next();
+
+    res.setHeader('Allow', 'GET, HEAD, OPTIONS');
+    sendError(res, 405, `Method '${req.method}' is not allowed, use GET or HEAD.`);
+});
+
 app.get('/health', (req: Request, res: Response) => {
     const uptime = (Date.now() - startTime) / 1000;
     const mem = process.memoryUsage();
