@@ -8,9 +8,11 @@
         "dev": "tsx watch src/app.ts",
         "start": "node dist/app.js",
         "build": "tsc",
+        "test": "tsc && node --test \"test/*.test.mjs\"",
+        "test:update": "tsc && node --test --test-update-snapshots \"test/*.test.mjs\"",
         "fetch": "bash scripts/fetch.sh",
-        "check": "tsc --noEmit && eslint src/ scripts/",
-        "format": "prettier --write src/ scripts/ && eslint --fix src/ scripts/",
+        "check": "tsc --noEmit && eslint src/ scripts/ test/",
+        "format": "prettier --write src/ scripts/ test/ && eslint --fix src/ scripts/ test/",
         "upgrade:minor": "npm upgrade",
         "upgrade:major": "npx npm-check-updates -u && npm install"
     },

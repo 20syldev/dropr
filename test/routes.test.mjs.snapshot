@@ -1,0 +1,2810 @@
+exports[`routes > DELETE /npm/lib@1.2.0/index.js 1`] = `
+{
+  "status": 405,
+  "headers": {
+    "allow": "GET, HEAD, OPTIONS",
+    "content-length": "117",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 405,
+    "error": "Method Not Allowed",
+    "message": "Method 'DELETE' is not allowed, use GET or HEAD."
+  }
+}
+`;
+
+exports[`routes > GET / 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "2289",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "message": "Use the following routes to access the projects and their versions.",
+    "manifest": "/manifest",
+    "health": "/health",
+    "search": "/search?q=",
+    "download": "/download",
+    "packages": {
+      "bash": {
+        "list": "/bash",
+        "gft": {
+          "list": "/bash/gft",
+          "versions": {
+            "latest": "/bash/gft@latest",
+            "1.0.0": "/bash/gft@1.0.0",
+            "1.1.0": "/bash/gft@1.1.0",
+            "1.2.0": "/bash/gft@1.2.0"
+          }
+        }
+      },
+      "config": {
+        "list": "/config",
+        "styles": {
+          "list": "/config/styles",
+          "versions": {
+            "latest": "/config/styles@latest",
+            "1.0.0": "/config/styles@1.0.0"
+          }
+        }
+      },
+      "npm": {
+        "list": "/npm",
+        "bash-utils": {
+          "list": "/npm/bash-utils",
+          "versions": {
+            "latest": "/npm/bash-utils@latest",
+            "1.0.0": "/npm/bash-utils@1.0.0"
+          }
+        },
+        "broken": {
+          "list": "/npm/broken",
+          "versions": {
+            "latest": "/npm/broken@latest",
+            "1.0.0": "/npm/broken@1.0.0"
+          }
+        },
+        "lib": {
+          "list": "/npm/lib",
+          "versions": {
+            "latest": "/npm/lib@latest",
+            "1.0.0": "/npm/lib@1.0.0",
+            "1.2.0": "/npm/lib@1.2.0",
+            "1.10.0": "/npm/lib@1.10.0",
+            "2.0.0-pre": "/npm/lib@2.0.0-pre"
+          }
+        },
+        "links": {
+          "list": "/npm/links",
+          "versions": {
+            "latest": "/npm/links@latest",
+            "1.0.0": "/npm/links@1.0.0"
+          }
+        },
+        "next": {
+          "list": "/npm/next",
+          "versions": {
+            "latest": "/npm/next@latest",
+            "0.1.0-beta.2": "/npm/next@0.1.0-beta.2",
+            "0.1.0-beta.10": "/npm/next@0.1.0-beta.10"
+          }
+        },
+        "old": {
+          "list": "/npm/old",
+          "versions": {
+            "latest": "/npm/old@latest",
+            "1.0.0": "/npm/old@1.0.0"
+          },
+          "deprecated": {
+            "date": "2025-06-01",
+            "message": "Renamed to lib.",
+            "successor": "https://dropr.sylvain.sh/npm/lib"
+          }
+        },
+        "sealed": {
+          "list": "/npm/sealed",
+          "versions": {
+            "latest": "/npm/sealed@latest",
+            "1.0.0": "/npm/sealed@1.0.0"
+          }
+        }
+      }
+    }
+  }
+}
+`;
+
+exports[`routes > GET /%E0%A4%A 1`] = `
+{
+  "status": 400,
+  "headers": {
+    "content-length": "95",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 400,
+    "error": "Bad Request",
+    "message": "Failed to decode param '%E0%A4%A'"
+  }
+}
+`;
+
+exports[`routes > GET /.hidden 1`] = `
+{
+  "status": 404,
+  "headers": {
+    "content-length": "98",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 404,
+    "error": "Not Found",
+    "message": "Package type '.hidden' does not exist."
+  }
+}
+`;
+
+exports[`routes > GET /__proto__ 1`] = `
+{
+  "status": 404,
+  "headers": {
+    "content-length": "100",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 404,
+    "error": "Not Found",
+    "message": "Package type '__proto__' does not exist."
+  }
+}
+`;
+
+exports[`routes > GET /bash 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "294",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "message": "Bash projects.",
+    "projects": {
+      "list": "/bash",
+      "gft": {
+        "list": "/bash/gft",
+        "versions": {
+          "latest": "/bash/gft@latest",
+          "1.0.0": "/bash/gft@1.0.0",
+          "1.1.0": "/bash/gft@1.1.0",
+          "1.2.0": "/bash/gft@1.2.0"
+        }
+      }
+    }
+  }
+}
+`;
+
+exports[`routes > GET /bash/gft/changelog 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "cache-control": "public, max-age=300",
+    "content-length": "369",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "name": "gft",
+    "type": "bash",
+    "versions": 3,
+    "changelog": [
+      {
+        "version": "1.0.0",
+        "date": "2025-03-01",
+        "url": "/bash/gft@1.0.0"
+      },
+      {
+        "version": "1.1.0",
+        "date": "2025-04-15",
+        "url": "/bash/gft@1.1.0"
+      },
+      {
+        "version": "1.2.0",
+        "date": "2025-01-01",
+        "url": "/bash/gft@1.2.0"
+      }
+    ]
+  }
+}
+`;
+
+exports[`routes > GET /bash/gft@1.2.0/README.md 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "accept-ranges": "bytes",
+    "cache-control": "public, max-age=31536000, immutable",
+    "content-length": "6",
+    "content-type": "text/markdown; charset=utf-8",
+    "etag": "\\"6-19421bcaa00\\"",
+    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "x-content-type-options": "nosniff"
+  },
+  "body": "# gft\\n"
+}
+`;
+
+exports[`routes > GET /bash/gft@1.2.0/gft 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "accept-ranges": "bytes",
+    "cache-control": "public, max-age=31536000, immutable",
+    "content-length": "29",
+    "content-type": "text/plain; charset=utf-8",
+    "etag": "\\"1d-19421bcaa00\\"",
+    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "x-content-type-options": "nosniff"
+  },
+  "body": "#!/bin/bash\\necho \\"gft 1.2.0\\"\\n"
+}
+`;
+
+exports[`routes > GET /config 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "244",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "message": "Config projects.",
+    "projects": {
+      "list": "/config",
+      "styles": {
+        "list": "/config/styles",
+        "versions": {
+          "latest": "/config/styles@latest",
+          "1.0.0": "/config/styles@1.0.0"
+        }
+      }
+    }
+  }
+}
+`;
+
+exports[`routes > GET /config/styles@1.0.0/data.json 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "accept-ranges": "bytes",
+    "cache-control": "public, max-age=31536000, immutable",
+    "content-length": "19",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "\\"13-19421bcaa00\\"",
+    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "x-content-type-options": "nosniff"
+  },
+  "body": "{ \\"b\\": 1, \\"a\\": 2 }\\n"
+}
+`;
+
+exports[`routes > GET /config/styles@1.0.0/logo.svg 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "accept-ranges": "bytes",
+    "cache-control": "public, max-age=31536000, immutable",
+    "content-length": "42",
+    "content-type": "image/svg+xml",
+    "etag": "\\"2a-19421bcaa00\\"",
+    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "x-content-type-options": "nosniff"
+  },
+  "body": "<svg xmlns=\\"http://www.w3.org/2000/svg\\"/>\\n"
+}
+`;
+
+exports[`routes > GET /config/styles@1.0.0/theme.css 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "accept-ranges": "bytes",
+    "cache-control": "public, max-age=31536000, immutable",
+    "content-length": "22",
+    "content-type": "text/css; charset=utf-8",
+    "etag": "\\"16-19421bcaa00\\"",
+    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "x-content-type-options": "nosniff"
+  },
+  "body": ":root { color: red; }\\n"
+}
+`;
+
+exports[`routes > GET /constructor 1`] = `
+{
+  "status": 404,
+  "headers": {
+    "content-length": "102",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 404,
+    "error": "Not Found",
+    "message": "Package type 'constructor' does not exist."
+  }
+}
+`;
+
+exports[`routes > GET /download 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "1952",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "message": "Available packages for download (.tar.gz).",
+    "downloads": {
+      "bash": {
+        "gft": {
+          "latest": "/download/bash/gft",
+          "versions": {
+            "1.0.0": "/download/bash/gft@1.0.0",
+            "1.1.0": "/download/bash/gft@1.1.0",
+            "1.2.0": "/download/bash/gft@1.2.0"
+          }
+        }
+      },
+      "config": {
+        "styles": {
+          "latest": "/download/config/styles",
+          "versions": {
+            "1.0.0": "/download/config/styles@1.0.0"
+          }
+        }
+      },
+      "npm": {
+        "bash-utils": {
+          "latest": "/download/npm/bash-utils",
+          "versions": {
+            "1.0.0": "/download/npm/bash-utils@1.0.0"
+          }
+        },
+        "broken": {
+          "latest": "/download/npm/broken",
+          "versions": {
+            "1.0.0": "/download/npm/broken@1.0.0"
+          }
+        },
+        "lib": {
+          "latest": "/download/npm/lib",
+          "versions": {
+            "1.0.0": "/download/npm/lib@1.0.0",
+            "1.2.0": "/download/npm/lib@1.2.0",
+            "1.10.0": "/download/npm/lib@1.10.0",
+            "2.0.0-pre": "/download/npm/lib@2.0.0-pre"
+          }
+        },
+        "links": {
+          "latest": "/download/npm/links",
+          "versions": {
+            "1.0.0": "/download/npm/links@1.0.0"
+          }
+        },
+        "next": {
+          "latest": "/download/npm/next",
+          "versions": {
+            "0.1.0-beta.2": "/download/npm/next@0.1.0-beta.2",
+            "0.1.0-beta.10": "/download/npm/next@0.1.0-beta.10"
+          }
+        },
+        "old": {
+          "deprecated": {
+            "date": "2025-06-01",
+            "message": "Renamed to lib.",
+            "successor": "https://dropr.sylvain.sh/npm/lib"
+          },
+          "latest": "/download/npm/old",
+          "versions": {
+            "1.0.0": "/download/npm/old@1.0.0"
+          }
+        },
+        "sealed": {
+          "latest": "/download/npm/sealed",
+          "versions": {
+            "1.0.0": "/download/npm/sealed@1.0.0"
+          }
+        }
+      }
+    }
+  }
+}
+`;
+
+exports[`routes > GET /download/nope 1`] = `
+{
+  "status": 404,
+  "headers": {
+    "content-length": "95",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 404,
+    "error": "Not Found",
+    "message": "Package type 'nope' does not exist."
+  }
+}
+`;
+
+exports[`routes > GET /download/npm 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "1392",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "message": "Downloadable npm packages (.tar.gz).",
+    "downloads": {
+      "bash-utils": {
+        "latest": "/download/npm/bash-utils",
+        "versions": {
+          "1.0.0": "/download/npm/bash-utils@1.0.0"
+        }
+      },
+      "broken": {
+        "latest": "/download/npm/broken",
+        "versions": {
+          "1.0.0": "/download/npm/broken@1.0.0"
+        }
+      },
+      "lib": {
+        "latest": "/download/npm/lib",
+        "versions": {
+          "1.0.0": "/download/npm/lib@1.0.0",
+          "1.2.0": "/download/npm/lib@1.2.0",
+          "1.10.0": "/download/npm/lib@1.10.0",
+          "2.0.0-pre": "/download/npm/lib@2.0.0-pre"
+        }
+      },
+      "links": {
+        "latest": "/download/npm/links",
+        "versions": {
+          "1.0.0": "/download/npm/links@1.0.0"
+        }
+      },
+      "next": {
+        "latest": "/download/npm/next",
+        "versions": {
+          "0.1.0-beta.2": "/download/npm/next@0.1.0-beta.2",
+          "0.1.0-beta.10": "/download/npm/next@0.1.0-beta.10"
+        }
+      },
+      "old": {
+        "deprecated": {
+          "date": "2025-06-01",
+          "message": "Renamed to lib.",
+          "successor": "https://dropr.sylvain.sh/npm/lib"
+        },
+        "latest": "/download/npm/old",
+        "versions": {
+          "1.0.0": "/download/npm/old@1.0.0"
+        }
+      },
+      "sealed": {
+        "latest": "/download/npm/sealed",
+        "versions": {
+          "1.0.0": "/download/npm/sealed@1.0.0"
+        }
+      }
+    }
+  }
+}
+`;
+
+exports[`routes > GET /download/npm/lib 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-disposition": "attachment; filename=\\"lib-1.10.0.tar.gz\\"",
+    "content-type": "application/gzip"
+  },
+  "body": [
+    {
+      "path": "1.10.0/",
+      "type": "dir"
+    },
+    {
+      "path": "1.10.0/index.js",
+      "type": "file",
+      "size": 25,
+      "sha256": "7dfac9a211c86d20d8511dcc8e1711f9cb3fa2afc6f2e25d1ca499069b164ed0"
+    }
+  ]
+}
+`;
+
+exports[`routes > GET /download/npm/lib@1.2 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-disposition": "attachment; filename=\\"lib-1.2.0.tar.gz\\"",
+    "content-type": "application/gzip"
+  },
+  "body": [
+    {
+      "path": "1.2.0/",
+      "type": "dir"
+    },
+    {
+      "path": "1.2.0/.npmignore",
+      "type": "file",
+      "size": 5,
+      "sha256": "911683b05e6c5f31f8f3b09c6ec94af4455e6b1b25981ddeaa0d29e3377e421c"
+    },
+    {
+      "path": "1.2.0/dist/",
+      "type": "dir"
+    },
+    {
+      "path": "1.2.0/dist/index.d.ts",
+      "type": "file",
+      "size": 55,
+      "sha256": "a9d634180acf795e24b4c0919dc7fb38b1f7bada36ca95b46fd1844f5700c4cd"
+    },
+    {
+      "path": "1.2.0/dist/index.mjs",
+      "type": "file",
+      "size": 24,
+      "sha256": "8ce693b8335934d70db4f1cd8d6f8a7e21d924234f9b20657d4100bbd605f1c2"
+    },
+    {
+      "path": "1.2.0/dist/nested/",
+      "type": "dir"
+    },
+    {
+      "path": "1.2.0/dist/nested/deep.cjs",
+      "type": "file",
+      "size": 25,
+      "sha256": "a0bf899d2ab2065ef8f60c504b552bd08eb732adb8975c32170f8a5384f18357"
+    },
+    {
+      "path": "1.2.0/index.js",
+      "type": "file",
+      "size": 24,
+      "sha256": "8ce693b8335934d70db4f1cd8d6f8a7e21d924234f9b20657d4100bbd605f1c2"
+    },
+    {
+      "path": "1.2.0/package.json",
+      "type": "file",
+      "size": 38,
+      "sha256": "d0466c8925b0188348aa56f23a60690dd5fa14e7453221289802b684cb312f91"
+    }
+  ]
+}
+`;
+
+exports[`routes > GET /download/npm/lib@9 1`] = `
+{
+  "status": 404,
+  "headers": {
+    "content-length": "106",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 404,
+    "error": "Not Found",
+    "message": "Version 9 does not exist in the 'lib' project."
+  }
+}
+`;
+
+exports[`routes > GET /download/npm/nope 1`] = `
+{
+  "status": 404,
+  "headers": {
+    "content-length": "98",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 404,
+    "error": "Not Found",
+    "message": "Project 'nope' does not exist in /npm."
+  }
+}
+`;
+
+exports[`routes > GET /download/npm/old 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-disposition": "attachment; filename=\\"old-1.0.0.tar.gz\\"",
+    "content-type": "application/gzip",
+    "deprecation": "@1748736000",
+    "link": "<https://dropr.sylvain.sh/npm/lib>; rel=\\"successor-version\\""
+  },
+  "body": [
+    {
+      "path": "1.0.0/",
+      "type": "dir"
+    },
+    {
+      "path": "1.0.0/index.js",
+      "type": "file",
+      "size": 22,
+      "sha256": "c6910d39e8e3b4d0cf55fcc4788cd9e1c83de67f613e5c1431d077d84e60fb06"
+    }
+  ]
+}
+`;
+
+exports[`routes > GET /favicon.ico 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "accept-ranges": "bytes",
+    "cache-control": "public, max-age=0",
+    "content-length": "1082",
+    "content-type": "image/vnd.microsoft.icon",
+    "etag": "W/<weak>",
+    "last-modified": "<checkout>"
+  },
+  "body": {
+    "length": 1082,
+    "sha256": "27a4aaa107ac94aa5c9385d548ffc63f94d82b272921b73593c20e1adad052df"
+  }
+}
+`;
+
+exports[`routes > GET /favicon.svg 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "accept-ranges": "bytes",
+    "cache-control": "public, max-age=0",
+    "content-length": "186",
+    "content-type": "image/svg+xml",
+    "etag": "W/<weak>",
+    "last-modified": "<checkout>"
+  },
+  "body": "<svg xmlns=\\"http://www.w3.org/2000/svg\\" viewBox=\\"0 0 32 32\\" fill=\\"#FF4A1C\\"><path d=\\"M2 16h4v10h20V16h4v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z\\"/><polygon points=\\"6,6 20,2 24,16 10,20\\"/></svg>\\n"
+}
+`;
+
+exports[`routes > GET /health (101st request of a client within 10 seconds) 1`] = `
+{
+  "status": 429,
+  "headers": {
+    "content-length": "127",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 429,
+    "error": "Too Many Requests",
+    "message": "You have exceeded the limit of 100 requests per 10 seconds."
+  }
+}
+`;
+
+exports[`routes > GET /health 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "<length>",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "name": "dropr",
+    "status": "ok",
+    "version": "<version>",
+    "uptime": "<uptime>",
+    "packages": 9,
+    "memory": "<memory>"
+  }
+}
+`;
+
+exports[`routes > GET /manifest 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "cache-control": "public, max-age=300",
+    "content-length": "<length>",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "name": "dropr",
+    "version": "<version>",
+    "baseUrl": "https://dropr.sylvain.sh",
+    "routes": [
+      {
+        "id": "file",
+        "group": "files",
+        "method": "GET",
+        "path": "/{type}/{projet}@{version}/{fichier}",
+        "title": "Fichier",
+        "summary": "Sert un fichier d’une version, avec son type MIME, ou liste un dossier en JSON.",
+        "params": [
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "description": "Type de paquet : npm, bash ou config.",
+            "example": "npm"
+          },
+          {
+            "name": "projet",
+            "in": "path",
+            "required": true,
+            "description": "Nom du projet dans ce type.",
+            "example": "moxon"
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "description": "Version exacte (6.1.0), partielle (6 ou 6.1) ou latest.",
+            "example": "6.1.0"
+          },
+          {
+            "name": "fichier",
+            "in": "path",
+            "required": true,
+            "description": "Chemin du fichier dans la version.",
+            "example": "dist/app.js"
+          }
+        ],
+        "example": "/npm/moxon@6.1.0/package.json",
+        "returns": "file",
+        "notes": [
+          "Un chemin qui sort du dossier de la version renvoie 404."
+        ]
+      },
+      {
+        "id": "version",
+        "group": "files",
+        "method": "GET",
+        "path": "/{type}/{projet}@{version}",
+        "title": "Version",
+        "summary": "Liste les fichiers d’une version, avec leur taille.",
+        "params": [
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "description": "Type de paquet : npm, bash ou config.",
+            "example": "npm"
+          },
+          {
+            "name": "projet",
+            "in": "path",
+            "required": true,
+            "description": "Nom du projet dans ce type.",
+            "example": "moxon"
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "description": "Version exacte (6.1.0), partielle (6 ou 6.1) ou latest.",
+            "example": "6.1.0"
+          }
+        ],
+        "example": "/npm/moxon@latest",
+        "returns": "json",
+        "notes": [
+          "Ajoutez \`?checksums\` pour obtenir les SHA256, ou \`?download\` pour l’archive \`.tar.gz\`."
+        ]
+      },
+      {
+        "id": "checksums",
+        "group": "files",
+        "method": "GET",
+        "path": "/{type}/{projet}@{version}?checksums",
+        "title": "Checksums",
+        "summary": "Donne le SHA256 de chaque fichier d’une version.",
+        "params": [
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "description": "Type de paquet : npm, bash ou config.",
+            "example": "npm"
+          },
+          {
+            "name": "projet",
+            "in": "path",
+            "required": true,
+            "description": "Nom du projet dans ce type.",
+            "example": "moxon"
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "description": "Version exacte (6.1.0), partielle (6 ou 6.1) ou latest.",
+            "example": "6.1.0"
+          }
+        ],
+        "example": "/npm/moxon@6.1.0?checksums",
+        "returns": "json",
+        "notes": []
+      },
+      {
+        "id": "download",
+        "group": "downloads",
+        "method": "GET",
+        "path": "/download/{type}/{projet}@{version}",
+        "title": "Archive",
+        "summary": "Télécharge une version entière en .tar.gz, en pièce jointe.",
+        "params": [
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "description": "Type de paquet : npm, bash ou config.",
+            "example": "npm"
+          },
+          {
+            "name": "projet",
+            "in": "path",
+            "required": true,
+            "description": "Nom du projet dans ce type.",
+            "example": "moxon"
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": false,
+            "description": "Version exacte (6.1.0), partielle (6 ou 6.1) ou latest.",
+            "example": "6.1.0"
+          }
+        ],
+        "example": "/download/bash/gft@1.0.6",
+        "returns": "archive",
+        "notes": [
+          "Sans version, sert la version \`latest\`.",
+          "Équivaut à \`/{type}/{projet}@{version}?download\`."
+        ]
+      },
+      {
+        "id": "downloads",
+        "group": "downloads",
+        "method": "GET",
+        "path": "/download/{type}",
+        "title": "Archives disponibles",
+        "summary": "Liste les archives téléchargeables, pour tous les types ou pour un seul.",
+        "params": [
+          {
+            "name": "type",
+            "in": "path",
+            "required": false,
+            "description": "Type de paquet : npm, bash ou config.",
+            "example": "npm"
+          }
+        ],
+        "example": "/download/npm",
+        "returns": "json",
+        "notes": []
+      },
+      {
+        "id": "project",
+        "group": "packages",
+        "method": "GET",
+        "path": "/{type}/{projet}",
+        "title": "Projet",
+        "summary": "Liste les versions d’un projet, avec latest.",
+        "params": [
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "description": "Type de paquet : npm, bash ou config.",
+            "example": "npm"
+          },
+          {
+            "name": "projet",
+            "in": "path",
+            "required": true,
+            "description": "Nom du projet dans ce type.",
+            "example": "moxon"
+          }
+        ],
+        "example": "/npm/moxon",
+        "returns": "json",
+        "notes": [
+          "Un projet déprécié porte un champ \`deprecated\`."
+        ]
+      },
+      {
+        "id": "changelog",
+        "group": "packages",
+        "method": "GET",
+        "path": "/{type}/{projet}/changelog",
+        "title": "Changelog",
+        "summary": "Donne l’historique des versions avec leur date de publication.",
+        "params": [
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "description": "Type de paquet : npm, bash ou config.",
+            "example": "npm"
+          },
+          {
+            "name": "projet",
+            "in": "path",
+            "required": true,
+            "description": "Nom du projet dans ce type.",
+            "example": "moxon"
+          }
+        ],
+        "example": "/bash/gft/changelog",
+        "returns": "json",
+        "notes": []
+      },
+      {
+        "id": "type",
+        "group": "packages",
+        "method": "GET",
+        "path": "/{type}",
+        "title": "Type",
+        "summary": "Liste les projets d’un type.",
+        "params": [
+          {
+            "name": "type",
+            "in": "path",
+            "required": true,
+            "description": "Type de paquet : npm, bash ou config.",
+            "example": "npm"
+          }
+        ],
+        "example": "/bash",
+        "returns": "json",
+        "notes": []
+      },
+      {
+        "id": "search",
+        "group": "discovery",
+        "method": "GET",
+        "path": "/search",
+        "title": "Recherche",
+        "summary": "Cherche un projet par son nom, ou liste un type entier.",
+        "params": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "description": "Texte cherché dans les noms, ou un type exact.",
+            "example": "mox"
+          }
+        ],
+        "example": "/search?q=mox",
+        "returns": "json",
+        "notes": [
+          "Les correspondances sur le nom passent avant celles sur le type."
+        ]
+      },
+      {
+        "id": "index",
+        "group": "discovery",
+        "method": "GET",
+        "path": "/",
+        "title": "Index",
+        "summary": "Donne tous les types, projets et versions en JSON.",
+        "params": [],
+        "example": "/",
+        "returns": "json",
+        "notes": []
+      },
+      {
+        "id": "manifest",
+        "group": "server",
+        "method": "GET",
+        "path": "/manifest",
+        "title": "Manifest",
+        "summary": "Décrit toutes les routes du serveur.",
+        "params": [],
+        "example": "/manifest",
+        "returns": "json",
+        "notes": []
+      },
+      {
+        "id": "health",
+        "group": "server",
+        "method": "GET",
+        "path": "/health",
+        "title": "Santé",
+        "summary": "Donne l’état du serveur, sa version, sa durée de fonctionnement et le nombre de paquets.",
+        "params": [],
+        "example": "/health",
+        "returns": "json",
+        "notes": []
+      }
+    ]
+  }
+}
+`;
+
+exports[`routes > GET /node_modules 1`] = `
+{
+  "status": 404,
+  "headers": {
+    "content-length": "103",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 404,
+    "error": "Not Found",
+    "message": "Package type 'node_modules' does not exist."
+  }
+}
+`;
+
+exports[`routes > GET /nope 1`] = `
+{
+  "status": 404,
+  "headers": {
+    "content-length": "95",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 404,
+    "error": "Not Found",
+    "message": "Package type 'nope' does not exist."
+  }
+}
+`;
+
+exports[`routes > GET /npm 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "1487",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "message": "Npm projects.",
+    "projects": {
+      "list": "/npm",
+      "bash-utils": {
+        "list": "/npm/bash-utils",
+        "versions": {
+          "latest": "/npm/bash-utils@latest",
+          "1.0.0": "/npm/bash-utils@1.0.0"
+        }
+      },
+      "broken": {
+        "list": "/npm/broken",
+        "versions": {
+          "latest": "/npm/broken@latest",
+          "1.0.0": "/npm/broken@1.0.0"
+        }
+      },
+      "lib": {
+        "list": "/npm/lib",
+        "versions": {
+          "latest": "/npm/lib@latest",
+          "1.0.0": "/npm/lib@1.0.0",
+          "1.2.0": "/npm/lib@1.2.0",
+          "1.10.0": "/npm/lib@1.10.0",
+          "2.0.0-pre": "/npm/lib@2.0.0-pre"
+        }
+      },
+      "links": {
+        "list": "/npm/links",
+        "versions": {
+          "latest": "/npm/links@latest",
+          "1.0.0": "/npm/links@1.0.0"
+        }
+      },
+      "next": {
+        "list": "/npm/next",
+        "versions": {
+          "latest": "/npm/next@latest",
+          "0.1.0-beta.2": "/npm/next@0.1.0-beta.2",
+          "0.1.0-beta.10": "/npm/next@0.1.0-beta.10"
+        }
+      },
+      "old": {
+        "list": "/npm/old",
+        "versions": {
+          "latest": "/npm/old@latest",
+          "1.0.0": "/npm/old@1.0.0"
+        },
+        "deprecated": {
+          "date": "2025-06-01",
+          "message": "Renamed to lib.",
+          "successor": "https://dropr.sylvain.sh/npm/lib"
+        }
+      },
+      "sealed": {
+        "list": "/npm/sealed",
+        "versions": {
+          "latest": "/npm/sealed@latest",
+          "1.0.0": "/npm/sealed@1.0.0"
+        }
+      }
+    }
+  }
+}
+`;
+
+exports[`routes > GET /npm/__proto__ 1`] = `
+{
+  "status": 404,
+  "headers": {
+    "content-length": "103",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 404,
+    "error": "Not Found",
+    "message": "Project '__proto__' does not exist in /npm."
+  }
+}
+`;
+
+exports[`routes > GET /npm/broken@1.0.0/locked.bin 1`] = `
+{
+  "status": 404,
+  "headers": {
+    "accept-ranges": "bytes",
+    "content-length": "138",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>",
+    "x-content-type-options": "nosniff"
+  },
+  "body": {
+    "status": 404,
+    "error": "Not Found",
+    "message": "File 'locked.bin' does not exist in the 1.0.0 version of the 'broken' project."
+  }
+}
+`;
+
+exports[`routes > GET /npm/broken@1.0.0?checksums 1`] = `
+{
+  "status": 500,
+  "headers": {
+    "content-length": "101",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 500,
+    "error": "Internal Server Error",
+    "message": "An unexpected error occurred."
+  }
+}
+`;
+
+exports[`routes > GET /npm/broken@1.0.0?download 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-disposition": "attachment; filename=\\"broken-1.0.0.tar.gz\\"",
+    "content-type": "application/gzip"
+  },
+  "aborted": true
+}
+`;
+
+exports[`routes > GET /npm/lib 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "247",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "message": "Available versions for the 'lib' project.",
+    "versions": {
+      "latest": "/npm/lib@latest",
+      "1.0.0": "/npm/lib@1.0.0",
+      "1.2.0": "/npm/lib@1.2.0",
+      "1.10.0": "/npm/lib@1.10.0",
+      "2.0.0-pre": "/npm/lib@2.0.0-pre"
+    }
+  }
+}
+`;
+
+exports[`routes > GET /npm/lib/changelog 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "cache-control": "public, max-age=300",
+    "content-length": "472",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "name": "lib",
+    "type": "npm",
+    "versions": 4,
+    "changelog": [
+      {
+        "version": "1.0.0",
+        "date": "2025-02-01",
+        "url": "/npm/lib@1.0.0"
+      },
+      {
+        "version": "1.2.0",
+        "date": "2025-05-01",
+        "url": "/npm/lib@1.2.0"
+      },
+      {
+        "version": "1.10.0",
+        "date": "2025-01-01",
+        "url": "/npm/lib@1.10.0"
+      },
+      {
+        "version": "2.0.0-pre",
+        "date": "2025-09-01",
+        "url": "/npm/lib@2.0.0-pre"
+      }
+    ]
+  }
+}
+`;
+
+exports[`routes > GET /npm/lib@1 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "168",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "name": "lib",
+    "version": "1.10.0",
+    "current": "lib@1.10.0",
+    "files": [
+      {
+        "name": "index.js",
+        "size": 25,
+        "directory": false
+      }
+    ]
+  }
+}
+`;
+
+exports[`routes > GET /npm/lib@1.0.0/changelog 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "cache-control": "public, max-age=300",
+    "content-length": "472",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "name": "lib",
+    "type": "npm",
+    "versions": 4,
+    "changelog": [
+      {
+        "version": "1.0.0",
+        "date": "2025-02-01",
+        "url": "/npm/lib@1.0.0"
+      },
+      {
+        "version": "1.2.0",
+        "date": "2025-05-01",
+        "url": "/npm/lib@1.2.0"
+      },
+      {
+        "version": "1.10.0",
+        "date": "2025-01-01",
+        "url": "/npm/lib@1.10.0"
+      },
+      {
+        "version": "2.0.0-pre",
+        "date": "2025-09-01",
+        "url": "/npm/lib@2.0.0-pre"
+      }
+    ]
+  }
+}
+`;
+
+exports[`routes > GET /npm/lib@1.1 1`] = `
+{
+  "status": 404,
+  "headers": {
+    "content-length": "108",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 404,
+    "error": "Not Found",
+    "message": "Version 1.1 does not exist in the 'lib' project."
+  }
+}
+`;
+
+exports[`routes > GET /npm/lib@1.2 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "414",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "name": "lib",
+    "version": "1.2.0",
+    "current": "lib@1.2.0",
+    "files": [
+      {
+        "name": ".npmignore",
+        "size": 5,
+        "directory": false
+      },
+      {
+        "name": "dist/",
+        "size": 104,
+        "directory": true
+      },
+      {
+        "name": "index.js",
+        "size": 24,
+        "directory": false
+      },
+      {
+        "name": "package.json",
+        "size": 38,
+        "directory": false
+      }
+    ]
+  }
+}
+`;
+
+exports[`routes > GET /npm/lib@1.2.0 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "414",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "name": "lib",
+    "version": "1.2.0",
+    "current": "lib@1.2.0",
+    "files": [
+      {
+        "name": ".npmignore",
+        "size": 5,
+        "directory": false
+      },
+      {
+        "name": "dist/",
+        "size": 104,
+        "directory": true
+      },
+      {
+        "name": "index.js",
+        "size": 24,
+        "directory": false
+      },
+      {
+        "name": "package.json",
+        "size": 38,
+        "directory": false
+      }
+    ]
+  }
+}
+`;
+
+exports[`routes > GET /npm/lib@1.2.0/%2e%2e/%2e%2e/old/1.0.0/index.js 1`] = `
+{
+  "status": 404,
+  "headers": {
+    "content-length": "149",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 404,
+    "error": "Not Found",
+    "message": "File '../../old/1.0.0/index.js' does not exist in the 1.2.0 version of the 'lib' project."
+  }
+}
+`;
+
+exports[`routes > GET /npm/lib@1.2.0/%E0%A4%A 1`] = `
+{
+  "status": 400,
+  "headers": {
+    "content-length": "95",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 400,
+    "error": "Bad Request",
+    "message": "Failed to decode param '%E0%A4%A'"
+  }
+}
+`;
+
+exports[`routes > GET /npm/lib@1.2.0/..%2F..%2F..%2F..%2Fsecret.txt 1`] = `
+{
+  "status": 404,
+  "headers": {
+    "content-length": "147",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 404,
+    "error": "Not Found",
+    "message": "File '../../../../secret.txt' does not exist in the 1.2.0 version of the 'lib' project."
+  }
+}
+`;
+
+exports[`routes > GET /npm/lib@1.2.0/../1.0.0/index.js 1`] = `
+{
+  "status": 404,
+  "headers": {
+    "content-length": "142",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 404,
+    "error": "Not Found",
+    "message": "File '../1.0.0/index.js' does not exist in the 1.2.0 version of the 'lib' project."
+  }
+}
+`;
+
+exports[`routes > GET /npm/lib@1.2.0/.npmignore 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "accept-ranges": "bytes",
+    "cache-control": "public, max-age=31536000, immutable",
+    "content-length": "5",
+    "content-type": "text/plain; charset=utf-8",
+    "etag": "\\"5-19421bcaa00\\"",
+    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "x-content-type-options": "nosniff"
+  },
+  "body": "src/\\n"
+}
+`;
+
+exports[`routes > GET /npm/lib@1.2.0/dist 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "323",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "name": "lib",
+    "version": "1.2.0",
+    "path": "dist",
+    "files": [
+      {
+        "name": "index.d.ts",
+        "size": 55,
+        "directory": false
+      },
+      {
+        "name": "index.mjs",
+        "size": 24,
+        "directory": false
+      },
+      {
+        "name": "nested/",
+        "size": 25,
+        "directory": true
+      }
+    ]
+  }
+}
+`;
+
+exports[`routes > GET /npm/lib@1.2.0/dist/ 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "323",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "name": "lib",
+    "version": "1.2.0",
+    "path": "dist",
+    "files": [
+      {
+        "name": "index.d.ts",
+        "size": 55,
+        "directory": false
+      },
+      {
+        "name": "index.mjs",
+        "size": 24,
+        "directory": false
+      },
+      {
+        "name": "nested/",
+        "size": 25,
+        "directory": true
+      }
+    ]
+  }
+}
+`;
+
+exports[`routes > GET /npm/lib@1.2.0/dist/index.d.ts 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "accept-ranges": "bytes",
+    "cache-control": "public, max-age=31536000, immutable",
+    "content-length": "55",
+    "content-type": "text/plain; charset=utf-8",
+    "etag": "\\"37-19421bcaa00\\"",
+    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "x-content-type-options": "nosniff"
+  },
+  "body": "declare const version: string;\\nexport default version;\\n"
+}
+`;
+
+exports[`routes > GET /npm/lib@1.2.0/dist/nested/deep.cjs 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "accept-ranges": "bytes",
+    "cache-control": "public, max-age=31536000, immutable",
+    "content-length": "25",
+    "content-type": "text/javascript; charset=utf-8",
+    "etag": "\\"19-19421bcaa00\\"",
+    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "x-content-type-options": "nosniff"
+  },
+  "body": "module.exports = \\"deep\\";\\n"
+}
+`;
+
+exports[`routes > GET /npm/lib@1.2.0/index.js (if-modified-since: Wed, 01 Jan 2025 12:00:00 GMT) 1`] = `
+{
+  "status": 304,
+  "headers": {
+    "accept-ranges": "bytes",
+    "cache-control": "public, max-age=31536000, immutable",
+    "etag": "\\"18-19421bcaa00\\"",
+    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "x-content-type-options": "nosniff"
+  },
+  "body": ""
+}
+`;
+
+exports[`routes > GET /npm/lib@1.2.0/index.js (if-none-match: its etag) 1`] = `
+{
+  "status": 304,
+  "headers": {
+    "cache-control": "public, max-age=31536000, immutable",
+    "etag": "\\"18-19421bcaa00\\""
+  },
+  "body": ""
+}
+`;
+
+exports[`routes > GET /npm/lib@1.2.0/index.js (origin: https://example.com) 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "accept-ranges": "bytes",
+    "access-control-allow-origin": "*",
+    "access-control-expose-headers": "Deprecation,Link,ETag,Content-Disposition,X-Content-Type-Options",
+    "cache-control": "public, max-age=31536000, immutable",
+    "content-length": "24",
+    "content-type": "text/javascript; charset=utf-8",
+    "etag": "\\"18-19421bcaa00\\"",
+    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "x-content-type-options": "nosniff"
+  },
+  "body": "export default \\"1.2.0\\";\\n"
+}
+`;
+
+exports[`routes > GET /npm/lib@1.2.0/index.js (range: bytes=0-5) 1`] = `
+{
+  "status": 206,
+  "headers": {
+    "accept-ranges": "bytes",
+    "cache-control": "public, max-age=31536000, immutable",
+    "content-length": "6",
+    "content-range": "bytes 0-5/24",
+    "content-type": "text/javascript; charset=utf-8",
+    "etag": "\\"18-19421bcaa00\\"",
+    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "x-content-type-options": "nosniff"
+  },
+  "body": "export"
+}
+`;
+
+exports[`routes > GET /npm/lib@1.2.0/index.js (range: bytes=999-) 1`] = `
+{
+  "status": 416,
+  "headers": {
+    "accept-ranges": "bytes",
+    "content-length": "114",
+    "content-range": "bytes */24",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>",
+    "x-content-type-options": "nosniff"
+  },
+  "body": {
+    "status": 416,
+    "error": "Range Not Satisfiable",
+    "message": "Range not satisfiable for file 'index.js'."
+  }
+}
+`;
+
+exports[`routes > GET /npm/lib@1.2.0/index.js 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "accept-ranges": "bytes",
+    "cache-control": "public, max-age=31536000, immutable",
+    "content-length": "24",
+    "content-type": "text/javascript; charset=utf-8",
+    "etag": "\\"18-19421bcaa00\\"",
+    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "x-content-type-options": "nosniff"
+  },
+  "body": "export default \\"1.2.0\\";\\n"
+}
+`;
+
+exports[`routes > GET /npm/lib@1.2.0/index.js%00.txt 1`] = `
+{
+  "status": 404,
+  "headers": {
+    "content-length": "143",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 404,
+    "error": "Not Found",
+    "message": "File 'index.js\\u0000.txt' does not exist in the 1.2.0 version of the 'lib' project."
+  }
+}
+`;
+
+exports[`routes > GET /npm/lib@1.2.0/index.js/x 1`] = `
+{
+  "status": 404,
+  "headers": {
+    "content-length": "135",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 404,
+    "error": "Not Found",
+    "message": "File 'index.js/x' does not exist in the 1.2.0 version of the 'lib' project."
+  }
+}
+`;
+
+exports[`routes > GET /npm/lib@1.2.0/missing.js 1`] = `
+{
+  "status": 404,
+  "headers": {
+    "content-length": "135",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 404,
+    "error": "Not Found",
+    "message": "File 'missing.js' does not exist in the 1.2.0 version of the 'lib' project."
+  }
+}
+`;
+
+exports[`routes > GET /npm/lib@1.2.0?checksums 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "622",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "name": "lib",
+    "version": "1.2.0",
+    "algorithm": "sha256",
+    "checksums": {
+      ".npmignore": "911683b05e6c5f31f8f3b09c6ec94af4455e6b1b25981ddeaa0d29e3377e421c",
+      "dist/index.d.ts": "a9d634180acf795e24b4c0919dc7fb38b1f7bada36ca95b46fd1844f5700c4cd",
+      "dist/index.mjs": "8ce693b8335934d70db4f1cd8d6f8a7e21d924234f9b20657d4100bbd605f1c2",
+      "dist/nested/deep.cjs": "a0bf899d2ab2065ef8f60c504b552bd08eb732adb8975c32170f8a5384f18357",
+      "index.js": "8ce693b8335934d70db4f1cd8d6f8a7e21d924234f9b20657d4100bbd605f1c2",
+      "package.json": "d0466c8925b0188348aa56f23a60690dd5fa14e7453221289802b684cb312f91"
+    }
+  }
+}
+`;
+
+exports[`routes > GET /npm/lib@1.2.0?download 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-disposition": "attachment; filename=\\"lib-1.2.0.tar.gz\\"",
+    "content-type": "application/gzip"
+  },
+  "body": [
+    {
+      "path": "1.2.0/",
+      "type": "dir"
+    },
+    {
+      "path": "1.2.0/.npmignore",
+      "type": "file",
+      "size": 5,
+      "sha256": "911683b05e6c5f31f8f3b09c6ec94af4455e6b1b25981ddeaa0d29e3377e421c"
+    },
+    {
+      "path": "1.2.0/dist/",
+      "type": "dir"
+    },
+    {
+      "path": "1.2.0/dist/index.d.ts",
+      "type": "file",
+      "size": 55,
+      "sha256": "a9d634180acf795e24b4c0919dc7fb38b1f7bada36ca95b46fd1844f5700c4cd"
+    },
+    {
+      "path": "1.2.0/dist/index.mjs",
+      "type": "file",
+      "size": 24,
+      "sha256": "8ce693b8335934d70db4f1cd8d6f8a7e21d924234f9b20657d4100bbd605f1c2"
+    },
+    {
+      "path": "1.2.0/dist/nested/",
+      "type": "dir"
+    },
+    {
+      "path": "1.2.0/dist/nested/deep.cjs",
+      "type": "file",
+      "size": 25,
+      "sha256": "a0bf899d2ab2065ef8f60c504b552bd08eb732adb8975c32170f8a5384f18357"
+    },
+    {
+      "path": "1.2.0/index.js",
+      "type": "file",
+      "size": 24,
+      "sha256": "8ce693b8335934d70db4f1cd8d6f8a7e21d924234f9b20657d4100bbd605f1c2"
+    },
+    {
+      "path": "1.2.0/package.json",
+      "type": "file",
+      "size": 38,
+      "sha256": "d0466c8925b0188348aa56f23a60690dd5fa14e7453221289802b684cb312f91"
+    }
+  ]
+}
+`;
+
+exports[`routes > GET /npm/lib@1/package.json 1`] = `
+{
+  "status": 404,
+  "headers": {
+    "content-length": "138",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 404,
+    "error": "Not Found",
+    "message": "File 'package.json' does not exist in the 1.10.0 version of the 'lib' project."
+  }
+}
+`;
+
+exports[`routes > GET /npm/lib@2 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "174",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "name": "lib",
+    "version": "2.0.0-pre",
+    "current": "lib@2.0.0-pre",
+    "files": [
+      {
+        "name": "index.js",
+        "size": 28,
+        "directory": false
+      }
+    ]
+  }
+}
+`;
+
+exports[`routes > GET /npm/lib@2.0.0 1`] = `
+{
+  "status": 404,
+  "headers": {
+    "content-length": "110",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 404,
+    "error": "Not Found",
+    "message": "Version 2.0.0 does not exist in the 'lib' project."
+  }
+}
+`;
+
+exports[`routes > GET /npm/lib@latest 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "168",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "name": "lib",
+    "version": "1.10.0",
+    "current": "lib@1.10.0",
+    "files": [
+      {
+        "name": "index.js",
+        "size": 25,
+        "directory": false
+      }
+    ]
+  }
+}
+`;
+
+exports[`routes > GET /npm/lib@latest/index.js 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "accept-ranges": "bytes",
+    "cache-control": "public, max-age=300",
+    "content-length": "25",
+    "content-type": "text/javascript; charset=utf-8",
+    "etag": "\\"19-19421bcaa00\\"",
+    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "x-content-type-options": "nosniff"
+  },
+  "body": "export default \\"1.10.0\\";\\n"
+}
+`;
+
+exports[`routes > GET /npm/lib@latest?download 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-disposition": "attachment; filename=\\"lib-1.10.0.tar.gz\\"",
+    "content-type": "application/gzip"
+  },
+  "body": [
+    {
+      "path": "1.10.0/",
+      "type": "dir"
+    },
+    {
+      "path": "1.10.0/index.js",
+      "type": "file",
+      "size": 25,
+      "sha256": "7dfac9a211c86d20d8511dcc8e1711f9cb3fa2afc6f2e25d1ca499069b164ed0"
+    }
+  ]
+}
+`;
+
+exports[`routes > GET /npm/links@1.0.0 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "410",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "name": "links",
+    "version": "1.0.0",
+    "current": "links@1.0.0",
+    "files": [
+      {
+        "name": "dist/",
+        "size": 23,
+        "directory": true
+      },
+      {
+        "name": "folder/",
+        "size": null,
+        "directory": true
+      },
+      {
+        "name": "index.js",
+        "size": 24,
+        "directory": false
+      },
+      {
+        "name": "inside",
+        "size": 24,
+        "directory": false
+      }
+    ]
+  }
+}
+`;
+
+exports[`routes > GET /npm/links@1.0.0/dangling 1`] = `
+{
+  "status": 404,
+  "headers": {
+    "content-length": "135",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 404,
+    "error": "Not Found",
+    "message": "File 'dangling' does not exist in the 1.0.0 version of the 'links' project."
+  }
+}
+`;
+
+exports[`routes > GET /npm/links@1.0.0/dist 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "239",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "name": "links",
+    "version": "1.0.0",
+    "path": "dist",
+    "files": [
+      {
+        "name": "file.js",
+        "size": 23,
+        "directory": false
+      },
+      {
+        "name": "loop/",
+        "size": null,
+        "directory": true
+      }
+    ]
+  }
+}
+`;
+
+exports[`routes > GET /npm/links@1.0.0/dist/loop/index.js 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "accept-ranges": "bytes",
+    "cache-control": "public, max-age=31536000, immutable",
+    "content-length": "24",
+    "content-type": "text/javascript; charset=utf-8",
+    "etag": "\\"18-19421bcaa00\\"",
+    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "x-content-type-options": "nosniff"
+  },
+  "body": "export default \\"links\\";\\n"
+}
+`;
+
+exports[`routes > GET /npm/links@1.0.0/folder 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "241",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "name": "links",
+    "version": "1.0.0",
+    "path": "folder",
+    "files": [
+      {
+        "name": "file.js",
+        "size": 23,
+        "directory": false
+      },
+      {
+        "name": "loop/",
+        "size": null,
+        "directory": true
+      }
+    ]
+  }
+}
+`;
+
+exports[`routes > GET /npm/links@1.0.0/folder/file.js 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "accept-ranges": "bytes",
+    "cache-control": "public, max-age=31536000, immutable",
+    "content-length": "23",
+    "content-type": "text/javascript; charset=utf-8",
+    "etag": "\\"17-19421bcaa00\\"",
+    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "x-content-type-options": "nosniff"
+  },
+  "body": "export default \\"file\\";\\n"
+}
+`;
+
+exports[`routes > GET /npm/links@1.0.0/inside 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "accept-ranges": "bytes",
+    "cache-control": "public, max-age=31536000, immutable",
+    "content-length": "24",
+    "content-type": "text/plain; charset=utf-8",
+    "etag": "\\"18-19421bcaa00\\"",
+    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "x-content-type-options": "nosniff"
+  },
+  "body": "export default \\"links\\";\\n"
+}
+`;
+
+exports[`routes > GET /npm/links@1.0.0/outside 1`] = `
+{
+  "status": 404,
+  "headers": {
+    "content-length": "134",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 404,
+    "error": "Not Found",
+    "message": "File 'outside' does not exist in the 1.0.0 version of the 'links' project."
+  }
+}
+`;
+
+exports[`routes > GET /npm/links@1.0.0/sibling 1`] = `
+{
+  "status": 404,
+  "headers": {
+    "content-length": "134",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 404,
+    "error": "Not Found",
+    "message": "File 'sibling' does not exist in the 1.0.0 version of the 'links' project."
+  }
+}
+`;
+
+exports[`routes > GET /npm/links@1.0.0?checksums 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "343",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "name": "links",
+    "version": "1.0.0",
+    "algorithm": "sha256",
+    "checksums": {
+      "dist/file.js": "b50e48c018a3c90ef74a53b938fd5a361c1b9c8634f73371b0d979968601f22d",
+      "index.js": "29293641f94119e74870f6b4d84f0749354160ee57d6677ed33555e114807686",
+      "inside": "29293641f94119e74870f6b4d84f0749354160ee57d6677ed33555e114807686"
+    }
+  }
+}
+`;
+
+exports[`routes > GET /npm/links@1.0.0?download 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-disposition": "attachment; filename=\\"links-1.0.0.tar.gz\\"",
+    "content-type": "application/gzip"
+  },
+  "body": [
+    {
+      "path": "1.0.0/",
+      "type": "dir"
+    },
+    {
+      "path": "1.0.0/dangling",
+      "type": "link",
+      "target": "missing.js"
+    },
+    {
+      "path": "1.0.0/dist/",
+      "type": "dir"
+    },
+    {
+      "path": "1.0.0/dist/file.js",
+      "type": "file",
+      "size": 23,
+      "sha256": "b50e48c018a3c90ef74a53b938fd5a361c1b9c8634f73371b0d979968601f22d"
+    },
+    {
+      "path": "1.0.0/dist/loop",
+      "type": "link",
+      "target": ".."
+    },
+    {
+      "path": "1.0.0/folder",
+      "type": "link",
+      "target": "dist"
+    },
+    {
+      "path": "1.0.0/index.js",
+      "type": "file",
+      "size": 24,
+      "sha256": "29293641f94119e74870f6b4d84f0749354160ee57d6677ed33555e114807686"
+    },
+    {
+      "path": "1.0.0/inside",
+      "type": "link",
+      "target": "index.js"
+    },
+    {
+      "path": "1.0.0/outside",
+      "type": "link",
+      "target": "../../../../secret.txt"
+    },
+    {
+      "path": "1.0.0/sibling",
+      "type": "link",
+      "target": "../../lib/1.0.0/index.js"
+    }
+  ]
+}
+`;
+
+exports[`routes > GET /npm/list 1`] = `
+{
+  "status": 404,
+  "headers": {
+    "content-length": "98",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 404,
+    "error": "Not Found",
+    "message": "Project 'list' does not exist in /npm."
+  }
+}
+`;
+
+exports[`routes > GET /npm/next@latest 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "184",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "name": "next",
+    "version": "0.1.0-beta.10",
+    "current": "next@0.1.0-beta.10",
+    "files": [
+      {
+        "name": "index.js",
+        "size": 32,
+        "directory": false
+      }
+    ]
+  }
+}
+`;
+
+exports[`routes > GET /npm/nope 1`] = `
+{
+  "status": 404,
+  "headers": {
+    "content-length": "98",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 404,
+    "error": "Not Found",
+    "message": "Project 'nope' does not exist in /npm."
+  }
+}
+`;
+
+exports[`routes > GET /npm/nope/changelog 1`] = `
+{
+  "status": 404,
+  "headers": {
+    "content-length": "98",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 404,
+    "error": "Not Found",
+    "message": "Project 'nope' does not exist in /npm."
+  }
+}
+`;
+
+exports[`routes > GET /npm/old 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "279",
+    "content-type": "application/json; charset=utf-8",
+    "deprecation": "@1748736000",
+    "etag": "W/<weak>",
+    "link": "<https://dropr.sylvain.sh/npm/lib>; rel=\\"successor-version\\""
+  },
+  "body": {
+    "message": "Available versions for the 'old' project.",
+    "deprecated": {
+      "date": "2025-06-01",
+      "message": "Renamed to lib.",
+      "successor": "https://dropr.sylvain.sh/npm/lib"
+    },
+    "versions": {
+      "latest": "/npm/old@latest",
+      "1.0.0": "/npm/old@1.0.0"
+    }
+  }
+}
+`;
+
+exports[`routes > GET /npm/old/changelog 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "cache-control": "public, max-age=300",
+    "content-length": "306",
+    "content-type": "application/json; charset=utf-8",
+    "deprecation": "@1748736000",
+    "etag": "W/<weak>",
+    "link": "<https://dropr.sylvain.sh/npm/lib>; rel=\\"successor-version\\""
+  },
+  "body": {
+    "name": "old",
+    "type": "npm",
+    "deprecated": {
+      "date": "2025-06-01",
+      "message": "Renamed to lib.",
+      "successor": "https://dropr.sylvain.sh/npm/lib"
+    },
+    "versions": 1,
+    "changelog": [
+      {
+        "version": "1.0.0",
+        "date": "2025-01-01",
+        "url": "/npm/old@1.0.0"
+      }
+    ]
+  }
+}
+`;
+
+exports[`routes > GET /npm/old@1.0.0/index.js 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "accept-ranges": "bytes",
+    "cache-control": "public, max-age=31536000, immutable",
+    "content-length": "22",
+    "content-type": "text/javascript; charset=utf-8",
+    "deprecation": "@1748736000",
+    "etag": "\\"16-19421bcaa00\\"",
+    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "link": "<https://dropr.sylvain.sh/npm/lib>; rel=\\"successor-version\\"",
+    "x-content-type-options": "nosniff"
+  },
+  "body": "export default \\"old\\";\\n"
+}
+`;
+
+exports[`routes > GET /npm/old@latest 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "301",
+    "content-type": "application/json; charset=utf-8",
+    "deprecation": "@1748736000",
+    "etag": "W/<weak>",
+    "link": "<https://dropr.sylvain.sh/npm/lib>; rel=\\"successor-version\\""
+  },
+  "body": {
+    "name": "old",
+    "version": "1.0.0",
+    "current": "old@1.0.0",
+    "deprecated": {
+      "date": "2025-06-01",
+      "message": "Renamed to lib.",
+      "successor": "https://dropr.sylvain.sh/npm/lib"
+    },
+    "files": [
+      {
+        "name": "index.js",
+        "size": 22,
+        "directory": false
+      }
+    ]
+  }
+}
+`;
+
+exports[`routes > GET /npm/sealed@1.0.0 (version folder made unreadable after startup) 1`] = `
+{
+  "status": 500,
+  "headers": {
+    "content-length": "101",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 500,
+    "error": "Internal Server Error",
+    "message": "An unexpected error occurred."
+  }
+}
+`;
+
+exports[`routes > GET /robots.txt 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "accept-ranges": "bytes",
+    "cache-control": "public, max-age=0",
+    "content-length": "1719",
+    "content-type": "text/plain; charset=utf-8",
+    "etag": "W/<weak>",
+    "last-modified": "<checkout>"
+  },
+  "body": "User-agent: 360Spider\\nUser-agent: 360Spider-Image\\nUser-agent: 360Spider-Video\\nUser-agent: AdsBot-Google\\nUser-agent: AdsBot-Google-Mobile\\nUser-agent: AdsBot-Google-Mobile-Apps\\nUser-agent: adidxbot\\nUser-agent: Applebot\\nUser-agent: AppleNewsBot\\nUser-agent: Baiduspider\\nUser-agent: Baiduspider-image\\nUser-agent: Baiduspider-news\\nUser-agent: Baiduspider-video\\nUser-agent: bingbot\\nUser-agent: BingPreview\\nUser-agent: BublupBot\\nUser-agent: CCBot\\nUser-agent: Cliqzbot\\nUser-agent: coccoc\\nUser-agent: coccocbot-image\\nUser-agent: coccocbot-web\\nUser-agent: Daumoa\\nUser-agent: Dazoobot\\nUser-agent: DeuSu\\nUser-agent: DuckDuckBot\\nUser-agent: DuckDuckGo-Favicons-Bot\\nUser-agent: EuripBot\\nUser-agent: Exploratodo\\nUser-agent: Facebot\\nUser-agent: Feedly\\nUser-agent: Findxbot\\nUser-agent: Googlebot\\nUser-agent: Googlebot-Image\\nUser-agent: Googlebot-Mobile\\nUser-agent: Googlebot-News\\nUser-agent: Googlebot-Video\\nUser-agent: HaoSouSpider\\nUser-agent: ichiro\\nUser-agent: istellabot\\nUser-agent: JikeSpider\\nUser-agent: Lycos\\nUser-agent: Mail.Ru\\nUser-agent: Mediapartners-Google\\nUser-agent: MojeekBot\\nUser-agent: msnbot\\nUser-agent: msnbot-media\\nUser-agent: OrangeBot\\nUser-agent: Pinterest\\nUser-agent: Plukkie\\nUser-agent: Qwantify\\nUser-agent: Rambler\\nUser-agent: SeznamBot\\nUser-agent: Sosospider\\nUser-agent: Slurp\\nUser-agent: Sogou blog\\nUser-agent: Sogou inst spider\\nUser-agent: Sogou News Spider\\nUser-agent: Sogou Orion spider\\nUser-agent: Sogou spider2\\nUser-agent: Sogou web spider\\nUser-agent: SputnikBot\\nUser-agent: Teoma\\nUser-agent: Twitterbot\\nUser-agent: wotbox\\nUser-agent: yacybot\\nUser-agent: Yandex\\nUser-agent: YandexMobileBot\\nUser-agent: Yeti\\nUser-agent: YioopBot\\nUser-agent: yoozBot\\nUser-agent: YoudaoBot\\nDisallow:\\nUser-agent: *\\nDisallow: /"
+}
+`;
+
+exports[`routes > GET /search 1`] = `
+{
+  "status": 400,
+  "headers": {
+    "content-length": "97",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 400,
+    "error": "Bad Request",
+    "message": "Missing required query parameter: q"
+  }
+}
+`;
+
+exports[`routes > GET /search?q=%20%20 1`] = `
+{
+  "status": 400,
+  "headers": {
+    "content-length": "97",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 400,
+    "error": "Bad Request",
+    "message": "Missing required query parameter: q"
+  }
+}
+`;
+
+exports[`routes > GET /search?q=LIB 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "251",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "query": "LIB",
+    "count": 1,
+    "results": [
+      {
+        "type": "npm",
+        "name": "lib",
+        "versions": [
+          "latest",
+          "1.0.0",
+          "1.2.0",
+          "1.10.0",
+          "2.0.0-pre"
+        ],
+        "url": "/npm/lib"
+      }
+    ]
+  }
+}
+`;
+
+exports[`routes > GET /search?q=a&q=b 1`] = `
+{
+  "status": 400,
+  "headers": {
+    "content-length": "97",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 400,
+    "error": "Bad Request",
+    "message": "Missing required query parameter: q"
+  }
+}
+`;
+
+exports[`routes > GET /search?q=bash 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "388",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "query": "bash",
+    "count": 2,
+    "results": [
+      {
+        "type": "npm",
+        "name": "bash-utils",
+        "versions": [
+          "latest",
+          "1.0.0"
+        ],
+        "url": "/npm/bash-utils"
+      },
+      {
+        "type": "bash",
+        "name": "gft",
+        "versions": [
+          "latest",
+          "1.0.0",
+          "1.1.0",
+          "1.2.0"
+        ],
+        "url": "/bash/gft"
+      }
+    ]
+  }
+}
+`;
+
+exports[`routes > GET /search?q=e 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "677",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "query": "e",
+    "count": 4,
+    "results": [
+      {
+        "type": "config",
+        "name": "styles",
+        "versions": [
+          "latest",
+          "1.0.0"
+        ],
+        "url": "/config/styles"
+      },
+      {
+        "type": "npm",
+        "name": "broken",
+        "versions": [
+          "latest",
+          "1.0.0"
+        ],
+        "url": "/npm/broken"
+      },
+      {
+        "type": "npm",
+        "name": "next",
+        "versions": [
+          "latest",
+          "0.1.0-beta.2",
+          "0.1.0-beta.10"
+        ],
+        "url": "/npm/next"
+      },
+      {
+        "type": "npm",
+        "name": "sealed",
+        "versions": [
+          "latest",
+          "1.0.0"
+        ],
+        "url": "/npm/sealed"
+      }
+    ]
+  }
+}
+`;
+
+exports[`routes > GET /search?q=lib 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "251",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "query": "lib",
+    "count": 1,
+    "results": [
+      {
+        "type": "npm",
+        "name": "lib",
+        "versions": [
+          "latest",
+          "1.0.0",
+          "1.2.0",
+          "1.10.0",
+          "2.0.0-pre"
+        ],
+        "url": "/npm/lib"
+      }
+    ]
+  }
+}
+`;
+
+exports[`routes > GET /search?q=npm 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "1322",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "query": "npm",
+    "count": 7,
+    "results": [
+      {
+        "type": "npm",
+        "name": "bash-utils",
+        "versions": [
+          "latest",
+          "1.0.0"
+        ],
+        "url": "/npm/bash-utils"
+      },
+      {
+        "type": "npm",
+        "name": "broken",
+        "versions": [
+          "latest",
+          "1.0.0"
+        ],
+        "url": "/npm/broken"
+      },
+      {
+        "type": "npm",
+        "name": "lib",
+        "versions": [
+          "latest",
+          "1.0.0",
+          "1.2.0",
+          "1.10.0",
+          "2.0.0-pre"
+        ],
+        "url": "/npm/lib"
+      },
+      {
+        "type": "npm",
+        "name": "links",
+        "versions": [
+          "latest",
+          "1.0.0"
+        ],
+        "url": "/npm/links"
+      },
+      {
+        "type": "npm",
+        "name": "next",
+        "versions": [
+          "latest",
+          "0.1.0-beta.2",
+          "0.1.0-beta.10"
+        ],
+        "url": "/npm/next"
+      },
+      {
+        "type": "npm",
+        "name": "old",
+        "versions": [
+          "latest",
+          "1.0.0"
+        ],
+        "url": "/npm/old",
+        "deprecated": {
+          "date": "2025-06-01",
+          "message": "Renamed to lib.",
+          "successor": "https://dropr.sylvain.sh/npm/lib"
+        }
+      },
+      {
+        "type": "npm",
+        "name": "sealed",
+        "versions": [
+          "latest",
+          "1.0.0"
+        ],
+        "url": "/npm/sealed"
+      }
+    ]
+  }
+}
+`;
+
+exports[`routes > GET /search?q=zzz 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "51",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "query": "zzz",
+    "count": 0,
+    "results": []
+  }
+}
+`;
+
+exports[`routes > HEAD /npm/lib@1.2.0/index.js 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "accept-ranges": "bytes",
+    "cache-control": "public, max-age=31536000, immutable",
+    "content-length": "24",
+    "content-type": "text/javascript; charset=utf-8",
+    "etag": "\\"18-19421bcaa00\\"",
+    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "x-content-type-options": "nosniff"
+  },
+  "body": ""
+}
+`;
+
+exports[`routes > OPTIONS / (origin: https://example.com, access-control-request-method: GET) 1`] = `
+{
+  "status": 204,
+  "headers": {
+    "access-control-allow-methods": "GET",
+    "access-control-allow-origin": "*",
+    "access-control-expose-headers": "Deprecation,Link,ETag,Content-Disposition,X-Content-Type-Options",
+    "content-length": "0"
+  },
+  "body": ""
+}
+`;
+
+exports[`routes > POST /health 1`] = `
+{
+  "status": 405,
+  "headers": {
+    "allow": "GET, HEAD, OPTIONS",
+    "content-length": "115",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 405,
+    "error": "Method Not Allowed",
+    "message": "Method 'POST' is not allowed, use GET or HEAD."
+  }
+}
+`;
+
+exports[`routes > POST /npm/lib 1`] = `
+{
+  "status": 405,
+  "headers": {
+    "allow": "GET, HEAD, OPTIONS",
+    "content-length": "115",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 405,
+    "error": "Method Not Allowed",
+    "message": "Method 'POST' is not allowed, use GET or HEAD."
+  }
+}
+`;
+
+exports[`routes > PUT / 1`] = `
+{
+  "status": 405,
+  "headers": {
+    "allow": "GET, HEAD, OPTIONS",
+    "content-length": "114",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 405,
+    "error": "Method Not Allowed",
+    "message": "Method 'PUT' is not allowed, use GET or HEAD."
+  }
+}
+`;
