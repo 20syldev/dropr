@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { dirname, join, relative, sep } from 'path';
+import { dirname, join, relative } from 'path';
 import { fileURLToPath } from 'url';
 
 import { createLogger } from '@20syldev/logger.ts';
@@ -22,12 +22,12 @@ import {
     resolveVersion,
     searchPackages,
 } from './lib/packages.js';
-import { safeJoin } from './lib/paths.js';
+import { safeJoin, statInside } from './lib/paths.js';
 import { rateLimit } from './lib/ratelimit.js';
 import { getReleaseDates } from './lib/releases.js';
 import { getSizes } from './lib/sizes.js';
 import { getManifest } from './manifest.js';
-import type { PackageProject } from './types/index.js';
+import type { FileEntry, PackageProject } from './types/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -67,18 +67,24 @@ function downloadLinks(type: string, name: string, entry: PackageProject): Recor
 
 /**
  * Lists the entries of a directory of a version, with their size.
+ * A symlink shows as its target while the target stays inside the version, other symlinks are left out since the
+ * file route refuses them.
  *
  * @param dirPath - Absolute directory path inside a version, joined from packagesDir so it matches the size index keys
+ * @param versionDir - Version folder holding dirPath, which a symlink target must stay in to be listed
  * @returns Entries with a trailing slash on directory names and their size in bytes, cumulative for a directory and
- * null when the directory is missing from the size index
+ * null when the directory is missing from the size index, as a symlinked one is
  */
-function listDirectory(dirPath: string): { name: string; size: number | null; directory: boolean }[] {
-    return fs.readdirSync(dirPath, { withFileTypes: true }).map((ent) => {
+function listDirectory(dirPath: string, versionDir: string): FileEntry[] {
+    return fs.readdirSync(dirPath, { withFileTypes: true }).flatMap((ent) => {
         const fullPath = join(dirPath, ent.name);
+        const stat = ent.isSymbolicLink() ? statInside(versionDir, fullPath) : fs.statSync(fullPath);
+        if (!stat) return [];
+
         return {
-            name: ent.isDirectory() ? ent.name + '/' : ent.name,
-            size: ent.isDirectory() ? (sizes.get(fullPath) ?? null) : fs.statSync(fullPath).size,
-            directory: ent.isDirectory(),
+            name: stat.isDirectory() ? ent.name + '/' : ent.name,
+            size: stat.isDirectory() ? (sizes.get(fullPath) ?? null) : stat.size,
+            directory: stat.isDirectory(),
         };
     });
 }
@@ -301,16 +307,7 @@ app.use('/:type/:project/*file', (req: Request, res: Response) => {
     // Resolved inside the version folder only, so '..' cannot reach other projects or the metadata files
     const versionDir = join(packagesDir, type, req.name, req.version);
     const location = safeJoin(versionDir, file);
-    let stat: fs.Stats | undefined;
-
-    try {
-        // A symlink is followed only when its target stays inside the version folder
-        const real = location && fs.realpathSync(location);
-        const base = fs.realpathSync(versionDir);
-        if (real && (real === base || real.startsWith(base + sep))) stat = fs.statSync(real);
-    } catch {
-        // ENOENT, or ENOTDIR when a file is used as a folder (package.json/x): both are a missing file
-    }
+    const stat = location ? statInside(versionDir, location) : null;
     if (!location || !stat) return sendError(res, 404, missing);
 
     if (stat.isDirectory()) {
@@ -319,7 +316,7 @@ app.use('/:type/:project/*file', (req: Request, res: Response) => {
             version: req.version,
             path: file.replace(/\/$/, ''),
             deprecated: getProject(packages, type, req.name)?.deprecated,
-            files: listDirectory(location),
+            files: listDirectory(location, versionDir),
         });
     }
 
@@ -405,7 +402,7 @@ app.get('/:type/:project', (req: Request, res: Response) => {
             version,
             current: name + '@' + version,
             deprecated,
-            files: listDirectory(path),
+            files: listDirectory(path, path),
         });
     } catch (error) {
         sendError(res, 500, `Could not read directory: ${(error as Error).message}`);
