@@ -11,7 +11,7 @@
         "test": "tsc && node --test \"test/*.test.mjs\"",
         "test:update": "tsc && node --test --test-update-snapshots \"test/*.test.mjs\"",
         "fetch": "bash scripts/fetch.sh",
-        "check": "tsc --noEmit && eslint src/ scripts/ test/ && prettier --check src/ scripts/ test/",
+        "check": "tsc --noEmit && tsc --noEmit -p tsconfig.core.json && eslint src/ scripts/ test/ && prettier --check src/ scripts/ test/",
         "format": "prettier --write src/ scripts/ test/ && eslint --fix src/ scripts/ test/",
         "upgrade:minor": "npm upgrade",
         "upgrade:major": "npx npm-check-updates -u && npm install"
