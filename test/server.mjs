@@ -1,11 +1,24 @@
-import { spawn } from 'child_process';
 import crypto from 'crypto';
+import fs from 'fs';
 import http from 'http';
 import net from 'net';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
+import { createApp } from '../dist/app.js';
+import { loadConfig } from '../dist/config.js';
+import { scan } from '../dist/scan.js';
+
 export const rootDir = join(dirname(fileURLToPath(import.meta.url)), '..');
+
+// Config of the repository, with its own client header so the rate limit of the tests never depends on the instance
+export const config = {
+    ...loadConfig(join(rootDir, 'dropr.config.json')),
+    clientIp: { header: 'x-test-client', trustProxy: true },
+};
+
+// Version of dropr, which /health and /manifest report
+export const { version } = JSON.parse(fs.readFileSync(join(rootDir, 'package.json'), 'utf-8'));
 
 let clients = 0;
 
@@ -14,7 +27,7 @@ let clients = 0;
  *
  * @returns A port handed out by the system, free again once the probe server has closed
  */
-function freePort() {
+export function freePort() {
     return new Promise((resolve, reject) => {
         const probe = net.createServer();
         probe.once('error', reject);
@@ -26,46 +39,34 @@ function freePort() {
 }
 
 /**
- * Starts the built server (dist/app.js) in a child process and waits until it listens.
+ * Serves an app on a free loopback port.
  *
- * @param packagesDir - Packages tree passed as PACKAGES_DIR, the repository's packages/ by default, so a
- * PACKAGES_DIR exported in the shell never leaks in
- * @returns The port the server listens on, and stop() to kill it; rejects when the server exits or does not listen
- * within 10 seconds
+ * @param app - App from createApp, or any request listener
+ * @returns The port, and stop() which closes the server and its connections
  */
-export async function startServer(packagesDir = join(rootDir, 'packages')) {
-    const port = await freePort();
-    const env = { ...process.env, PORT: String(port), PACKAGES_DIR: packagesDir };
+export async function listen(app) {
+    const server = http.createServer(app);
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
 
-    const child = spawn(process.execPath, [join(rootDir, 'dist', 'app.js')], {
-        env,
-        stdio: ['ignore', 'pipe', 'pipe'],
-    });
-    let stdout = '';
-    let stderr = '';
-    child.stderr.on('data', (chunk) => (stderr += chunk));
+    return {
+        port: server.address().port,
+        stop: () => new Promise((resolve) => (server.close(resolve), server.closeAllConnections())),
+    };
+}
 
-    await new Promise((resolve, reject) => {
-        const timer = setTimeout(() => {
-            child.kill();
-            reject(new Error(`The server did not listen within 10 seconds:\n${stderr}`));
-        }, 10_000);
+/**
+ * Starts the app of the repository config in process, on a packages tree of the test.
+ *
+ * @param packagesDir - Packages tree, the repository's packages/ by default
+ * @param change - Config keys that replace the ones of the repository config
+ * @returns The port, stop(), and what the app logged in requests and errors, the scan messages included
+ */
+export async function startServer(packagesDir = config.packagesDir, change = {}) {
+    const logs = { requests: [], errors: [] };
+    const logger = { request: (entry) => logs.requests.push(entry), error: (...args) => logs.errors.push(args) };
+    const app = createApp({ ...config, ...change }, { index: scan(packagesDir, logger), packagesDir, version, logger });
 
-        // The listener stays attached, so the request log keeps draining and never blocks the server
-        child.stdout.on('data', (chunk) => {
-            stdout += chunk;
-            if (!stdout.includes('is running')) return;
-
-            clearTimeout(timer);
-            resolve();
-        });
-        child.once('exit', (code) => {
-            clearTimeout(timer);
-            reject(new Error(`The server exited with code ${code}:\n${stderr}`));
-        });
-    });
-
-    return { port, stop: () => child.kill() };
+    return { ...(await listen(app)), logs };
 }
 
 /**
@@ -75,7 +76,7 @@ export async function startServer(packagesDir = join(rootDir, 'packages')) {
  * @param port - Port returned by startServer
  * @param method - HTTP method, sent in upper case as given
  * @param path - Request target, never normalized nor encoded
- * @param headers - Extra request headers; a unique CF-Connecting-IP is added unless given, so the per-client rate
+ * @param headers - Extra request headers; a unique client IP header is added unless given, so the per-client rate
  * limit never trips across a whole test file
  * @returns Status, headers and body, with aborted true when the server cut the response before its end; rejects when
  * the connection fails before any response, or stays idle for 10 seconds
@@ -83,11 +84,12 @@ export async function startServer(packagesDir = join(rootDir, 'packages')) {
 export function request(port, method, path, headers = {}) {
     clients++;
     const client = `10.${(clients >> 16) & 255}.${(clients >> 8) & 255}.${clients & 255}`;
+    const identity = config.clientIp.header ? { [config.clientIp.header]: client } : {};
 
     return new Promise((resolve, reject) => {
         const options = { host: '127.0.0.1', port, method, path, agent: false, timeout: 10_000 };
         let started = false;
-        const req = http.request({ ...options, headers: { 'cf-connecting-ip': client, ...headers } }, (res) => {
+        const req = http.request({ ...options, headers: { ...identity, ...headers } }, (res) => {
             started = true;
             const chunks = [];
             res.on('data', (chunk) => chunks.push(chunk));

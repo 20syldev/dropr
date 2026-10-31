@@ -5,7 +5,7 @@ import { join } from 'path';
 
 import { capture, caseName, CASES } from './cases.mjs';
 import { createFixture, isReadable } from './fixture.mjs';
-import { request, rootDir, startServer } from './server.mjs';
+import { config, request, rootDir, startServer } from './server.mjs';
 
 const pkg = JSON.parse(fs.readFileSync(join(rootDir, 'package.json'), 'utf-8'));
 
@@ -31,8 +31,8 @@ describe('routes', () => {
         server = await startServer(fixture.packagesDir);
     });
 
-    after(() => {
-        server?.stop();
+    after(async () => {
+        await server?.stop();
         fixture?.remove();
     });
 
@@ -110,7 +110,7 @@ describe('routes', () => {
     });
 
     test('GET /health (101st request of a client within 10 seconds)', async (t) => {
-        const headers = { 'cf-connecting-ip': '192.0.2.1' };
+        const headers = { [config.clientIp.header]: '192.0.2.1' };
 
         for (let i = 0; i < 100; i++) assert.equal((await request(server.port, 'GET', '/health', headers)).status, 200);
 
@@ -121,6 +121,8 @@ describe('routes', () => {
         const empty = await startServer(join(fixture.root, 'missing'));
 
         try {
+            assert.match(empty.logs.errors[0][0], /^No packages folder at /);
+
             const root = await request(empty.port, 'GET', '/');
             assert.equal(root.status, 200);
             assert.deepEqual(JSON.parse(root.body).packages, {});
@@ -133,7 +135,7 @@ describe('routes', () => {
             assert.equal(type.status, 404);
             assert.equal(JSON.parse(type.body).message, "Package type 'npm' does not exist.");
         } finally {
-            empty.stop();
+            await empty.stop();
         }
     });
 });

@@ -839,108 +839,108 @@ exports[`routes > GET /manifest 1`] = `
         "id": "file",
         "group": "files",
         "method": "GET",
-        "path": "/{type}/{projet}@{version}/{fichier}",
-        "title": "Fichier",
-        "summary": "Sert un fichier d’une version, avec son type MIME, ou liste un dossier en JSON.",
+        "path": "/{type}/{project}@{version}/{file}",
+        "title": "File",
+        "summary": "Serves a file of a version, with its MIME type, or lists a folder as JSON.",
         "params": [
           {
             "name": "type",
             "in": "path",
             "required": true,
-            "description": "Type de paquet : npm, bash ou config.",
+            "description": "Package type: npm, bash or config.",
             "example": "npm"
           },
           {
-            "name": "projet",
+            "name": "project",
             "in": "path",
             "required": true,
-            "description": "Nom du projet dans ce type.",
+            "description": "Name of the project in this type.",
             "example": "moxon"
           },
           {
             "name": "version",
             "in": "path",
             "required": true,
-            "description": "Version exacte (6.1.0), partielle (6 ou 6.1) ou latest.",
+            "description": "Exact version (6.1.0), partial (6 or 6.1) or latest.",
             "example": "6.1.0"
           },
           {
-            "name": "fichier",
+            "name": "file",
             "in": "path",
             "required": true,
-            "description": "Chemin du fichier dans la version.",
+            "description": "Path of the file in the version.",
             "example": "dist/app.js"
           }
         ],
         "example": "/npm/moxon@6.1.0/package.json",
         "returns": "file",
         "notes": [
-          "Un chemin qui sort du dossier de la version renvoie 404."
+          "A path that leaves the version folder returns 404."
         ]
       },
       {
         "id": "version",
         "group": "files",
         "method": "GET",
-        "path": "/{type}/{projet}@{version}",
+        "path": "/{type}/{project}@{version}",
         "title": "Version",
-        "summary": "Liste les fichiers d’une version, avec leur taille.",
+        "summary": "Lists the files of a version, with their size.",
         "params": [
           {
             "name": "type",
             "in": "path",
             "required": true,
-            "description": "Type de paquet : npm, bash ou config.",
+            "description": "Package type: npm, bash or config.",
             "example": "npm"
           },
           {
-            "name": "projet",
+            "name": "project",
             "in": "path",
             "required": true,
-            "description": "Nom du projet dans ce type.",
+            "description": "Name of the project in this type.",
             "example": "moxon"
           },
           {
             "name": "version",
             "in": "path",
             "required": true,
-            "description": "Version exacte (6.1.0), partielle (6 ou 6.1) ou latest.",
+            "description": "Exact version (6.1.0), partial (6 or 6.1) or latest.",
             "example": "6.1.0"
           }
         ],
         "example": "/npm/moxon@latest",
         "returns": "json",
         "notes": [
-          "Ajoutez \`?checksums\` pour obtenir les SHA256, ou \`?download\` pour l’archive \`.tar.gz\`."
+          "Add \`?checksums\` to get the SHA256 sums, or \`?download\` for the \`.tar.gz\` archive."
         ]
       },
       {
         "id": "checksums",
         "group": "files",
         "method": "GET",
-        "path": "/{type}/{projet}@{version}?checksums",
+        "path": "/{type}/{project}@{version}?checksums",
         "title": "Checksums",
-        "summary": "Donne le SHA256 de chaque fichier d’une version.",
+        "summary": "Gives the SHA256 of each file of a version.",
         "params": [
           {
             "name": "type",
             "in": "path",
             "required": true,
-            "description": "Type de paquet : npm, bash ou config.",
+            "description": "Package type: npm, bash or config.",
             "example": "npm"
           },
           {
-            "name": "projet",
+            "name": "project",
             "in": "path",
             "required": true,
-            "description": "Nom du projet dans ce type.",
+            "description": "Name of the project in this type.",
             "example": "moxon"
           },
           {
             "name": "version",
             "in": "path",
             "required": true,
-            "description": "Version exacte (6.1.0), partielle (6 ou 6.1) ou latest.",
+            "description": "Exact version (6.1.0), partial (6 or 6.1) or latest.",
             "example": "6.1.0"
           }
         ],
@@ -952,37 +952,37 @@ exports[`routes > GET /manifest 1`] = `
         "id": "download",
         "group": "downloads",
         "method": "GET",
-        "path": "/download/{type}/{projet}@{version}",
+        "path": "/download/{type}/{project}@{version}",
         "title": "Archive",
-        "summary": "Télécharge une version entière en .tar.gz, en pièce jointe.",
+        "summary": "Downloads a whole version as a .tar.gz, as an attachment.",
         "params": [
           {
             "name": "type",
             "in": "path",
             "required": true,
-            "description": "Type de paquet : npm, bash ou config.",
+            "description": "Package type: npm, bash or config.",
             "example": "npm"
           },
           {
-            "name": "projet",
+            "name": "project",
             "in": "path",
             "required": true,
-            "description": "Nom du projet dans ce type.",
+            "description": "Name of the project in this type.",
             "example": "moxon"
           },
           {
             "name": "version",
             "in": "path",
             "required": false,
-            "description": "Version exacte (6.1.0), partielle (6 ou 6.1) ou latest.",
+            "description": "Exact version (6.1.0), partial (6 or 6.1) or latest.",
             "example": "6.1.0"
           }
         ],
         "example": "/download/bash/gft@1.0.6",
         "returns": "archive",
         "notes": [
-          "Sans version, sert la version \`latest\`.",
-          "Équivaut à \`/{type}/{projet}@{version}?download\`."
+          "Without a version, serves the \`latest\` version.",
+          "Same as \`/{type}/{project}@{version}?download\`."
         ]
       },
       {
@@ -990,14 +990,14 @@ exports[`routes > GET /manifest 1`] = `
         "group": "downloads",
         "method": "GET",
         "path": "/download/{type}",
-        "title": "Archives disponibles",
-        "summary": "Liste les archives téléchargeables, pour tous les types ou pour un seul.",
+        "title": "Available archives",
+        "summary": "Lists the downloadable archives, for every type or for one.",
         "params": [
           {
             "name": "type",
             "in": "path",
             "required": false,
-            "description": "Type de paquet : npm, bash ou config.",
+            "description": "Package type: npm, bash or config.",
             "example": "npm"
           }
         ],
@@ -1009,51 +1009,51 @@ exports[`routes > GET /manifest 1`] = `
         "id": "project",
         "group": "packages",
         "method": "GET",
-        "path": "/{type}/{projet}",
-        "title": "Projet",
-        "summary": "Liste les versions d’un projet, avec latest.",
+        "path": "/{type}/{project}",
+        "title": "Project",
+        "summary": "Lists the versions of a project, with latest.",
         "params": [
           {
             "name": "type",
             "in": "path",
             "required": true,
-            "description": "Type de paquet : npm, bash ou config.",
+            "description": "Package type: npm, bash or config.",
             "example": "npm"
           },
           {
-            "name": "projet",
+            "name": "project",
             "in": "path",
             "required": true,
-            "description": "Nom du projet dans ce type.",
+            "description": "Name of the project in this type.",
             "example": "moxon"
           }
         ],
         "example": "/npm/moxon",
         "returns": "json",
         "notes": [
-          "Un projet déprécié porte un champ \`deprecated\`."
+          "A deprecated project carries a \`deprecated\` field."
         ]
       },
       {
         "id": "changelog",
         "group": "packages",
         "method": "GET",
-        "path": "/{type}/{projet}/changelog",
+        "path": "/{type}/{project}/changelog",
         "title": "Changelog",
-        "summary": "Donne l’historique des versions avec leur date de publication.",
+        "summary": "Gives the version history with the publication date of each.",
         "params": [
           {
             "name": "type",
             "in": "path",
             "required": true,
-            "description": "Type de paquet : npm, bash ou config.",
+            "description": "Package type: npm, bash or config.",
             "example": "npm"
           },
           {
-            "name": "projet",
+            "name": "project",
             "in": "path",
             "required": true,
-            "description": "Nom du projet dans ce type.",
+            "description": "Name of the project in this type.",
             "example": "moxon"
           }
         ],
@@ -1067,13 +1067,13 @@ exports[`routes > GET /manifest 1`] = `
         "method": "GET",
         "path": "/{type}",
         "title": "Type",
-        "summary": "Liste les projets d’un type.",
+        "summary": "Lists the projects of a type.",
         "params": [
           {
             "name": "type",
             "in": "path",
             "required": true,
-            "description": "Type de paquet : npm, bash ou config.",
+            "description": "Package type: npm, bash or config.",
             "example": "npm"
           }
         ],
@@ -1086,21 +1086,21 @@ exports[`routes > GET /manifest 1`] = `
         "group": "discovery",
         "method": "GET",
         "path": "/search",
-        "title": "Recherche",
-        "summary": "Cherche un projet par son nom, ou liste un type entier.",
+        "title": "Search",
+        "summary": "Searches a project by name, or lists a whole type.",
         "params": [
           {
             "name": "q",
             "in": "query",
             "required": true,
-            "description": "Texte cherché dans les noms, ou un type exact.",
+            "description": "Text searched in the names, or an exact type.",
             "example": "mox"
           }
         ],
         "example": "/search?q=mox",
         "returns": "json",
         "notes": [
-          "Les correspondances sur le nom passent avant celles sur le type."
+          "Matches on the name come before matches on the type."
         ]
       },
       {
@@ -1109,7 +1109,7 @@ exports[`routes > GET /manifest 1`] = `
         "method": "GET",
         "path": "/",
         "title": "Index",
-        "summary": "Donne tous les types, projets et versions en JSON.",
+        "summary": "Gives every type, project and version as JSON.",
         "params": [],
         "example": "/",
         "returns": "json",
@@ -1121,7 +1121,7 @@ exports[`routes > GET /manifest 1`] = `
         "method": "GET",
         "path": "/manifest",
         "title": "Manifest",
-        "summary": "Décrit toutes les routes du serveur.",
+        "summary": "Describes every route of the server.",
         "params": [],
         "example": "/manifest",
         "returns": "json",
@@ -1132,8 +1132,8 @@ exports[`routes > GET /manifest 1`] = `
         "group": "server",
         "method": "GET",
         "path": "/health",
-        "title": "Santé",
-        "summary": "Donne l’état du serveur, sa version, sa durée de fonctionnement et le nombre de paquets.",
+        "title": "Health",
+        "summary": "Gives the server status, its version, its uptime and the number of packages.",
         "params": [],
         "example": "/health",
         "returns": "json",

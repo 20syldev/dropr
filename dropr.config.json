@@ -1,0 +1,17 @@
+{
+    "name": "dropr",
+    "port": 4000,
+    "packagesDir": "packages",
+    "clientIp": {
+        "header": "cf-connecting-ip",
+        "trustProxy": true
+    },
+    "manifest": {
+        "baseUrl": "https://dropr.sylvain.sh"
+    },
+    "assets": {
+        "/favicon.ico": "public/favicon.ico",
+        "/favicon.svg": "public/favicon.svg",
+        "/robots.txt": "robots.txt"
+    }
+}
