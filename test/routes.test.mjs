@@ -257,6 +257,19 @@ function caseName({ path, method = 'GET', headers = {} }) {
     return `${method} ${path}${sent.length > 0 ? ` (${sent.join(', ')})` : ''}`;
 }
 
+/**
+ * Skips a test whose files a mode of 000 does not lock, as for root, except on CI where every locked case must run.
+ * A skipped test also loses its snapshot entries on test:update, so CI fails instead of passing without them.
+ *
+ * @param t - Context of the test, failed rather than skipped when the CI variable is set to any non-empty value
+ * @param reason - What stayed readable, given as the skip reason or in the failure message
+ */
+function skipLocked(t, reason) {
+    assert.ok(!process.env.CI, `${reason}, so CI cannot check the locked cases`);
+
+    t.skip(reason);
+}
+
 describe('routes', () => {
     let fixture;
     let server;
@@ -274,7 +287,7 @@ describe('routes', () => {
     for (const entry of CASES) {
         test(caseName(entry), async (t) => {
             const { path, method = 'GET', headers, locked, checkout } = entry;
-            if (locked && !fixture.locked) return t.skip('the locked file stays readable, as it does for root');
+            if (locked && !fixture.locked) return skipLocked(t, 'the locked file stays readable, as it does for root');
 
             const response = await request(server.port, method, path, headers);
             t.assert.snapshot(capture(response, { cors: !!headers?.origin, checkout }));
@@ -322,7 +335,7 @@ describe('routes', () => {
 
         fs.chmodSync(folder, 0o000);
         try {
-            if (isReadable(folder)) return t.skip('the folder stays readable, as it does for root');
+            if (isReadable(folder)) return skipLocked(t, 'the folder stays readable, as it does for root');
 
             // Snapshot keys hold no path, so entries 1, 2 and 3 follow the order of this list
             for (const path of ['/npm/sealed@1.0.0', '/npm/sealed@1.0.0?download', '/npm/sealed@1.0.0/index.js']) {
