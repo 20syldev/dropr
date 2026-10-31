@@ -62,18 +62,18 @@ Node.js, Express 5, strict TypeScript (ESM), @20syldev/logger.ts
 
 ## Scripts
 
-| Script                  | Description                                                   |
-| ----------------------- | ------------------------------------------------------------- |
-| `npm run dev`           | Dev server on port 4000, reloaded on change (tsx watch)       |
-| `npm run build`         | Compile TypeScript to `dist/`                                 |
-| `npm start`             | Production server on port 4000, or `$PORT`                    |
-| `npm run fetch`         | Publish a version into `packages/` (`scripts/fetch.sh`)       |
-| `npm run check`         | Type check, ESLint, Prettier (`src/`, `scripts/` and `test/`) |
-| `npm test`              | Route snapshots on a generated tree, sweep of `packages/`     |
-| `npm run test:update`   | Record the snapshots again after an intended change           |
-| `npm run format`        | Prettier + ESLint (write)                                     |
-| `npm run upgrade:minor` | Update the dependencies within their ranges                   |
-| `npm run upgrade:major` | Move every dependency to its latest major (npm-check-updates) |
+| Script                  | Description                                                                                 |
+| ----------------------- | ------------------------------------------------------------------------------------------- |
+| `npm run dev`           | Dev server on port 4000, reloaded on change (tsx watch)                                     |
+| `npm run build`         | Compile TypeScript to `dist/`                                                               |
+| `npm start`             | Production server on port 4000, or `$PORT`                                                  |
+| `npm run fetch`         | Publish a version into `packages/` (`scripts/fetch.sh`)                                     |
+| `npm run check`         | Type checks, the Node-free core included, ESLint, Prettier (`src/`, `scripts/` and `test/`) |
+| `npm test`              | Route snapshots on a generated tree, core and tar writer in process, sweep of `packages/`   |
+| `npm run test:update`   | Record the snapshots again after an intended change                                         |
+| `npm run format`        | Prettier + ESLint (write)                                                                   |
+| `npm run upgrade:minor` | Update the dependencies within their ranges                                                 |
+| `npm run upgrade:major` | Move every dependency to its latest major (npm-check-updates)                               |
 
 ## Structure
 
@@ -82,21 +82,25 @@ Node.js, Express 5, strict TypeScript (ESM), @20syldev/logger.ts
 packages/         Published versions, as packages/<type>/<project>/<version>/
 public/           Favicon: the dropr mark, a vermilion box falling into its tray (SVG and ICO)
 scripts/          fetch.sh (version publishing), versions.mjs (release dates)
-src/app.ts        Express server: middlewares, routes and error handling
+src/app.ts        Express adapter: static files, logs, rate limit, /health and /manifest, then route() for every other request
+src/scan.ts       Startup index of packages/: folders, files, links, sizes, release dates, deprecations and SHA-256
 src/manifest.ts   Description of every route, served on /manifest
-src/lib/          Package scan, version resolution, deprecations, release dates, sizes, paths, archives, checksums, MIME types, errors, rate limit
-src/types/        Shared types and the Express request and response augmentations
-test/             Route snapshots on a generated tree (fixture.mjs), sweep of packages/, HTTP and tar helpers
+src/lib/          Node-free core: route(), index loading, version resolution, paths, checksums, tar writer, MIME types, errors, deprecations, rate limiter
+src/types/        Shared types: the index and its catalog, route requests and responses, tar entries
+test/             Route snapshots on a generated tree (cases.mjs, fixture.mjs), route() and the limiter in process (core.test.mjs), tar writer (tar.test.mjs), sweep of packages/, HTTP and tar helpers
 robots.txt        Crawler rules, served on /robots.txt
 ```
 
 ## Notes
 
 - A full version must exist as is: `@6.0.0` answers 404 while only `6.0.0-pre` is published, whereas `@6.0` resolves to it.
-- Archives are named `<project>-<version>.tar.gz` and unpack into a `<version>/` folder. When tar fails midway (an unreadable file), the connection is reset instead of ending, so `curl -f` fails rather than keeping a partial archive.
+- The server reads `packages/` once at startup into an index (`src/scan.ts`): listings, sizes, checksums, release dates and file ETags come from it, so a folder made unreadable after startup keeps being listed, a file added after startup only shows after a restart, and one edited in place keeps its startup ETag and checksum until then. What cannot be read at startup is logged: a file or a version that cannot be stat'ed is left out, and a folder that cannot be listed fails only the routes that need it, a download of its version logging an `Archive error` line that names the version.
+- A missing `packages/` folder is logged and serves an empty index instead of stopping the server; `/health` then counts 0 packages.
+- `src/lib/` and `src/manifest.ts` use no Node API (no built-in module, `process`, `Buffer`, timer or `console`), so the core can move to another JavaScript runtime; ESLint and `tsc -p tsconfig.core.json` check it.
+- Archives are named `<project>-<version>.tar.gz` and unpack into a `<version>/` folder. They are written in JS (ustar, pax for long names): entries in strcmp order, mode `0755` for folders and executables, `0644` for other files and `0777` for links, owner `0/0`, and every entry dated the release date of the version, so a version gives the same tar bytes on every deploy. When a file cannot be read midway, or no longer has its startup size, the connection is reset instead of ending, so `curl -f` fails rather than keeping a partial archive. Files are read whole, so a version holding a file of 2 GiB or more cannot be archived: its download resets.
 - `.versions.json` (release dates) and `.deprecated.json` (deprecation notice) sit next to the version folders of a project, so they never show up in listings, archives or checksums.
-- In production: `npm install && npm run build`, then `npm start`; the committed lockfile pins what gets installed, and archives need `tar` on the host.
+- In production: `npm install && npm run build`, then `npm start`; the committed lockfile pins what gets installed, and the host no longer needs `tar`.
 - `PACKAGES_DIR` serves another tree than `packages/`; the tests point it at a tree they generate in the system temp folder.
-- The tests need Node 24 and a regular user: root can read a file of mode `000`, so the cases that rely on one are skipped, and `npm run test:update` would then drop their snapshots.
+- The tests need Node 24, GNU tar (to check the archives) and a regular user: root can read a file of mode `000`, so the cases that rely on one are skipped, and `npm run test:update` would then drop their snapshots. With `CI` set, these cases fail instead of being skipped.
 - The CI runs `npm run check` and `npm test` on Node 24 for every push to `master` and every pull request.
 - Version `3.3.0` changes what clients see: `error` now holds the HTTP reason phrase and `message` the detail (the other way around until `3.2.2`), `status` is a number instead of a string, files carry their own content type instead of `text/plain`, and only exact versions stay immutable (`3.2.2` cached `@latest` for a year).
