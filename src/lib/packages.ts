@@ -244,9 +244,9 @@ export function resolveVersion(versionPattern: string, projectEntry: PackageProj
  * Resolves the "latest" alias to the newest version of a project.
  * The newest release wins, a pre-release is only returned when the project has no release yet.
  *
- * @param projectEntry - Project entry holding at least one version besides the 'latest' alias
- * @returns The newest version key, never the 'latest' alias itself
+ * @param projectEntry - Project entry whose version keys are searched, the 'latest' alias skipped
+ * @returns The newest version key, never the 'latest' alias itself, or null for a project without versions
  */
-export function latestVersion(projectEntry: PackageProject): string {
-    return pickNewest(Object.keys(projectEntry.versions).filter((v) => v !== 'latest'))!;
+export function latestVersion(projectEntry: PackageProject): string | null {
+    return pickNewest(Object.keys(projectEntry.versions).filter((v) => v !== 'latest'));
 }
