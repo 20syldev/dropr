@@ -47,6 +47,21 @@ export interface ManifestParam {
     example: string;
 }
 
+export interface ParamSpec {
+    key: string;
+    in: 'path' | 'query';
+    required: boolean;
+}
+
+export interface RouteSpec {
+    id: string;
+    group: 'packages' | 'files' | 'downloads' | 'discovery' | 'server';
+    method: 'GET';
+    path: string;
+    params: ParamSpec[];
+    returns: 'json' | 'file' | 'archive' | 'html';
+}
+
 export interface ManifestRoute {
     id: string;
     group: 'packages' | 'files' | 'downloads' | 'discovery' | 'server';
@@ -194,4 +209,37 @@ export type TarRead = (source: string) => Promise<Uint8Array<ArrayBuffer>>;
 export interface Limiter {
     readonly size: number;
     check(client: string, now: number): string | null;
+}
+
+export interface Logger {
+    request(entry: { method: string; url: string; status: number; duration: number }): void;
+    error(...args: unknown[]): void;
+}
+
+export type ErrorLogger = Pick<Logger, 'error'>;
+
+export type ParamText = Pick<ManifestParam, 'name' | 'description' | 'example'>;
+
+export type RouteText = Pick<ManifestRoute, 'title' | 'summary' | 'example' | 'notes'>;
+
+export interface ManifestConfig {
+    baseUrl: string;
+    params: Record<string, Partial<ParamText>>;
+    routes: Record<string, Partial<RouteText>>;
+}
+
+export interface Config {
+    name: string;
+    port: number;
+    packagesDir: string;
+    clientIp: { header: string | null; trustProxy: boolean };
+    manifest: ManifestConfig;
+    assets: Record<string, string>;
+}
+
+export interface AppDeps {
+    index: Index;
+    packagesDir: string;
+    version: string;
+    logger: Logger;
 }
