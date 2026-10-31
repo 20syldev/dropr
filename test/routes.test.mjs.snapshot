@@ -150,6 +150,89 @@ exports[`routes > GET /.hidden 1`] = `
 }
 `;
 
+exports[`routes > GET /Download/npm 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "1392",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "message": "Downloadable npm packages (.tar.gz).",
+    "downloads": {
+      "bash-utils": {
+        "latest": "/download/npm/bash-utils",
+        "versions": {
+          "1.0.0": "/download/npm/bash-utils@1.0.0"
+        }
+      },
+      "broken": {
+        "latest": "/download/npm/broken",
+        "versions": {
+          "1.0.0": "/download/npm/broken@1.0.0"
+        }
+      },
+      "lib": {
+        "latest": "/download/npm/lib",
+        "versions": {
+          "1.0.0": "/download/npm/lib@1.0.0",
+          "1.2.0": "/download/npm/lib@1.2.0",
+          "1.10.0": "/download/npm/lib@1.10.0",
+          "2.0.0-pre": "/download/npm/lib@2.0.0-pre"
+        }
+      },
+      "links": {
+        "latest": "/download/npm/links",
+        "versions": {
+          "1.0.0": "/download/npm/links@1.0.0"
+        }
+      },
+      "next": {
+        "latest": "/download/npm/next",
+        "versions": {
+          "0.1.0-beta.2": "/download/npm/next@0.1.0-beta.2",
+          "0.1.0-beta.10": "/download/npm/next@0.1.0-beta.10"
+        }
+      },
+      "old": {
+        "deprecated": {
+          "date": "2025-06-01",
+          "message": "Renamed to lib.",
+          "successor": "https://dropr.sylvain.sh/npm/lib"
+        },
+        "latest": "/download/npm/old",
+        "versions": {
+          "1.0.0": "/download/npm/old@1.0.0"
+        }
+      },
+      "sealed": {
+        "latest": "/download/npm/sealed",
+        "versions": {
+          "1.0.0": "/download/npm/sealed@1.0.0"
+        }
+      }
+    }
+  }
+}
+`;
+
+exports[`routes > GET /NPM 1`] = `
+{
+  "status": 404,
+  "headers": {
+    "content-length": "94",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 404,
+    "error": "Not Found",
+    "message": "Package type 'NPM' does not exist."
+  }
+}
+`;
+
 exports[`routes > GET /__proto__ 1`] = `
 {
   "status": 404,
@@ -429,6 +512,22 @@ exports[`routes > GET /download 1`] = `
         }
       }
     }
+  }
+}
+`;
+
+exports[`routes > GET /download/a/b/c 1`] = `
+{
+  "status": 404,
+  "headers": {
+    "content-length": "99",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 404,
+    "error": "Not Found",
+    "message": "Package type 'download' does not exist."
   }
 }
 `;
@@ -1152,6 +1251,97 @@ exports[`routes > GET /npm 1`] = `
 }
 `;
 
+exports[`routes > GET /npm/ 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "1487",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "message": "Npm projects.",
+    "projects": {
+      "list": "/npm",
+      "bash-utils": {
+        "list": "/npm/bash-utils",
+        "versions": {
+          "latest": "/npm/bash-utils@latest",
+          "1.0.0": "/npm/bash-utils@1.0.0"
+        }
+      },
+      "broken": {
+        "list": "/npm/broken",
+        "versions": {
+          "latest": "/npm/broken@latest",
+          "1.0.0": "/npm/broken@1.0.0"
+        }
+      },
+      "lib": {
+        "list": "/npm/lib",
+        "versions": {
+          "latest": "/npm/lib@latest",
+          "1.0.0": "/npm/lib@1.0.0",
+          "1.2.0": "/npm/lib@1.2.0",
+          "1.10.0": "/npm/lib@1.10.0",
+          "2.0.0-pre": "/npm/lib@2.0.0-pre"
+        }
+      },
+      "links": {
+        "list": "/npm/links",
+        "versions": {
+          "latest": "/npm/links@latest",
+          "1.0.0": "/npm/links@1.0.0"
+        }
+      },
+      "next": {
+        "list": "/npm/next",
+        "versions": {
+          "latest": "/npm/next@latest",
+          "0.1.0-beta.2": "/npm/next@0.1.0-beta.2",
+          "0.1.0-beta.10": "/npm/next@0.1.0-beta.10"
+        }
+      },
+      "old": {
+        "list": "/npm/old",
+        "versions": {
+          "latest": "/npm/old@latest",
+          "1.0.0": "/npm/old@1.0.0"
+        },
+        "deprecated": {
+          "date": "2025-06-01",
+          "message": "Renamed to lib.",
+          "successor": "https://dropr.sylvain.sh/npm/lib"
+        }
+      },
+      "sealed": {
+        "list": "/npm/sealed",
+        "versions": {
+          "latest": "/npm/sealed@latest",
+          "1.0.0": "/npm/sealed@1.0.0"
+        }
+      }
+    }
+  }
+}
+`;
+
+exports[`routes > GET /npm//lib?x=1 1`] = `
+{
+  "status": 404,
+  "headers": {
+    "content-length": "97",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 404,
+    "error": "Not Found",
+    "message": "Route '/npm//lib?x=1' does not exist."
+  }
+}
+`;
+
 exports[`routes > GET /npm/__proto__ 1`] = `
 {
   "status": 404,
@@ -1213,7 +1403,77 @@ exports[`routes > GET /npm/broken@1.0.0?download 1`] = `
 }
 `;
 
+exports[`routes > GET /npm/lib (if-none-match: *) 1`] = `
+{
+  "status": 304,
+  "headers": {
+    "etag": "W/<weak>"
+  },
+  "body": ""
+}
+`;
+
 exports[`routes > GET /npm/lib 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "247",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "message": "Available versions for the 'lib' project.",
+    "versions": {
+      "latest": "/npm/lib@latest",
+      "1.0.0": "/npm/lib@1.0.0",
+      "1.2.0": "/npm/lib@1.2.0",
+      "1.10.0": "/npm/lib@1.10.0",
+      "2.0.0-pre": "/npm/lib@2.0.0-pre"
+    }
+  }
+}
+`;
+
+exports[`routes > GET /npm/lib/CHANGELOG 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "cache-control": "public, max-age=300",
+    "content-length": "472",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "name": "lib",
+    "type": "npm",
+    "versions": 4,
+    "changelog": [
+      {
+        "version": "1.0.0",
+        "date": "2025-02-01",
+        "url": "/npm/lib@1.0.0"
+      },
+      {
+        "version": "1.2.0",
+        "date": "2025-05-01",
+        "url": "/npm/lib@1.2.0"
+      },
+      {
+        "version": "1.10.0",
+        "date": "2025-01-01",
+        "url": "/npm/lib@1.10.0"
+      },
+      {
+        "version": "2.0.0-pre",
+        "date": "2025-09-01",
+        "url": "/npm/lib@2.0.0-pre"
+      }
+    ]
+  }
+}
+`;
+
+exports[`routes > GET /npm/lib/anything/at/all 1`] = `
 {
   "status": 200,
   "headers": {
@@ -1269,6 +1529,27 @@ exports[`routes > GET /npm/lib/changelog 1`] = `
         "url": "/npm/lib@2.0.0-pre"
       }
     ]
+  }
+}
+`;
+
+exports[`routes > GET /npm/lib@ 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "247",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "message": "Available versions for the 'lib' project.",
+    "versions": {
+      "latest": "/npm/lib@latest",
+      "1.0.0": "/npm/lib@1.0.0",
+      "1.2.0": "/npm/lib@1.2.0",
+      "1.10.0": "/npm/lib@1.10.0",
+      "2.0.0-pre": "/npm/lib@2.0.0-pre"
+    }
   }
 }
 `;
@@ -1329,6 +1610,93 @@ exports[`routes > GET /npm/lib@1.0.0/changelog 1`] = `
         "version": "2.0.0-pre",
         "date": "2025-09-01",
         "url": "/npm/lib@2.0.0-pre"
+      }
+    ]
+  }
+}
+`;
+
+exports[`routes > GET /npm/lib@1.0.0/index.js (if-modified-since: Wed, 01 Jan 2025 12:00:00 GMT) 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "accept-ranges": "bytes",
+    "cache-control": "public, max-age=31536000, immutable",
+    "content-length": "24",
+    "content-type": "text/javascript; charset=utf-8",
+    "etag": "\\"18-19421bcade7.9d3\\"",
+    "last-modified": "Wed, 01 Jan 2025 12:00:01 GMT",
+    "x-content-type-options": "nosniff"
+  },
+  "body": "export default \\"1.0.0\\";\\n"
+}
+`;
+
+exports[`routes > GET /npm/lib@1.0.0/index.js 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "accept-ranges": "bytes",
+    "cache-control": "public, max-age=31536000, immutable",
+    "content-length": "24",
+    "content-type": "text/javascript; charset=utf-8",
+    "etag": "\\"18-19421bcade7.9d3\\"",
+    "last-modified": "Wed, 01 Jan 2025 12:00:01 GMT",
+    "x-content-type-options": "nosniff"
+  },
+  "body": "export default \\"1.0.0\\";\\n"
+}
+`;
+
+exports[`routes > GET /npm/lib@1.0.0?checksums 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "433",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "name": "lib",
+    "version": "1.0.0",
+    "algorithm": "sha256",
+    "checksums": {
+      "dist/v3/a.js": "01fdd4fe401c03b31819979ce6ed6a5d4625cb30d2c73d1165923ef236d26673",
+      "dist/v3.js": "10a81d36093808647d67ba6792b3ef6fa01ab70c4180995609c0a0e445a6bdc9",
+      "index.js": "ab2604b541611b14e7a638ef64dc70abec3e80a0ece98d457ae65f17796af049",
+      "package.json": "70246d4ad965b51a7380f8b8c5b15ef930602afda6f4e10a874cb5ce5534dcf7"
+    }
+  }
+}
+`;
+
+exports[`routes > GET /npm/lib@1.0.0@junk 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "330",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "name": "lib",
+    "version": "1.0.0",
+    "current": "lib@1.0.0",
+    "files": [
+      {
+        "name": "dist/",
+        "size": 41,
+        "directory": true
+      },
+      {
+        "name": "index.js",
+        "size": 24,
+        "directory": false
+      },
+      {
+        "name": "package.json",
+        "size": 38,
+        "directory": false
       }
     ]
   }
@@ -1459,6 +1827,44 @@ exports[`routes > GET /npm/lib@1.2.0/%E0%A4%A 1`] = `
 }
 `;
 
+exports[`routes > GET /npm/lib@1.2.0/. 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "403",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "name": "lib",
+    "version": "1.2.0",
+    "path": ".",
+    "files": [
+      {
+        "name": ".npmignore",
+        "size": 5,
+        "directory": false
+      },
+      {
+        "name": "dist/",
+        "size": 104,
+        "directory": true
+      },
+      {
+        "name": "index.js",
+        "size": 24,
+        "directory": false
+      },
+      {
+        "name": "package.json",
+        "size": 38,
+        "directory": false
+      }
+    ]
+  }
+}
+`;
+
 exports[`routes > GET /npm/lib@1.2.0/..%2F..%2F..%2F..%2Fsecret.txt 1`] = `
 {
   "status": 404,
@@ -1488,6 +1894,22 @@ exports[`routes > GET /npm/lib@1.2.0/../1.0.0/index.js 1`] = `
     "error": "Not Found",
     "message": "File '../1.0.0/index.js' does not exist in the 1.2.0 version of the 'lib' project."
   }
+}
+`;
+
+exports[`routes > GET /npm/lib@1.2.0/../1.2.0/index.js 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "accept-ranges": "bytes",
+    "cache-control": "public, max-age=31536000, immutable",
+    "content-length": "24",
+    "content-type": "text/javascript; charset=utf-8",
+    "etag": "\\"18-19421bcaa00\\"",
+    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "x-content-type-options": "nosniff"
+  },
+  "body": "export default \\"1.2.0\\";\\n"
 }
 `;
 
@@ -1573,6 +1995,39 @@ exports[`routes > GET /npm/lib@1.2.0/dist/ 1`] = `
 }
 `;
 
+exports[`routes > GET /npm/lib@1.2.0/dist// 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "324",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "name": "lib",
+    "version": "1.2.0",
+    "path": "dist/",
+    "files": [
+      {
+        "name": "index.d.ts",
+        "size": 55,
+        "directory": false
+      },
+      {
+        "name": "index.mjs",
+        "size": 24,
+        "directory": false
+      },
+      {
+        "name": "nested/",
+        "size": 25,
+        "directory": true
+      }
+    ]
+  }
+}
+`;
+
 exports[`routes > GET /npm/lib@1.2.0/dist/index.d.ts 1`] = `
 {
   "status": 200,
@@ -1605,7 +2060,55 @@ exports[`routes > GET /npm/lib@1.2.0/dist/nested/deep.cjs 1`] = `
 }
 `;
 
+exports[`routes > GET /npm/lib@1.2.0/dist\\index.mjs#x 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "accept-ranges": "bytes",
+    "cache-control": "public, max-age=31536000, immutable",
+    "content-length": "24",
+    "content-type": "text/javascript; charset=utf-8",
+    "etag": "\\"18-19421bcaa00\\"",
+    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "x-content-type-options": "nosniff"
+  },
+  "body": "export default \\"1.2.0\\";\\n"
+}
+`;
+
+exports[`routes > GET /npm/lib@1.2.0/index.js (if-match: \"nope\") 1`] = `
+{
+  "status": 412,
+  "headers": {
+    "accept-ranges": "bytes",
+    "content-length": "110",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>",
+    "x-content-type-options": "nosniff"
+  },
+  "body": {
+    "status": 412,
+    "error": "Precondition Failed",
+    "message": "Precondition failed for file 'index.js'."
+  }
+}
+`;
+
 exports[`routes > GET /npm/lib@1.2.0/index.js (if-modified-since: Wed, 01 Jan 2025 12:00:00 GMT) 1`] = `
+{
+  "status": 304,
+  "headers": {
+    "accept-ranges": "bytes",
+    "cache-control": "public, max-age=31536000, immutable",
+    "etag": "\\"18-19421bcaa00\\"",
+    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "x-content-type-options": "nosniff"
+  },
+  "body": ""
+}
+`;
+
+exports[`routes > GET /npm/lib@1.2.0/index.js (if-none-match: *) 1`] = `
 {
   "status": 304,
   "headers": {
@@ -1648,6 +2151,23 @@ exports[`routes > GET /npm/lib@1.2.0/index.js (origin: https://example.com) 1`] 
 }
 `;
 
+exports[`routes > GET /npm/lib@1.2.0/index.js (range: bytes=-6) 1`] = `
+{
+  "status": 206,
+  "headers": {
+    "accept-ranges": "bytes",
+    "cache-control": "public, max-age=31536000, immutable",
+    "content-length": "6",
+    "content-range": "bytes 18-23/24",
+    "content-type": "text/javascript; charset=utf-8",
+    "etag": "\\"18-19421bcaa00\\"",
+    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "x-content-type-options": "nosniff"
+  },
+  "body": "2.0\\";\\n"
+}
+`;
+
 exports[`routes > GET /npm/lib@1.2.0/index.js (range: bytes=0-5) 1`] = `
 {
   "status": 206,
@@ -1662,6 +2182,22 @@ exports[`routes > GET /npm/lib@1.2.0/index.js (range: bytes=0-5) 1`] = `
     "x-content-type-options": "nosniff"
   },
   "body": "export"
+}
+`;
+
+exports[`routes > GET /npm/lib@1.2.0/index.js (range: bytes=0-5, if-range: foo) 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "accept-ranges": "bytes",
+    "cache-control": "public, max-age=31536000, immutable",
+    "content-length": "24",
+    "content-type": "text/javascript; charset=utf-8",
+    "etag": "\\"18-19421bcaa00\\"",
+    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "x-content-type-options": "nosniff"
+  },
+  "body": "export default \\"1.2.0\\";\\n"
 }
 `;
 
@@ -1748,7 +2284,85 @@ exports[`routes > GET /npm/lib@1.2.0/missing.js 1`] = `
 }
 `;
 
+exports[`routes > GET /npm/lib@1.2.0/package.json/ 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "accept-ranges": "bytes",
+    "cache-control": "public, max-age=31536000, immutable",
+    "content-length": "38",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "\\"26-19421bcaa00\\"",
+    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "x-content-type-options": "nosniff"
+  },
+  "body": "{ \\"name\\": \\"lib\\", \\"version\\": \\"1.2.0\\" }\\n"
+}
+`;
+
+exports[`routes > GET /npm/lib@1.2.0??checksums 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "414",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "name": "lib",
+    "version": "1.2.0",
+    "current": "lib@1.2.0",
+    "files": [
+      {
+        "name": ".npmignore",
+        "size": 5,
+        "directory": false
+      },
+      {
+        "name": "dist/",
+        "size": 104,
+        "directory": true
+      },
+      {
+        "name": "index.js",
+        "size": 24,
+        "directory": false
+      },
+      {
+        "name": "package.json",
+        "size": 38,
+        "directory": false
+      }
+    ]
+  }
+}
+`;
+
 exports[`routes > GET /npm/lib@1.2.0?checksums 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "622",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "name": "lib",
+    "version": "1.2.0",
+    "algorithm": "sha256",
+    "checksums": {
+      ".npmignore": "911683b05e6c5f31f8f3b09c6ec94af4455e6b1b25981ddeaa0d29e3377e421c",
+      "dist/index.d.ts": "a9d634180acf795e24b4c0919dc7fb38b1f7bada36ca95b46fd1844f5700c4cd",
+      "dist/index.mjs": "8ce693b8335934d70db4f1cd8d6f8a7e21d924234f9b20657d4100bbd605f1c2",
+      "dist/nested/deep.cjs": "a0bf899d2ab2065ef8f60c504b552bd08eb732adb8975c32170f8a5384f18357",
+      "index.js": "8ce693b8335934d70db4f1cd8d6f8a7e21d924234f9b20657d4100bbd605f1c2",
+      "package.json": "d0466c8925b0188348aa56f23a60690dd5fa14e7453221289802b684cb312f91"
+    }
+  }
+}
+`;
+
+exports[`routes > GET /npm/lib@1.2.0?checksums&download 1`] = `
 {
   "status": 200,
   "headers": {
@@ -2026,6 +2640,93 @@ exports[`routes > GET /npm/links@1.0.0/dist 1`] = `
         "directory": true
       }
     ]
+  }
+}
+`;
+
+exports[`routes > GET /npm/links@1.0.0/dist/loop 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "407",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "name": "links",
+    "version": "1.0.0",
+    "path": "dist/loop",
+    "files": [
+      {
+        "name": "dist/",
+        "size": null,
+        "directory": true
+      },
+      {
+        "name": "folder/",
+        "size": null,
+        "directory": true
+      },
+      {
+        "name": "index.js",
+        "size": 24,
+        "directory": false
+      },
+      {
+        "name": "inside",
+        "size": 24,
+        "directory": false
+      }
+    ]
+  }
+}
+`;
+
+exports[`routes > GET /npm/links@1.0.0/dist/loop/... (index.js after 40 and 41 link crossings, dist after 41) 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "accept-ranges": "bytes",
+    "cache-control": "public, max-age=31536000, immutable",
+    "content-length": "24",
+    "content-type": "text/javascript; charset=utf-8",
+    "etag": "\\"18-19421bcaa00\\"",
+    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "x-content-type-options": "nosniff"
+  },
+  "body": "export default \\"links\\";\\n"
+}
+`;
+
+exports[`routes > GET /npm/links@1.0.0/dist/loop/... (index.js after 40 and 41 link crossings, dist after 41) 2`] = `
+{
+  "status": 404,
+  "headers": {
+    "content-length": "545",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>",
+    "x-content-type-options": "nosniff"
+  },
+  "body": {
+    "status": 404,
+    "error": "Not Found",
+    "message": "File 'dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/index.js' does not exist in the 1.0.0 version of the 'links' project."
+  }
+}
+`;
+
+exports[`routes > GET /npm/links@1.0.0/dist/loop/... (index.js after 40 and 41 link crossings, dist after 41) 3`] = `
+{
+  "status": 500,
+  "headers": {
+    "content-length": "101",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 500,
+    "error": "Internal Server Error",
+    "message": "An unexpected error occurred."
   }
 }
 `;
@@ -2348,6 +3049,24 @@ exports[`routes > GET /npm/old/changelog 1`] = `
 }
 `;
 
+exports[`routes > GET /npm/old@1.0.0/%E0%A4%A 1`] = `
+{
+  "status": 400,
+  "headers": {
+    "content-length": "95",
+    "content-type": "application/json; charset=utf-8",
+    "deprecation": "@1748736000",
+    "etag": "W/<weak>",
+    "link": "<https://dropr.sylvain.sh/npm/lib>; rel=\\"successor-version\\""
+  },
+  "body": {
+    "status": 400,
+    "error": "Bad Request",
+    "message": "Failed to decode param '%E0%A4%A'"
+  }
+}
+`;
+
 exports[`routes > GET /npm/old@1.0.0/index.js 1`] = `
 {
   "status": 200,
@@ -2363,6 +3082,24 @@ exports[`routes > GET /npm/old@1.0.0/index.js 1`] = `
     "x-content-type-options": "nosniff"
   },
   "body": "export default \\"old\\";\\n"
+}
+`;
+
+exports[`routes > GET /npm/old@9 1`] = `
+{
+  "status": 404,
+  "headers": {
+    "content-length": "106",
+    "content-type": "application/json; charset=utf-8",
+    "deprecation": "@1748736000",
+    "etag": "W/<weak>",
+    "link": "<https://dropr.sylvain.sh/npm/lib>; rel=\\"successor-version\\""
+  },
+  "body": {
+    "status": 404,
+    "error": "Not Found",
+    "message": "Version 9 does not exist in the 'old' project."
+  }
 }
 `;
 
@@ -2398,6 +3135,105 @@ exports[`routes > GET /npm/old@latest 1`] = `
 
 exports[`routes > GET /npm/sealed@1.0.0 (version folder made unreadable after startup) 1`] = `
 {
+  "status": 200,
+  "headers": {
+    "content-length": "253",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "name": "sealed",
+    "version": "1.0.0",
+    "current": "sealed@1.0.0",
+    "files": [
+      {
+        "name": "index.js",
+        "size": 25,
+        "directory": false
+      },
+      {
+        "name": "vault/",
+        "size": null,
+        "directory": true
+      }
+    ]
+  }
+}
+`;
+
+exports[`routes > GET /npm/sealed@1.0.0 (version folder made unreadable after startup) 2`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-disposition": "attachment; filename=\\"sealed-1.0.0.tar.gz\\"",
+    "content-type": "application/gzip"
+  },
+  "aborted": true
+}
+`;
+
+exports[`routes > GET /npm/sealed@1.0.0 (version folder made unreadable after startup) 3`] = `
+{
+  "status": 404,
+  "headers": {
+    "content-length": "136",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 404,
+    "error": "Not Found",
+    "message": "File 'index.js' does not exist in the 1.0.0 version of the 'sealed' project."
+  }
+}
+`;
+
+exports[`routes > GET /npm/sealed@1.0.0 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "253",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "name": "sealed",
+    "version": "1.0.0",
+    "current": "sealed@1.0.0",
+    "files": [
+      {
+        "name": "index.js",
+        "size": 25,
+        "directory": false
+      },
+      {
+        "name": "vault/",
+        "size": null,
+        "directory": true
+      }
+    ]
+  }
+}
+`;
+
+exports[`routes > GET /npm/sealed@1.0.0/index.js 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "accept-ranges": "bytes",
+    "cache-control": "public, max-age=31536000, immutable",
+    "content-length": "25",
+    "content-type": "text/javascript; charset=utf-8",
+    "etag": "\\"19-19421bcaa00\\"",
+    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "x-content-type-options": "nosniff"
+  },
+  "body": "export default \\"sealed\\";\\n"
+}
+`;
+
+exports[`routes > GET /npm/sealed@1.0.0/vault 1`] = `
+{
   "status": 500,
   "headers": {
     "content-length": "101",
@@ -2409,6 +3245,49 @@ exports[`routes > GET /npm/sealed@1.0.0 (version folder made unreadable after st
     "error": "Internal Server Error",
     "message": "An unexpected error occurred."
   }
+}
+`;
+
+exports[`routes > GET /npm/sealed@1.0.0/vault/key.txt 1`] = `
+{
+  "status": 404,
+  "headers": {
+    "content-length": "141",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 404,
+    "error": "Not Found",
+    "message": "File 'vault/key.txt' does not exist in the 1.0.0 version of the 'sealed' project."
+  }
+}
+`;
+
+exports[`routes > GET /npm/sealed@1.0.0?checksums 1`] = `
+{
+  "status": 500,
+  "headers": {
+    "content-length": "101",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 500,
+    "error": "Internal Server Error",
+    "message": "An unexpected error occurred."
+  }
+}
+`;
+
+exports[`routes > GET /npm/sealed@1.0.0?download 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-disposition": "attachment; filename=\\"sealed-1.0.0.tar.gz\\"",
+    "content-type": "application/gzip"
+  },
+  "aborted": true
 }
 `;
 
@@ -2428,6 +3307,22 @@ exports[`routes > GET /robots.txt 1`] = `
 `;
 
 exports[`routes > GET /search 1`] = `
+{
+  "status": 400,
+  "headers": {
+    "content-length": "97",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 400,
+    "error": "Bad Request",
+    "message": "Missing required query parameter: q"
+  }
+}
+`;
+
+exports[`routes > GET /search??q=lib 1`] = `
 {
   "status": 400,
   "headers": {
@@ -2740,6 +3635,17 @@ exports[`routes > HEAD /npm/lib@1.2.0/index.js 1`] = `
     "etag": "\\"18-19421bcaa00\\"",
     "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
     "x-content-type-options": "nosniff"
+  },
+  "body": ""
+}
+`;
+
+exports[`routes > HEAD /npm/lib@1.2.0?download 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-disposition": "attachment; filename=\\"lib-1.2.0.tar.gz\\"",
+    "content-type": "application/gzip"
   },
   "body": ""
 }

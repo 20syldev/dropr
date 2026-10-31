@@ -25,6 +25,8 @@ const FILES = {
     'packages/npm/broken/1.0.0/locked.bin': 'unreadable once locked\n',
     'packages/npm/lib/.versions.json':
         '{ "1.0.0": { "date": "2025-02-01" }, "1.2.0": { "date": "2025-05-01" }, "2.0.0-pre": { "date": "2025-09-01" } }\n',
+    'packages/npm/lib/1.0.0/dist/v3.js': 'export default "v3";\n',
+    'packages/npm/lib/1.0.0/dist/v3/a.js': 'export default "a";\n',
     'packages/npm/lib/1.0.0/index.js': 'export default "1.0.0";\n',
     'packages/npm/lib/1.0.0/package.json': '{ "name": "lib", "version": "1.0.0" }\n',
     'packages/npm/lib/1.2.0/.npmignore': 'src/\n',
@@ -44,6 +46,7 @@ const FILES = {
         '{ "date": "2025-06-01", "message": "Renamed to lib.", "successor": "https://dropr.sylvain.sh/npm/lib" }\n',
     'packages/npm/old/1.0.0/index.js': 'export default "old";\n',
     'packages/npm/sealed/1.0.0/index.js': 'export default "sealed";\n',
+    'packages/npm/sealed/1.0.0/vault/key.txt': 'unreadable from startup\n',
 };
 
 // Symlinks of the links project, by path under the fixture root, mapped to their target as written in the link
@@ -58,6 +61,12 @@ const LINKS = {
 
 // File made unreadable, so that tar fails on it
 const LOCKED = 'packages/npm/broken/1.0.0/locked.bin';
+
+// Folder made unreadable before the server starts, so that its listing fails while the rest of its version serves
+const VAULT = 'packages/npm/sealed/1.0.0/vault';
+
+// File dated a fraction of a millisecond before 12:00:01, which file ETags keep and Last-Modified rounds up
+const FRACTIONAL = { path: 'packages/npm/lib/1.0.0/index.js', time: 1735732800.999614 };
 
 /**
  * Tells whether the current user can read a path, which a mode of 000 does not prevent for root.
@@ -105,8 +114,8 @@ function removeEntries(created) {
  * Writes the generated packages tree into a new temporary folder.
  * Dates are set once the whole tree is written, since each write moves the mtime of its folder.
  *
- * @returns The fixture root, its packages folder, locked set to false when LOCKED stays readable (as for root), and
- * remove() which deletes exactly the entries written here
+ * @returns The fixture root, its packages folder, locked set to false when LOCKED or VAULT stays readable (as for
+ * root), and remove() which gives VAULT its mode back, then deletes exactly the entries written here
  */
 export function createFixture() {
     const root = fs.mkdtempSync(join(os.tmpdir(), 'dropr-test-'));
@@ -125,9 +134,22 @@ export function createFixture() {
         created.push(link);
     }
     for (const path of created) fs.lutimesSync(path, TIME, TIME);
+    fs.utimesSync(join(root, FRACTIONAL.path), FRACTIONAL.time, FRACTIONAL.time);
 
+    const vault = join(root, VAULT);
+    const { mode } = fs.statSync(vault);
     fs.chmodSync(join(root, LOCKED), 0o000);
-    const locked = !isReadable(join(root, LOCKED));
+    fs.chmodSync(vault, 0o000);
+    const locked = !isReadable(join(root, LOCKED)) && !isReadable(vault);
 
-    return { root, packagesDir: join(root, 'packages'), locked, remove: () => removeEntries(created) };
+    return {
+        root,
+        packagesDir: join(root, 'packages'),
+        locked,
+        remove: () => {
+            // A folder of mode 000 cannot be emptied
+            fs.chmodSync(vault, mode);
+            removeEntries(created);
+        },
+    };
 }
