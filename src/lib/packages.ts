@@ -1,14 +1,23 @@
 import fs from 'fs';
 import { join } from 'path';
 
-import type { PackageProject, Packages, SearchResult } from '../types/index.js';
+import type {
+    Catalog,
+    CatalogVersion,
+    Index,
+    IndexDir,
+    IndexNode,
+    PackageProject,
+    Packages,
+    SearchResult,
+} from '../types/index.js';
 
 import { getDeprecation } from './deprecations.js';
 
-const EXCLUDED_DIRS = ['node_modules', 'src', 'scripts', 'lib', 'dist', 'public', '.github'];
+export const EXCLUDED_DIRS = ['node_modules', 'src', 'scripts', 'lib', 'dist', 'public', '.github'];
 
 // Top-level paths taken by the server's own routes, never scanned as package types
-const RESERVED_NAMES = ['download', 'health', 'manifest', 'search'];
+export const RESERVED_NAMES = ['download', 'health', 'manifest', 'search'];
 
 /**
  * Splits a version string into its numeric core and its pre-release tag.
@@ -32,7 +41,7 @@ function parseVersion(version: string): { core: number[]; pre: string | null } {
  * @param b - Right-hand version, parsed the same way as a
  * @returns Negative if a < b, positive if a > b, zero if equal
  */
-function compareVersions(a: string, b: string): number {
+export function compareVersions(a: string, b: string): number {
     const aVersion = parseVersion(a);
     const bVersion = parseVersion(b);
 
@@ -115,6 +124,69 @@ export function getPackages(rootDir: string): Packages {
     }
 
     return packages;
+}
+
+/**
+ * Records every node below a folder of a version by its path, without following links.
+ *
+ * @param dir - Folder whose entries are recorded, nothing being recorded below one that could not be read
+ * @param path - Path of dir relative to the version folder, '' for the version folder itself
+ * @param nodes - Map filled in place, its keys joined with '/' and without a leading slash
+ */
+export function indexNodes(dir: IndexDir, path: string, nodes: Map<string, IndexNode>): void {
+    for (const node of dir.entries ?? []) {
+        const child = path === '' ? node.name : `${path}/${node.name}`;
+        nodes.set(child, node);
+        if (node.kind === 'dir') indexNodes(node, child, nodes);
+    }
+}
+
+/**
+ * Loads a packages index into the lookups the routes read, without touching the disk.
+ * The packages object is rebuilt with the assignments of getPackages, so its key order and own keys stay the same.
+ *
+ * @param index - Index of format 1, its arrays in strcmp order and its versions sorted by compareVersions; another
+ * format throws
+ * @returns The packages object, and each version by its 'type/project/version' key, its nodes keyed by their real
+ * path relative to the version folder, '' being the folder itself
+ */
+export function loadIndex(index: Index): Catalog {
+    if (index.format !== 1) throw new Error(`Unsupported packages index format: ${String(index.format)}`);
+
+    const packages: Packages = {};
+    const versions = new Map<string, CatalogVersion>();
+
+    for (const type of index.types) {
+        packages[type.name] = { list: `/${type.name}` };
+
+        for (const project of type.projects) {
+            const projectEntry: PackageProject = {
+                list: `/${type.name}/${project.name}`,
+                versions: {},
+            };
+
+            projectEntry.versions['latest'] = `/${type.name}/${project.name}@latest`;
+            for (const version of project.versions) {
+                projectEntry.versions[version.name] = `/${type.name}/${project.name}@${version.name}`;
+
+                const nodes = new Map<string, IndexNode>([['', version.root]]);
+                indexNodes(version.root, '', nodes);
+                versions.set(`${type.name}/${project.name}/${version.name}`, {
+                    type: type.name,
+                    project: project.name,
+                    name: version.name,
+                    date: version.date,
+                    root: version.root,
+                    nodes,
+                });
+            }
+            projectEntry.deprecated = project.deprecated ?? undefined;
+
+            packages[type.name][project.name] = projectEntry;
+        }
+    }
+
+    return { packages, versions };
 }
 
 /**

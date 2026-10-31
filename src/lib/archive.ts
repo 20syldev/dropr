@@ -3,7 +3,7 @@ import { join } from 'path';
 
 import type { Response } from 'express';
 
-import type { TarEntry, TarRead } from '../types/index.js';
+import type { CatalogVersion, IndexDir, TarEntry, TarRead } from '../types/index.js';
 
 import { sendError } from './errors.js';
 
@@ -63,6 +63,57 @@ export function sendArchive(res: Response, type: string, name: string, version: 
     });
 
     tar.stdout.pipe(res, { end: false });
+}
+
+/**
+ * Adds the entries below a folder of a version to an archive list, in pre-order and strcmp order.
+ * Links are kept as links, whatever they point to, so nothing is written below a link to a folder.
+ *
+ * @param version - Version holding the folder, whose type and project start the file sources
+ * @param dir - Folder whose entries are added, its subfolders included
+ * @param path - Archive path of dir, the version name first and without a trailing slash
+ * @param mtime - Modification time given to every entry, in whole seconds since the epoch
+ * @param entries - List filled in place
+ * @returns False when a folder below could not be listed at scan, leaving entries partial
+ */
+function addEntries(version: CatalogVersion, dir: IndexDir, path: string, mtime: number, entries: TarEntry[]): boolean {
+    if (dir.entries === null) return false;
+
+    for (const node of dir.entries) {
+        const child = `${path}/${node.name}`;
+        if (node.kind === 'dir') {
+            entries.push({ kind: 'dir', path: `${child}/`, mode: 0o755, mtime, size: 0, target: null, source: null });
+            if (!addEntries(version, node, child, mtime, entries)) return false;
+        } else if (node.kind === 'file') {
+            const mode = node.exec ? 0o755 : 0o644;
+            const source = `${version.type}/${version.project}/${child}`;
+            entries.push({ kind: 'file', path: child, mode, mtime, size: node.size, target: null, source });
+        } else {
+            entries.push({ kind: 'link', path: child, mode: 0o777, mtime, size: 0, target: node.target, source: null });
+        }
+    }
+
+    return true;
+}
+
+/**
+ * Lists the archive entries of a version from its index, the version folder first.
+ * Every entry carries the release date of the version rather than its file date, so a version gives the same tar
+ * bytes on every deploy, whatever date the checkout gave the files.
+ *
+ * @param version - Version to archive, its date a YYYY-MM-DD day; a date that does not parse, or one before 1970,
+ * gives the epoch
+ * @returns Entries in archive order, file sources relative to the packages root, or null when a folder of the version
+ * could not be listed at scan
+ */
+export function archiveEntries(version: CatalogVersion): TarEntry[] | null {
+    const seconds = Math.floor(Date.parse(version.date) / 1000);
+    const mtime = Number.isNaN(seconds) ? 0 : Math.max(0, seconds);
+    const entries: TarEntry[] = [
+        { kind: 'dir', path: `${version.name}/`, mode: 0o755, mtime, size: 0, target: null, source: null },
+    ];
+
+    return addEntries(version, version.root, version.name, mtime, entries) ? entries : null;
 }
 
 /**
