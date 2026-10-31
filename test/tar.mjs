@@ -69,3 +69,16 @@ export function readArchive(archive) {
 
     return entries.sort((a, b) => (a.path < b.path ? -1 : 1));
 }
+
+/**
+ * Reads a web stream to its end.
+ *
+ * @param stream - Stream of byte chunks
+ * @returns The chunks joined; rejects with the error of the stream
+ */
+export async function collect(stream) {
+    const chunks = [];
+    for await (const chunk of stream) chunks.push(chunk);
+
+    return Buffer.concat(chunks);
+}

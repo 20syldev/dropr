@@ -9,7 +9,7 @@
         "start": "node dist/app.js",
         "build": "tsc",
         "test": "tsc && node --test \"test/*.test.mjs\"",
-        "test:update": "tsc && node --test --test-update-snapshots \"test/*.test.mjs\"",
+        "test:update": "tsc && node --test --test-update-snapshots test/routes.test.mjs",
         "fetch": "bash scripts/fetch.sh",
         "check": "tsc --noEmit && tsc --noEmit -p tsconfig.core.json && eslint src/ scripts/ test/ && prettier --check src/ scripts/ test/",
         "format": "prettier --write src/ scripts/ test/ && eslint --fix src/ scripts/ test/",

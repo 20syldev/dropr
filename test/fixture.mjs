@@ -59,6 +59,9 @@ const LINKS = {
     'packages/npm/links/1.0.0/sibling': '../../lib/1.0.0/index.js',
 };
 
+// Scripts given the owner execute bit, which their archive entries keep as mode 0755
+const EXECUTABLES = ['packages/bash/gft/1.0.0/gft', 'packages/bash/gft/1.1.0/gft', 'packages/bash/gft/1.2.0/gft'];
+
 // File made unreadable, so that tar fails on it
 const LOCKED = 'packages/npm/broken/1.0.0/locked.bin';
 
@@ -135,6 +138,7 @@ export function createFixture() {
     }
     for (const path of created) fs.lutimesSync(path, TIME, TIME);
     fs.utimesSync(join(root, FRACTIONAL.path), FRACTIONAL.time, FRACTIONAL.time);
+    for (const path of EXECUTABLES) fs.chmodSync(join(root, path), 0o755);
 
     const vault = join(root, VAULT);
     const { mode } = fs.statSync(vault);
