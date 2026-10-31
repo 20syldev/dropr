@@ -261,11 +261,22 @@ function scanProjects(typePath: string): IndexProject[] {
  * real one; what cannot be read is logged and kept with null entries, size or hash, or left out.
  *
  * @param root - Packages root, laid out as root/type/project/version, hidden, excluded and reserved type names skipped
- * @returns An index of format 1 that survives a JSON round trip; throws when root cannot be listed
+ * @returns An index of format 1 that survives a JSON round trip, with no types when root is missing, not a folder or
+ * not readable, which is logged; throws when root cannot be listed for any other reason
  */
 export function scan(root: string): Index {
-    const types = fs
-        .readdirSync(root, { withFileTypes: true })
+    let dirents: fs.Dirent[];
+    try {
+        dirents = fs.readdirSync(root, { withFileTypes: true });
+    } catch (error) {
+        const { code } = error as NodeJS.ErrnoException;
+        if (code !== 'ENOENT' && code !== 'ENOTDIR' && code !== 'EACCES') throw error;
+
+        console.error(`No packages folder at ${root}, serving an empty index.`);
+        return { format: 1, types: [] };
+    }
+
+    const types = dirents
         .filter((dirent) => dirent.isDirectory() && !dirent.name.startsWith('.'))
         .filter(({ name }) => !EXCLUDED_DIRS.includes(name) && !RESERVED_NAMES.includes(name))
         .map(({ name }) => ({ name, projects: scanProjects(join(root, name)) }));
