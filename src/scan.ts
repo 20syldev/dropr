@@ -4,17 +4,26 @@ import { join, sep } from 'path';
 
 import { parseDeprecation } from './lib/deprecations.js';
 import { compareVersions, EXCLUDED_DIRS, indexNodes, RESERVED_NAMES } from './lib/packages.js';
-import type { Deprecation, Index, IndexDir, IndexNode, IndexProject, IndexVersion } from './types/index.js';
+import type {
+    Deprecation,
+    ErrorLogger,
+    Index,
+    IndexDir,
+    IndexNode,
+    IndexProject,
+    IndexVersion,
+} from './types/index.js';
 
 /**
  * Reads the .deprecated.json notice of a project, if any.
  * Like .versions.json, it sits next to the version folders, so listings, archives and checksums never show it.
  *
  * @param projectPath - Project folder, the parent of its version folders
+ * @param logger - Receives each failure this function logs through its error() and nothing else
  * @returns The notice, or null when the file is missing, unreadable or refused by parseDeprecation, the last two
  * being logged
  */
-function readDeprecation(projectPath: string): Deprecation | null {
+function readDeprecation(projectPath: string, logger: ErrorLogger): Deprecation | null {
     const file = join(projectPath, '.deprecated.json');
     if (!fs.existsSync(file)) return null;
 
@@ -22,9 +31,9 @@ function readDeprecation(projectPath: string): Deprecation | null {
         const notice = parseDeprecation(JSON.parse(fs.readFileSync(file, 'utf-8')));
         if (notice) return notice;
 
-        console.error(`Invalid deprecation notice in ${file}: expected a date, a message and a successor.`);
+        logger.error(`Invalid deprecation notice in ${file}: expected a date, a message and a successor.`);
     } catch (error) {
-        console.error(`Error reading ${file}:`, error);
+        logger.error(`Error reading ${file}:`, error);
     }
 
     return null;
@@ -34,10 +43,11 @@ function readDeprecation(projectPath: string): Deprecation | null {
  * Reads the release dates that fetch.sh records in the .versions.json of a project.
  *
  * @param projectPath - Project folder, read as projectPath/.versions.json
+ * @param logger - Receives each failure this function logs through its error() and nothing else
  * @returns Map of version names to their YYYY-MM-DD date, without the versions whose date is missing or not a string;
  * an unreadable file is logged and keeps only the dates read before the failure
  */
-function readDates(projectPath: string): Map<string, string> {
+function readDates(projectPath: string, logger: ErrorLogger): Map<string, string> {
     const dates = new Map<string, string>();
     const file = join(projectPath, '.versions.json');
     if (!fs.existsSync(file)) return dates;
@@ -48,10 +58,10 @@ function readDates(projectPath: string): Map<string, string> {
             if (!entry.date) continue;
 
             if (typeof entry.date === 'string') dates.set(version, entry.date);
-            else console.error(`Invalid date of ${version} in ${file}: expected a string.`);
+            else logger.error(`Invalid date of ${version} in ${file}: expected a string.`);
         }
     } catch (error) {
-        console.error(`Error reading ${file}:`, error);
+        logger.error(`Error reading ${file}:`, error);
     }
 
     return dates;
@@ -61,13 +71,14 @@ function readDates(projectPath: string): Map<string, string> {
  * Hashes a file of a version with SHA-256.
  *
  * @param path - Absolute path of a regular file, read whole
+ * @param logger - Receives each failure this function logs through its error() and nothing else
  * @returns The lowercase hex digest, or null when the file cannot be read, which is logged
  */
-function hashFile(path: string): string | null {
+function hashFile(path: string, logger: ErrorLogger): string | null {
     try {
         return crypto.createHash('sha256').update(fs.readFileSync(path)).digest('hex');
     } catch (error) {
-        console.error(`Error reading ${path}:`, error);
+        logger.error(`Error reading ${path}:`, error);
         return null;
     }
 }
@@ -98,24 +109,25 @@ function linkTarget(path: string, root: string): string | null {
  * @param path - Absolute path of the entry
  * @param dirent - Entry as its folder listing gave it, which tells its kind without following a link
  * @param root - Real path of the version folder, which link targets must stay in
+ * @param logger - Receives each failure this function logs through its error() and nothing else
  * @returns The node of the entry, or none for a special file such as a FIFO, a socket or a device, which is logged;
  * throws when the entry cannot be stat'ed
  */
-function indexEntry(path: string, dirent: fs.Dirent, root: string): IndexNode[] {
+function indexEntry(path: string, dirent: fs.Dirent, root: string, logger: ErrorLogger): IndexNode[] {
     const stat = fs.lstatSync(path);
     const { name } = dirent;
 
-    if (dirent.isDirectory()) return [walkFolder(path, name, root)];
+    if (dirent.isDirectory()) return [walkFolder(path, name, root, logger)];
     if (dirent.isFile()) {
         const exec = (stat.mode & 0o100) !== 0;
-        return [{ kind: 'file', name, mtime: stat.mtimeMs, size: stat.size, exec, sha256: hashFile(path) }];
+        return [{ kind: 'file', name, mtime: stat.mtimeMs, size: stat.size, exec, sha256: hashFile(path, logger) }];
     }
     if (dirent.isSymbolicLink()) {
         const target = fs.readlinkSync(path);
         return [{ kind: 'link', name, target, real: linkTarget(path, root) }];
     }
 
-    console.error(`Skipping ${path}: not a file, a folder or a link.`);
+    logger.error(`Skipping ${path}: not a file, a folder or a link.`);
     return [];
 }
 
@@ -125,24 +137,25 @@ function indexEntry(path: string, dirent: fs.Dirent, root: string): IndexNode[] 
  * @param path - Absolute path of the folder
  * @param name - Folder name, the version name for the version folder itself
  * @param root - Real path of the version folder, which link targets must stay in
+ * @param logger - Receives each failure this function logs through its error() and nothing else
  * @returns The folder node, its entries in strcmp order and its size left to measure, or with null entries and size
  * when it cannot be listed, which is logged; an entry that cannot be stat'ed is logged and left out
  */
-function walkFolder(path: string, name: string, root: string): IndexDir {
+function walkFolder(path: string, name: string, root: string, logger: ErrorLogger): IndexDir {
     try {
         const entries = fs.readdirSync(path, { withFileTypes: true }).flatMap((dirent) => {
             const child = join(path, dirent.name);
             try {
-                return indexEntry(child, dirent, root);
+                return indexEntry(child, dirent, root, logger);
             } catch (error) {
-                console.error(`Error reading ${child}:`, error);
+                logger.error(`Error reading ${child}:`, error);
                 return [];
             }
         });
 
         return { kind: 'dir', name, size: 0, entries };
     } catch (error) {
-        console.error(`Error reading ${path}:`, error);
+        logger.error(`Error reading ${path}:`, error);
         return { kind: 'dir', name, size: null, entries: null };
     }
 }
@@ -182,11 +195,12 @@ function measure(dir: IndexDir, nodes: Map<string, IndexNode>): number | null {
  * @param path - Absolute path of the version folder
  * @param name - Version name, the folder name
  * @param date - Release date recorded in .versions.json, undefined to use the UTC day of the folder mtime
+ * @param logger - Receives each failure this function logs through its error() and nothing else
  * @returns The version node; throws when the version folder cannot be stat'ed
  */
-function scanVersion(path: string, name: string, date: string | undefined): IndexVersion {
+function scanVersion(path: string, name: string, date: string | undefined, logger: ErrorLogger): IndexVersion {
     const stat = fs.statSync(path);
-    const root = walkFolder(path, name, fs.realpathSync(path));
+    const root = walkFolder(path, name, fs.realpathSync(path), logger);
     const nodes = new Map<string, IndexNode>([['', root]]);
     indexNodes(root, '', nodes);
     measure(root, nodes);
@@ -200,26 +214,27 @@ function scanVersion(path: string, name: string, date: string | undefined): Inde
  *
  * @param path - Absolute path of the project folder, whose subfolders are the versions, symlinked ones left out
  * @param name - Project name, the folder name
+ * @param logger - Receives each failure this function logs through its error() and nothing else
  * @returns The project node, without a version that cannot be stat'ed, which is logged; throws when the folder cannot
  * be listed
  */
-function scanProject(path: string, name: string): IndexProject {
+function scanProject(path: string, name: string, logger: ErrorLogger): IndexProject {
     const versions = fs
         .readdirSync(path, { withFileTypes: true })
         .filter((dirent) => dirent.isDirectory())
         .map((dirent) => dirent.name)
         .sort(compareVersions);
-    const dates = readDates(path);
+    const dates = readDates(path, logger);
 
     return {
         name,
-        deprecated: readDeprecation(path),
+        deprecated: readDeprecation(path, logger),
         versions: versions.flatMap((version) => {
             const versionPath = join(path, version);
             try {
-                return [scanVersion(versionPath, version, dates.get(version))];
+                return [scanVersion(versionPath, version, dates.get(version), logger)];
             } catch (error) {
-                console.error(`Error reading ${versionPath}:`, error);
+                logger.error(`Error reading ${versionPath}:`, error);
                 return [];
             }
         }),
@@ -230,15 +245,16 @@ function scanProject(path: string, name: string): IndexProject {
  * Indexes the projects of a package type.
  *
  * @param typePath - Absolute path of the type folder, whose subfolders other than 'list' are the projects
+ * @param logger - Receives each failure this function logs through its error() and nothing else
  * @returns Projects in strcmp order, empty when the type folder cannot be listed and without a project that cannot be
  * read, both logged
  */
-function scanProjects(typePath: string): IndexProject[] {
+function scanProjects(typePath: string, logger: ErrorLogger): IndexProject[] {
     let dirents: fs.Dirent[];
     try {
         dirents = fs.readdirSync(typePath, { withFileTypes: true });
     } catch (error) {
-        console.error(`Error reading ${typePath}:`, error);
+        logger.error(`Error reading ${typePath}:`, error);
         return [];
     }
 
@@ -247,9 +263,9 @@ function scanProjects(typePath: string): IndexProject[] {
         .flatMap((dirent) => {
             const path = join(typePath, dirent.name);
             try {
-                return [scanProject(path, dirent.name)];
+                return [scanProject(path, dirent.name, logger)];
             } catch (error) {
-                console.error(`Error reading ${path}:`, error);
+                logger.error(`Error reading ${path}:`, error);
                 return [];
             }
         });
@@ -261,10 +277,11 @@ function scanProjects(typePath: string): IndexProject[] {
  * real one; what cannot be read is logged and kept with null entries, size or hash, or left out.
  *
  * @param root - Packages root, laid out as root/type/project/version, hidden, excluded and reserved type names skipped
+ * @param logger - Receives each failure through its error() and nothing else, console by default
  * @returns An index of format 1 that survives a JSON round trip, with no types when root is missing, not a folder or
  * not readable, which is logged; throws when root cannot be listed for any other reason
  */
-export function scan(root: string): Index {
+export function scan(root: string, logger: ErrorLogger = console): Index {
     let dirents: fs.Dirent[];
     try {
         dirents = fs.readdirSync(root, { withFileTypes: true });
@@ -272,14 +289,14 @@ export function scan(root: string): Index {
         const { code } = error as NodeJS.ErrnoException;
         if (code !== 'ENOENT' && code !== 'ENOTDIR' && code !== 'EACCES') throw error;
 
-        console.error(`No packages folder at ${root}, serving an empty index.`);
+        logger.error(`No packages folder at ${root}, serving an empty index.`);
         return { format: 1, types: [] };
     }
 
     const types = dirents
         .filter((dirent) => dirent.isDirectory() && !dirent.name.startsWith('.'))
         .filter(({ name }) => !EXCLUDED_DIRS.includes(name) && !RESERVED_NAMES.includes(name))
-        .map(({ name }) => ({ name, projects: scanProjects(join(root, name)) }));
+        .map(({ name }) => ({ name, projects: scanProjects(join(root, name), logger) }));
 
     return { format: 1, types };
 }
