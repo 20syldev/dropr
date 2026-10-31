@@ -1,14 +1,8 @@
-import type { NextFunction, Request, Response } from 'express';
-
 import type { Limiter } from '../types/index.js';
-
-import { sendError } from './errors.js';
 
 const WINDOW = 10_000;
 const GLOBAL_LIMIT = 1000;
 const CLIENT_LIMIT = 100;
-
-const limiter = createLimiter(Date.now());
 
 /**
  * Drops the timestamps that left the window, and the clients left with none, so the map does not grow unbounded.
@@ -66,34 +60,4 @@ export function createLimiter(start: number): Limiter {
             return null;
         },
     };
-}
-
-/**
- * Identifies the client behind the reverse proxies.
- * The proxy rewrites CF-Connecting-IP on every request, so it cannot be
- * spoofed by the client, unlike the leftmost X-Forwarded-For entry.
- *
- * @param req - Request read for its CF-Connecting-IP header, then req.ip and the socket address as fallbacks
- * @returns The client address, or an empty string if unknown
- */
-function getClient(req: Request): string {
-    const header = req.headers['cf-connecting-ip'];
-    if (typeof header === 'string' && header.length > 0) return header;
-
-    return req.ip || req.socket.remoteAddress || '';
-}
-
-/**
- * Limits requests globally over a fixed window and per client over a sliding window.
- * The counters live in one limiter, created when the module loads and shared by every request of the process.
- *
- * @param req - Request whose client, as identified by getClient, is counted against the per-client cap
- * @param res - Receives a 429 error when the global or the per-client cap is exceeded
- * @param next - Called only when the request stays within both caps
- */
-export function rateLimit(req: Request, res: Response, next: NextFunction): void {
-    const refusal = limiter.check(getClient(req), Date.now());
-    if (refusal) return sendError(res, 429, refusal);
-
-    next();
 }

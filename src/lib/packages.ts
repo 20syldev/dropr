@@ -1,6 +1,3 @@
-import fs from 'fs';
-import { join } from 'path';
-
 import type {
     Catalog,
     CatalogVersion,
@@ -11,8 +8,6 @@ import type {
     Packages,
     SearchResult,
 } from '../types/index.js';
-
-import { getDeprecation } from './deprecations.js';
 
 export const EXCLUDED_DIRS = ['node_modules', 'src', 'scripts', 'lib', 'dist', 'public', '.github'];
 
@@ -72,61 +67,6 @@ function pickNewest(versions: string[]): string | null {
 }
 
 /**
- * Dynamically scans the filesystem to discover all available packages.
- *
- * @param rootDir - Directory whose subfolders are the package types, hidden, excluded and reserved names aside
- * @returns Types, projects and version URLs, partial when a read fails since the error is logged, not thrown
- */
-export function getPackages(rootDir: string): Packages {
-    const packages: Packages = {};
-
-    try {
-        const packageTypes = fs
-            .readdirSync(rootDir, { withFileTypes: true })
-            .filter((dirent) => dirent.isDirectory() && !dirent.name.startsWith('.'))
-            .map((dirent) => dirent.name)
-            .filter((name) => !EXCLUDED_DIRS.includes(name) && !RESERVED_NAMES.includes(name));
-
-        packageTypes.forEach((type) => {
-            const typePath = join(rootDir, type);
-            packages[type] = { list: `/${type}` };
-
-            // 'list' is the key of the type's own listing, it cannot be a project
-            const projects = fs
-                .readdirSync(typePath, { withFileTypes: true })
-                .filter((dirent) => dirent.isDirectory() && dirent.name !== 'list')
-                .map((dirent) => dirent.name);
-
-            projects.forEach((project) => {
-                const projectPath = join(typePath, project);
-                const projectEntry: PackageProject = {
-                    list: `/${type}/${project}`,
-                    versions: {},
-                };
-
-                const versions = fs
-                    .readdirSync(projectPath, { withFileTypes: true })
-                    .filter((dirent) => dirent.isDirectory())
-                    .map((dirent) => dirent.name)
-                    .sort(compareVersions);
-
-                projectEntry.versions['latest'] = `/${type}/${project}@latest`;
-                versions.forEach((version) => {
-                    projectEntry.versions[version] = `/${type}/${project}@${version}`;
-                });
-                projectEntry.deprecated = getDeprecation(projectPath);
-
-                packages[type][project] = projectEntry;
-            });
-        });
-    } catch (error) {
-        console.error('Error scanning packages:', error);
-    }
-
-    return packages;
-}
-
-/**
  * Records every node below a folder of a version by its path, without following links.
  *
  * @param dir - Folder whose entries are recorded, nothing being recorded below one that could not be read
@@ -143,7 +83,7 @@ export function indexNodes(dir: IndexDir, path: string, nodes: Map<string, Index
 
 /**
  * Loads a packages index into the lookups the routes read, without touching the disk.
- * The packages object is rebuilt with the assignments of getPackages, so its key order and own keys stay the same.
+ * The packages object is built with the assignments of the 3.3.1 disk scan, so its key order and own keys match.
  *
  * @param index - Index of format 1, its arrays in strcmp order and its versions sorted by compareVersions; another
  * format throws
@@ -193,7 +133,7 @@ export function loadIndex(index: Index): Catalog {
  * Tells whether a package type exists.
  * Only own keys count, so names like '__proto__' or 'constructor' never match.
  *
- * @param packages - The packages object from getPackages()
+ * @param packages - The packages object from loadIndex()
  * @param type - Untrusted package type from the URL
  * @returns True if the type was found on disk
  */
@@ -206,7 +146,7 @@ export function hasType(packages: Packages, type: string): boolean {
  * Only own keys count and the 'list' key of a type is not a project, so
  * '/npm/list' or '/npm/__proto__' resolve to nothing.
  *
- * @param packages - The packages object from getPackages()
+ * @param packages - The packages object from loadIndex()
  * @param type - Untrusted package type from the URL
  * @param name - Untrusted project name from the URL
  * @returns The project entry, or undefined if the type or the project does not exist
@@ -220,7 +160,7 @@ export function getProject(packages: Packages, type: string, name: string): Pack
 /**
  * Lists the projects of a package type, without its 'list' key.
  *
- * @param packages - The packages object from getPackages()
+ * @param packages - The packages object from loadIndex()
  * @param type - Existing package type
  * @returns Pairs of project names and entries, in scan order
  */
@@ -235,7 +175,7 @@ export function listProjects(packages: Packages, type: string): [string, Package
  * A project matches when its name contains the query, or when the query is exactly
  * its type, in which case every project of that type is returned.
  *
- * @param packages - The packages object from getPackages()
+ * @param packages - The packages object from loadIndex()
  * @param query - Text matched in any case, an empty query matching every project
  * @returns Matching packages with type, name, versions and url, name matches first
  */
@@ -269,7 +209,7 @@ export function searchPackages(packages: Packages, query: string): SearchResult[
 /**
  * Counts the total number of packages across all types.
  *
- * @param packages - The packages object from getPackages()
+ * @param packages - The packages object from loadIndex()
  * @returns Number of projects across all types, the 'list' keys left out
  */
 export function countPackages(packages: Packages): number {
