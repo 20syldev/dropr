@@ -68,7 +68,7 @@ Node.js, Express 5, strict TypeScript (ESM), @20syldev/logger.ts
 | `npm run build`         | Compile TypeScript to `dist/`                                 |
 | `npm start`             | Production server on port 4000, or `$PORT`                    |
 | `npm run fetch`         | Publish a version into `packages/` (`scripts/fetch.sh`)       |
-| `npm run check`         | `tsc --noEmit` + ESLint (`src/`, `scripts/` and `test/`)      |
+| `npm run check`         | Type check, ESLint, Prettier (`src/`, `scripts/` and `test/`) |
 | `npm test`              | Route snapshots on a generated tree, sweep of `packages/`     |
 | `npm run test:update`   | Record the snapshots again after an intended change           |
 | `npm run format`        | Prettier + ESLint (write)                                     |
@@ -78,6 +78,7 @@ Node.js, Express 5, strict TypeScript (ESM), @20syldev/logger.ts
 ## Structure
 
 ```
+.github/          CI: checks and tests on every push to master and every pull request
 packages/         Published versions, as packages/<type>/<project>/<version>/
 public/           Favicon: the dropr mark, a vermilion box falling into its tray (SVG and ICO)
 scripts/          fetch.sh (version publishing), versions.mjs (release dates)
@@ -97,4 +98,5 @@ robots.txt        Crawler rules, served on /robots.txt
 - In production: `npm install && npm run build`, then `npm start`; the committed lockfile pins what gets installed, and archives need `tar` on the host.
 - `PACKAGES_DIR` serves another tree than `packages/`; the tests point it at a tree they generate in the system temp folder.
 - The tests need Node 24 and a regular user: root can read a file of mode `000`, so the cases that rely on one are skipped, and `npm run test:update` would then drop their snapshots.
+- The CI runs `npm run check` and `npm test` on Node 24 for every push to `master` and every pull request.
 - Version `3.3.0` changes what clients see: `error` now holds the HTTP reason phrase and `message` the detail (the other way around until `3.2.2`), `status` is a number instead of a string, files carry their own content type instead of `text/plain`, and only exact versions stay immutable (`3.2.2` cached `@latest` for a year).
