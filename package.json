@@ -5,14 +5,14 @@
     "main": "dist/app.js",
     "type": "module",
     "scripts": {
-        "dev": "tsx watch src/app.ts",
-        "start": "node dist/app.js",
+        "dev": "tsx watch src/serve.ts",
+        "start": "node dist/serve.js",
         "build": "tsc",
         "test": "tsc && node --test \"test/*.test.mjs\"",
         "test:update": "tsc && node --test --test-update-snapshots test/routes.test.mjs",
         "fetch": "bash scripts/fetch.sh",
-        "check": "tsc --noEmit && tsc --noEmit -p tsconfig.core.json && eslint src/ scripts/ test/ && prettier --check src/ scripts/ test/",
-        "format": "prettier --write src/ scripts/ test/ && eslint --fix src/ scripts/ test/",
+        "check": "tsc --noEmit && tsc --noEmit -p tsconfig.core.json && eslint src/ scripts/ test/ && prettier --check src/ scripts/ test/ dropr.config.json",
+        "format": "prettier --write src/ scripts/ test/ dropr.config.json && eslint --fix src/ scripts/ test/",
         "upgrade:minor": "npm upgrade",
         "upgrade:major": "npx npm-check-updates -u && npm install"
     },
