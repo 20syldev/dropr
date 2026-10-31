@@ -351,4 +351,24 @@ describe('routes', () => {
 
         t.assert.snapshot(capture(await request(server.port, 'GET', '/health', headers)));
     });
+
+    test('GET /, /health and /npm (server started without a packages folder)', async () => {
+        const empty = await startServer(join(fixture.root, 'missing'));
+
+        try {
+            const root = await request(empty.port, 'GET', '/');
+            assert.equal(root.status, 200);
+            assert.deepEqual(JSON.parse(root.body).packages, {});
+
+            const health = await request(empty.port, 'GET', '/health');
+            assert.equal(health.status, 200);
+            assert.equal(JSON.parse(health.body).packages, 0);
+
+            const type = await request(empty.port, 'GET', '/npm');
+            assert.equal(type.status, 404);
+            assert.equal(JSON.parse(type.body).message, "Package type 'npm' does not exist.");
+        } finally {
+            empty.stop();
+        }
+    });
 });
