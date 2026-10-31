@@ -1,5 +1,3 @@
-import { extname } from 'path';
-
 const FALLBACK = 'text/plain; charset=utf-8';
 
 // Explicit content types by extension, so .ts sources are not served as video/mp2t like a generic MIME database would
@@ -34,6 +32,23 @@ const TYPES: Record<string, string> = {
     '.yml': 'text/yaml; charset=utf-8',
     '.zip': 'application/zip',
 };
+
+/**
+ * Reads the extension of the last component of a POSIX path, as Node's path.extname does.
+ * Trailing slashes are ignored, and a name whose only dot is its first character, or '..', has no extension.
+ *
+ * @param path - File name or path, '/' being the only separator
+ * @returns The extension from the last dot, the dot included and possibly alone, or an empty string
+ */
+function extname(path: string): string {
+    let end = path.length;
+    while (end > 0 && path[end - 1] === '/') end--;
+
+    const name = path.slice(path.lastIndexOf('/', end - 1) + 1, end);
+    const dot = name.lastIndexOf('.');
+
+    return dot > 0 && name !== '..' ? name.slice(dot) : '';
+}
 
 /**
  * Picks the Content-Type of a package file from its extension.

@@ -1,18 +1,28 @@
-import { STATUS_CODES } from 'http';
-
 import type { Response } from 'express';
 
 import type { ErrorBody } from '../types/index.js';
 
+// Reason phrases of the error statuses the server answers itself; the adapter passes its own for any other
+const REASONS: Record<number, string> = {
+    400: 'Bad Request',
+    404: 'Not Found',
+    405: 'Method Not Allowed',
+    412: 'Precondition Failed',
+    416: 'Range Not Satisfiable',
+    429: 'Too Many Requests',
+    500: 'Internal Server Error',
+};
+
 /**
  * Builds the error body shared by every error response of the server.
  *
- * @param status - HTTP status code, kept numeric in the body
+ * @param status - HTTP error status, from 400 to 599, kept numeric in the body
  * @param message - Human readable explanation of the error
- * @returns The error body, with the standard reason phrase of the status as error, 'Error' when it has none
+ * @param reason - Reason phrase of a status missing from the table, such as an error of the HTTP framework
+ * @returns The error body, with the reason phrase of the status as error, 'Error' when none is known
  */
-export function errorBody(status: number, message: string): ErrorBody {
-    return { status, error: STATUS_CODES[status] ?? 'Error', message };
+export function errorBody(status: number, message: string, reason = REASONS[status] ?? 'Error'): ErrorBody {
+    return { status, error: reason, message };
 }
 
 /**
