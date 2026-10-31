@@ -1,6 +1,8 @@
 import fs from 'fs';
 import { STATUS_CODES } from 'http';
 import { dirname, join, resolve } from 'path';
+import { Readable } from 'stream';
+import type { ReadableStream as NodeReadableStream } from 'stream/web';
 import { fileURLToPath } from 'url';
 
 import { createLogger } from '@20syldev/logger.ts';
@@ -8,7 +10,7 @@ import cors from 'cors';
 import express from 'express';
 import type { NextFunction, Request, Response } from 'express';
 
-import { sendArchive } from './lib/archive.js';
+import { archiveStream } from './lib/archive.js';
 import { errorBody } from './lib/errors.js';
 import { countPackages, loadIndex } from './lib/packages.js';
 import { createLimiter } from './lib/ratelimit.js';
@@ -79,16 +81,38 @@ function sendPackageFile(res: Response, body: FileBody): void {
 }
 
 /**
- * Streams the archive of a version through the tar process.
+ * Streams the archive of a version from the tar writer, once its 200 headers are sent.
+ * Any failure after them resets the connection, so a client never takes a cut archive for a whole one.
+ * Each file is read whole, so a file of 2 GiB or more fails to read and resets its archive.
  *
- * @param res - Response holding the archive headers, set again by sendArchive
- * @param body - Archive body, its key naming the version as type/project/version, 'null' standing for the latest of a
- * project without versions
+ * @param res - Response holding the archive headers, flushed before any file is read; a HEAD request ends there
+ * @param body - Archive body, its key naming the version in the log of a failure, its entries null for a version that
+ * cannot be archived, which resets at once
  */
 function streamArchive(res: Response, body: ArchiveBody): void {
-    const [type, name, version] = body.key.split('/');
+    res.flushHeaders();
+    if (res.req.method === 'HEAD') return void res.end();
 
-    sendArchive(res, type, name, version, packagesDir);
+    const abort = new AbortController();
+    const read = (source: string) => fs.promises.readFile(join(packagesDir, source), { signal: abort.signal });
+
+    // The DOM ReadableStream of the main tsconfig and the one of stream/web differ only in their BYOB reader types
+    const stream = Readable.fromWeb(archiveStream(body.entries, read) as NodeReadableStream<Uint8Array>);
+
+    stream.on('error', (error) => {
+        console.error(`Archive error on ${body.key}:`, error.message);
+
+        // A reset, unlike a plain close, still reads as a failure when the connection end frames the body (HTTP/1.0)
+        if (res.socket) res.socket.resetAndDestroy();
+        else res.destroy();
+    });
+
+    // A client gone mid-download leaves a whole-file read pending, aborted so its buffer is freed at once
+    res.on('close', () => {
+        stream.destroy();
+        abort.abort();
+    });
+    stream.pipe(res);
 }
 
 /**
