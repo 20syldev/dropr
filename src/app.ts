@@ -1,51 +1,37 @@
 import fs from 'fs';
 import { STATUS_CODES } from 'http';
-import { dirname, join, resolve } from 'path';
+import { join } from 'path';
 import { Readable } from 'stream';
 import type { ReadableStream as NodeReadableStream } from 'stream/web';
-import { fileURLToPath } from 'url';
 
-import { createLogger } from '@20syldev/logger.ts';
 import cors from 'cors';
 import express from 'express';
-import type { NextFunction, Request, Response } from 'express';
+import type { Express, NextFunction, Request, Response } from 'express';
 
 import { archiveStream } from './lib/archive.js';
 import { errorBody } from './lib/errors.js';
 import { countPackages, loadIndex } from './lib/packages.js';
 import { createLimiter } from './lib/ratelimit.js';
 import { failure, INTERNAL, json, route } from './lib/route.js';
-import { getManifest } from './manifest.js';
-import { scan } from './scan.js';
-import type { ArchiveBody, FileBody, RouteResponse } from './types/index.js';
+import { buildManifest } from './manifest.js';
+import type { AppDeps, ArchiveBody, Config, FileBody, Logger, RouteResponse } from './types/index.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const rootDir = join(__dirname, '..');
-
-// PACKAGES_DIR serves another tree than packages/, as the tests do with a generated one
-const packagesDir = process.env.PACKAGES_DIR ? resolve(process.env.PACKAGES_DIR) : join(rootDir, 'packages');
-
-const app = express();
-const logger = createLogger({ theme: 'colored', order: 'desc' });
-const pkg = JSON.parse(fs.readFileSync(join(rootDir, 'package.json'), 'utf-8'));
-const port = Number(process.env.PORT ?? 4000);
-const startTime = Date.now();
-const limiter = createLimiter(startTime);
-
-// Published versions are frozen, so the tree is read once and every package route answers from memory
-const catalog = loadIndex(scan(packagesDir));
+interface Context {
+    packagesDir: string;
+    logger: Logger;
+}
 
 /**
  * Identifies the client behind the reverse proxies.
- * The proxy rewrites CF-Connecting-IP on every request, so it cannot be spoofed by the client, unlike the leftmost
- * X-Forwarded-For entry.
+ * A header that the proxy rewrites on every request cannot be spoofed by the client, unlike the leftmost X-Forwarded-For
+ * entry that req.ip falls back to when trust proxy is on.
  *
- * @param req - Request read for its CF-Connecting-IP header, then req.ip and the socket address as fallbacks
+ * @param req - Request read for the client IP header, then req.ip and the socket address as fallbacks
+ * @param name - Lowercase name of the client IP header, null to leave it out
  * @returns The client address, or an empty string if unknown
  */
-function clientOf(req: Request): string {
-    const header = req.headers['cf-connecting-ip'];
+function clientOf(req: Request, name: string | null): string {
+    const header = name && req.headers[name];
     if (typeof header === 'string' && header.length > 0) return header;
 
     return req.ip || req.socket.remoteAddress || '';
@@ -57,9 +43,10 @@ function clientOf(req: Request): string {
  *
  * @param res - Response holding the headers of the file route, its ETag and Last-Modified kept by send
  * @param body - File body, its path relative to packagesDir and its messages used when sending fails
+ * @param context - Folder the file is read from, and the logger of the reply
  */
-function sendPackageFile(res: Response, body: FileBody): void {
-    res.sendFile(body.path, { root: packagesDir, dotfiles: 'allow' }, (error) => {
+function sendPackageFile(res: Response, body: FileBody, context: Context): void {
+    res.sendFile(body.path, { root: context.packagesDir, dotfiles: 'allow' }, (error) => {
         if (!error) return;
         if (res.headersSent) return void res.destroy();
 
@@ -73,10 +60,10 @@ function sendPackageFile(res: Response, body: FileBody): void {
 
         // A range or precondition the file cannot satisfy keeps its status, anything else reads as a missing file
         const { status } = error as Error & { status?: number };
-        if (status === 412) return reply(res, failure(412, body.precondition));
-        if (status === 416) return reply(res, failure(416, body.range));
+        if (status === 412) return reply(res, failure(412, body.precondition), context);
+        if (status === 416) return reply(res, failure(416, body.range), context);
         res.removeHeader('Content-Range');
-        reply(res, failure(404, body.missing));
+        reply(res, failure(404, body.missing), context);
     });
 }
 
@@ -88,19 +75,20 @@ function sendPackageFile(res: Response, body: FileBody): void {
  * @param res - Response holding the archive headers, flushed before any file is read; a HEAD request ends there
  * @param body - Archive body, its key naming the version in the log of a failure, its entries null for a version that
  * cannot be archived, which resets at once
+ * @param context - Folder the files are read from, and the logger of a failure
  */
-function streamArchive(res: Response, body: ArchiveBody): void {
+function streamArchive(res: Response, body: ArchiveBody, context: Context): void {
     res.flushHeaders();
     if (res.req.method === 'HEAD') return void res.end();
 
     const abort = new AbortController();
-    const read = (source: string) => fs.promises.readFile(join(packagesDir, source), { signal: abort.signal });
+    const read = (source: string) => fs.promises.readFile(join(context.packagesDir, source), { signal: abort.signal });
 
     // The DOM ReadableStream of the main tsconfig and the one of stream/web differ only in their BYOB reader types
     const stream = Readable.fromWeb(archiveStream(body.entries, read) as NodeReadableStream<Uint8Array>);
 
     stream.on('error', (error) => {
-        console.error(`Archive error on ${body.key}:`, error.message);
+        context.logger.error(`Archive error on ${body.key}:`, error.message);
 
         // A reset, unlike a plain close, still reads as a failure when the connection end frames the body (HTTP/1.0)
         if (res.socket) res.socket.resetAndDestroy();
@@ -121,95 +109,114 @@ function streamArchive(res: Response, body: ArchiveBody): void {
  *
  * @param res - Response whose headers are not sent yet
  * @param response - Status, headers and body from route(), json() or failure()
+ * @param context - Folder the package files are read from, and the logger of a failure
  */
-function reply(res: Response, response: RouteResponse): void {
+function reply(res: Response, response: RouteResponse, context: Context): void {
     res.status(response.status);
     for (const [name, value] of Object.entries(response.headers)) res.setHeader(name, value);
 
     const { body } = response;
     if (body.kind === 'json') res.send(body.text);
     else if (body.kind === 'empty') res.end();
-    else if (body.kind === 'file') sendPackageFile(res, body);
-    else streamArchive(res, body);
+    else if (body.kind === 'file') sendPackageFile(res, body, context);
+    else streamArchive(res, body, context);
 }
 
-// Behind a reverse proxy, the socket address is the proxy, not the client
-app.set('trust proxy', true);
+/**
+ * Creates the Express app of the server, without reading the env or the disk, nor listening.
+ * The counters of the limiter and the start time of /health belong to the app, so two apps never share them.
+ *
+ * @param config - Validated config, its asset files absolute; its port and packagesDir belong to the entry point
+ * @param deps - Index the package routes answer from, absolute folder of the package files, version of dropr, and
+ * logger of the requests and failures
+ * @returns The app, to give to listen() or to an http server
+ */
+export function createApp(config: Config, deps: AppDeps): Express {
+    const { index, packagesDir, version, logger } = deps;
+    const context: Context = { packagesDir, logger };
+    const app = express();
+    const startTime = Date.now();
+    const limiter = createLimiter(startTime);
 
-app.use(
-    cors({
-        methods: ['GET'],
-        exposedHeaders: ['Deprecation', 'Link', 'ETag', 'Content-Disposition', 'X-Content-Type-Options'],
-    }),
-);
+    // Published versions are frozen, so the tree is read once and every package route answers from memory
+    const catalog = loadIndex(index);
+    const manifest = buildManifest(config.manifest, config.name, version);
 
-// Browsers request /favicon.ico by default, so the ICO (rendered from the SVG mark) is served next to the SVG
-app.use('/favicon.ico', express.static(join(rootDir, 'public', 'favicon.ico')));
-app.use('/favicon.svg', express.static(join(rootDir, 'public', 'favicon.svg')));
+    // Behind a reverse proxy, the socket address is the proxy, not the client
+    app.set('trust proxy', config.clientIp.trustProxy);
 
-app.use('/robots.txt', express.static(join(rootDir, 'robots.txt')));
-
-app.use((req: Request, res: Response, next: NextFunction) => {
-    const start = Date.now();
-    res.on('finish', () => {
-        logger.request(req, res, { url: req.originalUrl, duration: `${Date.now() - start}ms` });
-    });
-    next();
-});
-
-app.use((req: Request, res: Response, next: NextFunction) => {
-    const refusal = limiter.check(clientOf(req), Date.now());
-    if (!refusal) return next();
-
-    reply(res, failure(429, refusal));
-});
-
-app.get('/health', (req: Request, res: Response) => {
-    const uptime = (Date.now() - startTime) / 1000;
-    const mem = process.memoryUsage();
-    reply(
-        res,
-        json(200, {
-            name: 'dropr',
-            status: 'ok',
-            version: pkg.version,
-            uptime: `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m ${Math.floor(uptime % 60)}s`,
-            packages: countPackages(catalog.packages),
-            memory: {
-                rss: `${(mem.rss / 1024 / 1024).toFixed(2)} MB`,
-                heapUsed: `${(mem.heapUsed / 1024 / 1024).toFixed(2)} MB`,
-                heapTotal: `${(mem.heapTotal / 1024 / 1024).toFixed(2)} MB`,
-            },
+    app.use(
+        cors({
+            methods: ['GET'],
+            exposedHeaders: ['Deprecation', 'Link', 'ETag', 'Content-Disposition', 'X-Content-Type-Options'],
         }),
     );
-});
 
-app.get('/manifest', (req: Request, res: Response) => {
-    reply(res, json(200, getManifest(pkg.version), { 'Cache-Control': 'public, max-age=300' }));
-});
+    for (const [url, file] of Object.entries(config.assets)) app.use(url, express.static(file));
 
-// Any other path or method, so a POST to /health or /manifest still gets the 405 of the core
-app.use((req: Request, res: Response) => {
-    const { headers, method, originalUrl, path, query } = req;
+    app.use((req: Request, res: Response, next: NextFunction) => {
+        const start = Date.now();
+        res.on('finish', () => {
+            logger.request({
+                method: req.method,
+                url: req.originalUrl,
+                status: res.statusCode,
+                duration: Date.now() - start,
+            });
+        });
+        next();
+    });
 
-    reply(res, route({ method, target: originalUrl, path, query, headers }, catalog));
-});
+    app.use((req: Request, res: Response, next: NextFunction) => {
+        const refusal = limiter.check(clientOf(req, config.clientIp.header), Date.now());
+        if (!refusal) return next();
 
-// Reached by a static file that fails to send or by a fault of the adapter, since the core never throws
-app.use((err: Error & { status?: number }, req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status && err.status >= 400 && err.status < 600 ? err.status : 500;
+        reply(res, failure(429, refusal), context);
+    });
 
-    if (status >= 500) console.error(err.stack);
-    if (res.headersSent) return void res.destroy();
+    app.get('/health', (req: Request, res: Response) => {
+        const uptime = (Date.now() - startTime) / 1000;
+        const mem = process.memoryUsage();
+        reply(
+            res,
+            json(200, {
+                name: config.name,
+                status: 'ok',
+                version,
+                uptime: `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m ${Math.floor(uptime % 60)}s`,
+                packages: countPackages(catalog.packages),
+                memory: {
+                    rss: `${(mem.rss / 1024 / 1024).toFixed(2)} MB`,
+                    heapUsed: `${(mem.heapUsed / 1024 / 1024).toFixed(2)} MB`,
+                    heapTotal: `${(mem.heapTotal / 1024 / 1024).toFixed(2)} MB`,
+                },
+            }),
+            context,
+        );
+    });
 
-    // Client errors describe the request, server errors may leak internals
-    const message = status < 500 ? err.message : INTERNAL;
-    reply(res, json(status, errorBody(status, message, STATUS_CODES[status])));
-});
+    app.get('/manifest', (req: Request, res: Response) => {
+        reply(res, json(200, manifest, { 'Cache-Control': 'public, max-age=300' }), context);
+    });
 
-// Express 5 hands a listen failure (port taken) to this callback, so it must not report the server as running
-app.listen(port, (error) => {
-    if (error) throw error;
+    // Any other path or method, so a POST to /health or /manifest still gets the 405 of the core
+    app.use((req: Request, res: Response) => {
+        const { headers, method, originalUrl, path, query } = req;
 
-    console.log(`dropr is running on\n    - http://127.0.0.1:${port}\n    - http://localhost:${port}`);
-});
+        reply(res, route({ method, target: originalUrl, path, query, headers }, catalog), context);
+    });
+
+    // Reached by a static file that fails to send or by a fault of the adapter, since the core never throws
+    app.use((err: Error & { status?: number }, req: Request, res: Response, _next: NextFunction) => {
+        const status = err.status && err.status >= 400 && err.status < 600 ? err.status : 500;
+
+        if (status >= 500) logger.error(err.stack);
+        if (res.headersSent) return void res.destroy();
+
+        // Client errors describe the request, server errors may leak internals
+        const message = status < 500 ? err.message : INTERNAL;
+        reply(res, json(status, errorBody(status, message, STATUS_CODES[status])), context);
+    });
+
+    return app;
+}
