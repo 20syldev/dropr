@@ -3,7 +3,8 @@ import fs from 'fs';
 import { join, sep } from 'path';
 
 import { parseDeprecation } from './lib/deprecations.js';
-import { compareVersions, EXCLUDED_DIRS, indexNodes, RESERVED_NAMES } from './lib/packages.js';
+import { compareVersions, EXCLUDED_DIRS, indexNodes } from './lib/packages.js';
+import { RESERVED } from './lib/router.js';
 import type {
     Deprecation,
     ErrorLogger,
@@ -13,6 +14,9 @@ import type {
     IndexProject,
     IndexVersion,
 } from './types/index.js';
+
+// Names that Express still matches in any case, so a type folder of that name in another case is skipped too
+const LENIENT = ['health', 'manifest'];
 
 /**
  * Reads the .deprecated.json notice of a project, if any.
@@ -272,16 +276,37 @@ function scanProjects(typePath: string, logger: ErrorLogger): IndexProject[] {
 }
 
 /**
+ * Tells whether a folder name is taken by a route of the server, which would shadow the listing of a type of that name.
+ * The router matches its own names in lower case only, so 'Download' and 'Search' stay free; the routes that Express
+ * answers and the assets match in any case. Only the bare path of the type is shadowed for health, manifest and the
+ * assets, but the whole folder is skipped, so that the rule is one list.
+ *
+ * @param name - Folder name at the top of the packages tree
+ * @param assets - First path segments of the configured assets, compared in any case
+ * @returns True when a route of the server answers the path of that name before the listing of a package type could
+ */
+function isReserved(name: string, assets: string[]): boolean {
+    if (RESERVED.includes(name)) return true;
+
+    const lower = name.toLowerCase();
+
+    return [...LENIENT, ...assets].some((reserved) => reserved.toLowerCase() === lower);
+}
+
+/**
  * Indexes a packages tree once, its files hashed and its folders measured, so the routes answer without the disk.
  * Arrays keep the readdir (strcmp) order, mtimes keep their fraction, and links keep their raw target next to their
  * real one; what cannot be read is logged and kept with null entries, size or hash, or left out.
  *
  * @param root - Packages root, laid out as root/type/project/version, hidden, excluded and reserved type names skipped
- * @param logger - Receives each failure through its error() and nothing else, console by default
+ * @param logger - Receives each failure and each skipped reserved type through its error() and nothing else, console by
+ * default
+ * @param reserved - First path segments of the assets, which no type may take besides the names of the server routes,
+ * none by default
  * @returns An index of format 1 that survives a JSON round trip, with no types when root is missing, not a folder or
  * not readable, which is logged; throws when root cannot be listed for any other reason
  */
-export function scan(root: string, logger: ErrorLogger = console): Index {
+export function scan(root: string, logger: ErrorLogger = console, reserved: string[] = []): Index {
     let dirents: fs.Dirent[];
     try {
         dirents = fs.readdirSync(root, { withFileTypes: true });
@@ -295,7 +320,13 @@ export function scan(root: string, logger: ErrorLogger = console): Index {
 
     const types = dirents
         .filter((dirent) => dirent.isDirectory() && !dirent.name.startsWith('.'))
-        .filter(({ name }) => !EXCLUDED_DIRS.includes(name) && !RESERVED_NAMES.includes(name))
+        .filter(({ name }) => !EXCLUDED_DIRS.includes(name))
+        .filter(({ name }) => {
+            if (!isReserved(name, reserved)) return true;
+
+            logger.error(`Skipping type '${name}': reserved name.`);
+            return false;
+        })
         .map(({ name }) => ({ name, projects: scanProjects(join(root, name), logger) }));
 
     return { format: 1, types };
