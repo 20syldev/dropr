@@ -2,7 +2,6 @@ import assert from 'assert/strict';
 import fs from 'fs';
 import { after, before, describe, mock, test } from 'node:test';
 import { join } from 'path';
-import querystring from 'querystring';
 
 import { archiveEntries, archiveStream } from '../dist/lib/archive.js';
 import { compareVersions, loadIndex } from '../dist/lib/packages.js';
@@ -55,30 +54,24 @@ function loadSnapshot(file) {
 }
 
 /**
- * Builds the request that the adapter hands to route() for a case.
- * The path ends at the first '?' and querystring parses the rest, as Express does for a target without '#', a
- * backslash or whitespace, which go through url.parse instead.
+ * Builds the request that the adapter hands to route() for a case, without calling the adapter.
+ * The URL is the raw target after the origin, so the snapshot of the HTTP server also checks what the adapter builds.
  *
  * @param entry - Case whose path is the raw request target, GET and without request headers by default
- * @returns The request, its target raw and its query a null-prototype object
+ * @returns The method, the URL of the target on http://localhost, and the headers as a Headers object
  */
 function toRequest({ path: target, method = 'GET', headers = {} }) {
-    const mark = target.indexOf('?');
-    const path = mark === -1 ? target : target.slice(0, mark);
-    const query = querystring.parse(mark === -1 ? '' : target.slice(mark + 1));
-
-    return { method, target, path, query, headers };
+    return { method, url: `http://localhost${target}`, headers: new Headers(headers) };
 }
 
 /**
  * Tells whether the core alone decides the answer to a case, so that it can be replayed without the adapter.
  *
  * @param entry - Case from CASES
- * @returns False for a static file, OPTIONS, a locked case, a target with '#' or a backslash, and a conditional or
- * range request
+ * @returns False for a static file, OPTIONS, a locked case, and a conditional or range request
  */
-function isCoreCase({ path, method, headers = {}, locked, checkout }) {
-    if (checkout || locked || method === 'OPTIONS' || /[#\\]/.test(path)) return false;
+function isCoreCase({ method, headers = {}, locked, checkout }) {
+    if (checkout || locked || method === 'OPTIONS') return false;
 
     return !Object.keys(headers).some((name) => CONDITIONALS.includes(name));
 }
@@ -247,10 +240,10 @@ describe('scan', () => {
         const vault = sealed.nodes.get('vault');
         const unread = ['npm/broken/1.0.0/locked.bin', 'npm/sealed/1.0.0/vault'];
 
-        assert.deepEqual(
-            logged,
-            fixture.locked ? unread.map((path) => `Error reading ${join(fixture.packagesDir, path)}:`) : [],
-        );
+        assert.deepEqual(logged, [
+            "Skipping type 'download': reserved name.",
+            ...(fixture.locked ? unread.map((path) => `Error reading ${join(fixture.packagesDir, path)}:`) : []),
+        ]);
         assert.equal(broken.sha256 === null, fixture.locked);
         assert.equal(vault.entries === null && vault.size === null && sealed.root.size === null, fixture.locked);
     });
@@ -393,12 +386,19 @@ describe('route() on synthetic indexes', () => {
         assert.equal(get(`/npm/p@1.0.0/${loop.repeat(41)}dist`, loops).status, 500);
     });
 
-    test('a path that climbs above the packages root is missing, one that climbs back into its version is served', () => {
+    test('a path that climbs above the root stops there, and one that climbs into another project names it', () => {
         const tree = catalogOf([['p', [file('index.js')]]]);
 
-        assert.equal(get('/npm/p@1.0.0/../../../npm/p/1.0.0/index.js', tree).status, 200);
-        assert.equal(get('/npm/p@1.0.0/../../../../packages/npm/p/1.0.0/index.js', tree).status, 404);
-        assert.equal(get('/npm/p@1.0.0/../../../../npm/p/1.0.0/index.js', tree).status, 404);
+        assert.equal(get('/npm/p@1.0.0/../../../../npm/p@1.0.0/index.js', tree).status, 200);
+        assert.equal(get('/npm/p@1.0.0/../../../../../../npm/p@1.0.0/index.js', tree).status, 200);
+
+        const other = get('/npm/p@1.0.0/../q@1.0.0/index.js', tree);
+        assert.equal(other.status, 404);
+        assert.equal(other.body.message, "Project 'q' does not exist in /npm.");
+        assert.equal(
+            get('/npm/p@1.0.0/../../../npm/p/1.0.0/index.js', tree).body.message,
+            "Route '/npm/p/1.0.0/index.js' does not exist.",
+        );
     });
 
     test('a link to a folder that could not be listed gives 500, a path below it 404', () => {
@@ -416,23 +416,68 @@ describe('route() on synthetic indexes', () => {
         assert.equal(get('/npm/p@1.0.0?download', sealed).body.entries, null);
     });
 
-    test('a parameter that does not decode gives 400 at each layer, with the Deprecation set before it', () => {
+    test('a segment that does not decode gives 400 with one fixed message, no header and before any 404', () => {
         const notice = { date: '2025-06-01', message: 'Renamed.', successor: 'https://example.com/lib' };
         const old = catalogOf([['old', [file('index.js')]]], notice);
-        const targets = ['/download/%E0', '/download/npm/%E0', '/%E0', '/npm/%E0/changelog', '/npm/%E0', '/npm/%E0/x'];
+        const targets = [
+            '/download/%E0',
+            '/download/npm/%E0',
+            '/%E0',
+            '//%E0',
+            '/npm/%E0/changelog',
+            '/npm/%E0',
+            '/npm/%E0/x',
+            '/nope/%E0',
+            '/npm/old@1.0.0/dist/%E0/x',
+            '/npm/old/%E0',
+        ];
 
         for (const target of targets) {
             const { status, headers, body } = get(target, old);
             assert.equal(status, 400, target);
-            assert.equal(body.message, "Failed to decode param '%E0'", target);
-            assert.equal(headers.Deprecation, undefined, target);
+            assert.equal(body.message, 'The path holds an invalid percent-encoding.', target);
+            assert.deepEqual(Object.keys(headers), ['Content-Type'], target);
         }
+    });
 
-        const deep = get('/npm/old@1.0.0/dist/%E0/x', old);
-        assert.equal(deep.status, 400);
-        assert.equal(deep.body.message, "Failed to decode param '%E0'");
-        assert.equal(deep.headers.Deprecation, '@1748736000');
-        assert.equal(deep.headers.Link, '<https://example.com/lib>; rel="successor-version"');
+    test('a request URL that does not parse, or is not http or https, gives 400', () => {
+        for (const url of ['not a url', 'data:text/plain,x', 'mailto:x', 'ftp://host/npm/lib', 'file:///npm/lib']) {
+            const response = route({ method: 'GET', url, headers: new Headers() }, catalog);
+
+            assert.equal(response.status, 400, url);
+            assert.equal(JSON.parse(response.body.text).message, 'The request URL is not valid.', url);
+        }
+    });
+
+    test('a query of over 1000 keys still holds q and checksums, a repeated q is missing [change: query]', () => {
+        const keys = Array.from({ length: 1200 }, (_, i) => `k${i}=1`).join('&');
+
+        assert.equal(get(`/search?${keys}&q=lib`, catalog).status, 200);
+        assert.deepEqual(Object.keys(get(`/npm/lib@1.2.0?${keys}&checksums`, catalog).body), [
+            'name',
+            'version',
+            'algorithm',
+            'checksums',
+        ]);
+        assert.equal(get('/search?q=lib&q=lib', catalog).status, 400);
+    });
+
+    test('the value of q is form-decoded once, so + is a space and %2B and %25 are a plus and a percent', () => {
+        const queries = [
+            ['a+b', 'a b'],
+            ['a%20b', 'a b'],
+            ['a%2Bb', 'a+b'],
+            ['%25', '%'],
+            ['%2541', '%41'],
+            ['%E0', '\uFFFD'],
+            ['%', '%'],
+        ];
+
+        for (const [raw, query] of queries) {
+            const { status, body } = get(`/search?q=${raw}`, catalog);
+
+            assert.deepEqual([status, body.query], [200, query], raw);
+        }
     });
 });
 
