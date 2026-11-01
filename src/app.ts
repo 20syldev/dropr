@@ -14,7 +14,7 @@ import { countPackages, loadIndex } from './lib/packages.js';
 import { createLimiter } from './lib/ratelimit.js';
 import { failure, INTERNAL, json, route } from './lib/route.js';
 import { buildManifest } from './manifest.js';
-import type { AppDeps, ArchiveBody, Config, FileBody, Logger, RouteResponse } from './types/index.js';
+import type { AppDeps, ArchiveBody, Config, FileBody, Logger, RouteInput, RouteResponse } from './types/index.js';
 
 interface Context {
     packagesDir: string;
@@ -35,6 +35,34 @@ function clientOf(req: Request, name: string | null): string {
     if (typeof header === 'string' && header.length > 0) return header;
 
     return req.ip || req.socket.remoteAddress || '';
+}
+
+// Scheme and authority that an absolute-form target holds before its path, cut off whatever the authority looks like
+const ORIGIN = /^[a-z][a-z\d+.-]*:\/\/[^/?#]*/i;
+
+/**
+ * Builds the request that the core routes from an Express request.
+ * The URL is rebuilt on a fixed origin, so Host and X-Forwarded-Host never reach the routing, and the path is
+ * concatenated rather than resolved, so a '//npm/lib' keeps its empty segment instead of naming a host.
+ *
+ * @param req - Express request, read for its method, its raw target and its headers
+ * @returns The method, a URL on http://localhost holding the path and the query of the target, an absolute-form target
+ * losing its scheme and authority, and the headers, which Node has already checked, so none of them is refused
+ */
+function requestOf(req: Request): RouteInput {
+    const { method, originalUrl } = req;
+    const origin = ORIGIN.exec(originalUrl);
+    const rest = origin ? originalUrl.slice(origin[0].length) : originalUrl;
+    const target = rest.startsWith('/') ? rest : `/${rest}`;
+
+    const headers = new Headers();
+    for (const [name, value] of Object.entries(req.headers)) {
+        for (const item of Array.isArray(value) ? value : [value]) {
+            if (item !== undefined) headers.append(name, item);
+        }
+    }
+
+    return { method, url: `http://localhost${target}`, headers };
 }
 
 /**
@@ -201,9 +229,7 @@ export function createApp(config: Config, deps: AppDeps): Express {
 
     // Any other path or method, so a POST to /health or /manifest still gets the 405 of the core
     app.use((req: Request, res: Response) => {
-        const { headers, method, originalUrl, path, query } = req;
-
-        reply(res, route({ method, target: originalUrl, path, query, headers }, catalog), context);
+        reply(res, route(requestOf(req), catalog), context);
     });
 
     // Reached by a static file that fails to send or by a fault of the adapter, since the core never throws
