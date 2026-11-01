@@ -161,6 +161,23 @@ export interface RouteRequest {
     headers: RequestHeaders;
 }
 
+export type RouteInput = Pick<Request, 'method' | 'url' | 'headers'>;
+
+export type Match =
+    | { id: 'root' }
+    | { id: 'search' }
+    | { id: 'downloads' }
+    | { id: 'typeDownloads'; type: string }
+    | { id: 'archive'; type: string; name: string; version: string | null }
+    | { id: 'type'; type: string }
+    | { id: 'versions'; type: string; name: string }
+    | { id: 'changelog'; type: string; name: string }
+    | { id: 'version'; type: string; name: string; version: string }
+    | { id: 'file'; type: string; name: string; version: string; path: string; slash: boolean }
+    | { id: 'beneath'; type: string; name: string }
+    | { id: 'encoding' }
+    | { id: 'unknown' };
+
 export interface JsonBody {
     kind: 'json';
     text: string;
