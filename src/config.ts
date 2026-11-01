@@ -35,3 +35,16 @@ export function loadConfig(file: string): Config {
         assets: Object.fromEntries(Object.entries(config.assets).map(([url, path]) => [url, resolve(base, path)])),
     };
 }
+
+/**
+ * Lists the first path segment of every configured asset, the folder names that a package type cannot take.
+ * A type of that name would be unreachable, since the static file of the asset answers its path first.
+ *
+ * @param config - Config whose asset URLs start with a slash, as parseConfig requires
+ * @returns The first segment of each asset URL, in config order, without the empty one of an asset served at '/'
+ */
+export function reservedNames(config: Config): string[] {
+    return Object.keys(config.assets)
+        .map((url) => url.split('/')[1])
+        .filter((segment) => segment !== '');
+}

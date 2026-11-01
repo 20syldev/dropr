@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 import { createLogger } from '@20syldev/logger.ts';
 
 import { createApp } from './app.js';
-import { loadConfig } from './config.js';
+import { loadConfig, reservedNames } from './config.js';
 import { scan } from './scan.js';
 import type { Logger } from './types/index.js';
 
@@ -38,7 +38,8 @@ function serve(): void {
     const port = Number(process.env.PORT ?? config.port);
     const pkg = JSON.parse(fs.readFileSync(join(rootDir, 'package.json'), 'utf-8'));
     const { packagesDir } = config;
-    const app = createApp(config, { index: scan(packagesDir, logger), packagesDir, version: pkg.version, logger });
+    const index = scan(packagesDir, logger, reservedNames(config));
+    const app = createApp(config, { index, packagesDir, version: pkg.version, logger });
 
     // Express 5 hands a listen failure (port taken) to this callback, so it must not report the server as running
     app.listen(port, (error) => {
