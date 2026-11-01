@@ -305,7 +305,8 @@ function projectGuard(scope: Scope, type: string, name: string, version: string 
  * @param slash - True when the path ended with '/', which only a folder answers and which a missing file echoes
  * @returns 200 with a listing or a file body, 304 when the ETag matches, 404 when the file is missing, is a file
  * reached with a trailing slash or is past MAX_LINKS link crossings, or 500 for a null version or a folder past them
- * or that could not be read
+ * or that could not be read; a file has the quoted SHA-256 of its bytes as its ETag, and none from the core when it has
+ * no checksum
  */
 function fileRoute(scope: Scope, type: string, file: string, slash: boolean): RouteResponse {
     const { catalog, deprecated, name, version } = scope;
@@ -329,9 +330,14 @@ function fileRoute(scope: Scope, type: string, file: string, slash: boolean): Ro
 
     // Only an exact version is immutable: latest and partial versions move to the next release
     const cache = scope.pinned ? 'public, max-age=31536000, immutable' : 'public, max-age=300';
-    const etag = `"${node.size.toString(16)}-${node.mtime.toString(16)}"`;
-    const headers: Record<string, string> = { ...scope.headers, ETag: etag, 'Cache-Control': cache };
-    if (scope.request.headers.get('if-none-match') === etag) return { status: 304, headers, body: { kind: 'empty' } };
+    const headers: Record<string, string> = { ...scope.headers, 'Cache-Control': cache };
+
+    // The tag is the checksum of ?checksums, so it follows the bytes and a link serves the tag of its target
+    const etag = node.sha256 === null ? null : `"${node.sha256}"`;
+    if (etag !== null) headers.ETag = etag;
+    if (etag !== null && scope.request.headers.get('if-none-match') === etag) {
+        return { status: 304, headers, body: { kind: 'empty' } };
+    }
 
     headers['Content-Type'] = contentType(file);
     headers['X-Content-Type-Options'] = 'nosniff';
