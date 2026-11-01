@@ -1,12 +1,16 @@
 import assert from 'assert/strict';
 import { spawn } from 'child_process';
 import fs from 'fs';
+import net from 'net';
 import { after, before, describe, test } from 'node:test';
-import { join } from 'path';
+import os from 'os';
+import { dirname, join } from 'path';
 
 import { createApp } from '../dist/app.js';
+import { reservedNames } from '../dist/config.js';
 import { parseConfig } from '../dist/lib/config.js';
 import { ROUTES } from '../dist/manifest.js';
+import { scan } from '../dist/scan.js';
 
 import { createFixture } from './fixture.mjs';
 import { config, freePort, listen, request, rootDir, startServer } from './server.mjs';
@@ -45,6 +49,104 @@ async function repeat(server, count, headers) {
     }
 
     return status;
+}
+
+/**
+ * Sends a request written byte for byte over a socket, which the http client would refuse or rewrite.
+ * The request line is sent as given, so absolute-form targets, '*' and raw backslashes reach the server unchanged.
+ *
+ * @param port - Port of a server started by startServer
+ * @param line - Request line without its HTTP version, such as GET /npm/lib
+ * @param headers - Header lines after Host, which is localhost unless one of them names a Host
+ * @returns Status, headers with their names in lower case and the last value of a repeated one, and the body as text;
+ * the strings are read as latin1, so each byte is one character, and a server silent for 5 seconds rejects
+ */
+function send(port, line, headers = []) {
+    const lines = [`${line} HTTP/1.1`, ...(headers.some((h) => /^host:/i.test(h)) ? [] : ['Host: localhost'])];
+    const text = `${[...lines, ...headers, 'Connection: close'].join('\r\n')}\r\n\r\n`;
+
+    return new Promise((resolve, reject) => {
+        const socket = net.connect(port, '127.0.0.1', () => socket.write(text, 'latin1'));
+        const chunks = [];
+        socket.setTimeout(5000, () => socket.destroy(new Error('The server did not answer within 5 seconds.')));
+        socket.on('data', (chunk) => chunks.push(chunk));
+        socket.on('error', reject);
+        socket.on('close', () => {
+            const [head, ...rest] = Buffer.concat(chunks).toString('latin1').split('\r\n\r\n');
+            const [status, ...fields] = head.split('\r\n');
+            const pairs = fields.map((field) => [
+                field.slice(0, field.indexOf(':')).toLowerCase(),
+                field.slice(field.indexOf(':') + 2),
+            ]);
+
+            resolve({
+                status: Number(status.split(' ')[1]),
+                headers: Object.fromEntries(pairs),
+                body: rest.join('\r\n\r\n'),
+            });
+        });
+    });
+}
+
+/**
+ * Writes a tree of small files into a new temporary folder.
+ *
+ * @param paths - Files to create, relative to the root of the tree and written with a short content
+ * @param contents - Text of the files that must not hold the short content, by path
+ * @returns The root, and remove() which deletes exactly the entries written here, folders last, never recursively
+ */
+function makeTree(paths, contents = {}) {
+    const root = fs.mkdtempSync(join(os.tmpdir(), 'dropr-reserved-'));
+    const created = [];
+
+    for (const path of paths) {
+        const file = join(root, path);
+        for (let dir = dirname(file); dir !== root && !created.includes(dir); dir = dirname(dir)) created.push(dir);
+        fs.mkdirSync(dirname(file), { recursive: true });
+        fs.writeFileSync(file, contents[path] ?? 'x\n');
+        created.push(file);
+    }
+
+    return {
+        root,
+        remove: () => {
+            for (const path of created.sort((a, b) => b.length - a.length)) {
+                if (fs.lstatSync(path).isDirectory()) fs.rmdirSync(path);
+                else fs.unlinkSync(path);
+            }
+            fs.rmdirSync(root);
+        },
+    };
+}
+
+/**
+ * Scans a tree of one tool per type folder and collects what the scan logs.
+ *
+ * @param names - Type folder names, none of them differing from another by case alone
+ * @param assets - First path segments of the assets, none by default
+ * @returns The names of the types that were indexed, sorted, and the messages that were logged, sorted
+ */
+function scanned(names, assets = []) {
+    const tree = makeTree(names.map((name) => `${name}/tool/1.0.0/a.txt`));
+    const logged = [];
+
+    try {
+        const index = scan(tree.root, { error: (message) => logged.push(message) }, assets);
+
+        return { types: index.types.map(({ name }) => name).sort(), logged: logged.sort() };
+    } finally {
+        tree.remove();
+    }
+}
+
+/**
+ * Writes the log line of a skipped type folder.
+ *
+ * @param name - Folder name exactly as scanned, in the case it has on disk
+ * @returns The error line of the scan, with the name quoted and the period at the end
+ */
+function skipped(name) {
+    return `Skipping type '${name}': reserved name.`;
 }
 
 describe('createApp', () => {
@@ -279,6 +381,33 @@ describe('dist/serve.js', () => {
         }
     });
 
+    test('reserves the first segment of every asset, skipping its type folder [change: reserved]', async () => {
+        const port = await freePort();
+        const config = { manifest: { baseUrl: 'https://cdn.example.com' }, assets: { '/static/logo.txt': 'logo.txt' } };
+        const files = ['packages/static/tool/1.0.0/a.txt', 'packages/npm/lib/1.0.0/b.txt', 'logo.txt', 'config.json'];
+        const tree = makeTree(files, { 'config.json': JSON.stringify(config) });
+
+        try {
+            const { stderr, probed } = await run(
+                [join(tree.root, 'config.json')],
+                { PORT: String(port) },
+                async () => ({
+                    asset: await request(port, 'GET', '/static/logo.txt'),
+                    skipped: await request(port, 'GET', '/static/tool@1.0.0/a.txt'),
+                    kept: await request(port, 'GET', '/npm/lib@1.0.0/b.txt'),
+                }),
+            );
+
+            assert.equal(stderr, "Skipping type 'static': reserved name.\n");
+            assert.equal(probed.asset.status, 200);
+            assert.equal(probed.skipped.status, 404);
+            assert.equal(JSON.parse(probed.skipped.body).message, "Package type 'static' does not exist.");
+            assert.equal(probed.kept.status, 200);
+        } finally {
+            tree.remove();
+        }
+    });
+
     test('exits with 1 and does not listen when the config is refused', async () => {
         const { code, stdout, stderr } = await run([join(rootDir, 'package.json')]);
 
@@ -295,5 +424,157 @@ describe('dist/serve.js', () => {
 
         assert.equal(await new Promise((resolve) => child.on('close', resolve)), 0);
         assert.equal(output, '');
+    });
+});
+
+describe('request shapes of the adapter', () => {
+    let fixture;
+    let server;
+    let errors;
+
+    before(async () => {
+        fixture = createFixture();
+        server = await startServer(fixture.packagesDir);
+        errors = server.logs.errors.length;
+    });
+
+    after(async () => {
+        await server?.stop();
+        fixture?.remove();
+    });
+
+    test('an absolute-form target routes on its path and query only, whatever its authority', async () => {
+        const file = await send(server.port, 'GET http://other.example/npm/lib@1.2.0/index.js?x=1');
+        const empty = await send(server.port, 'GET http://other.example/npm//lib?x=1');
+        const authorities = ['http:///npm/lib', 'http://x:99999/npm/lib', 'https://u:p@[::1]:80/npm/lib'];
+        const schemes = ['HTTP://other.example', 'Http://other.example', 'HTTPS://other.example'];
+
+        assert.deepEqual([file.status, file.body], [200, 'export default "1.2.0";\n']);
+        assert.equal(empty.status, 404);
+        assert.equal(JSON.parse(empty.body).message, "Route '/npm//lib' does not exist.");
+        for (const target of authorities) {
+            const response = await send(server.port, `GET ${target}`);
+
+            assert.equal(JSON.parse(response.body).message, "Available versions for the 'lib' project.", target);
+        }
+        for (const origin of schemes) {
+            const response = await send(server.port, `GET ${origin}/npm/lib@1.2.0/index.js`);
+
+            assert.deepEqual([response.status, response.body], [200, 'export default "1.2.0";\n'], origin);
+        }
+        for (const target of ['http://other.example', 'http://other.example?x=1']) {
+            const response = await send(server.port, `GET ${target}`);
+
+            assert.match(JSON.parse(response.body).message, /^Use the following routes/, target);
+        }
+    });
+
+    test('GET * is a missing route and OPTIONS * is answered by CORS', async () => {
+        const star = await send(server.port, 'GET *');
+        const options = await send(server.port, 'OPTIONS *', ['Origin: https://example.com']);
+
+        assert.equal(star.status, 404);
+        assert.equal(JSON.parse(star.body).message, "Package type '*' does not exist.");
+        assert.deepEqual([options.status, options.headers['access-control-allow-origin']], [204, '*']);
+    });
+
+    test('Host and X-Forwarded-Host never reach the routing', async () => {
+        const control = await send(server.port, 'GET /npm/lib');
+        const lines = [
+            ['Host: bad host!'],
+            ['Host: [::1]:4000'],
+            ['Host: npm'],
+            ['X-Forwarded-Host: evil.example/npm'],
+        ];
+
+        assert.equal(control.status, 200);
+        for (const headers of lines) {
+            const response = await send(server.port, 'GET /npm/lib', headers);
+
+            assert.deepEqual([response.status, response.body], [control.status, control.body], headers.join());
+        }
+    });
+
+    test('a matching If-None-Match gives 304, also when Node joined it from a repeated header', async () => {
+        const path = 'GET /npm/lib@1.2.0/index.js';
+        const { etag } = (await send(server.port, path)).headers;
+
+        assert.equal((await send(server.port, path, [`If-None-Match: ${etag}`])).status, 304);
+        assert.equal((await send(server.port, path, [`If-None-Match: ${etag}`, 'If-None-Match: "other"'])).status, 304);
+        assert.equal((await send(server.port, path, ['If-None-Match: "a"', 'If-None-Match: "b"'])).status, 200);
+    });
+
+    test('a header value of any byte is answered by the core or refused by Node, never a failure', async () => {
+        for (let byte = 0; byte < 256; byte++) {
+            const headers = [`X-Byte: a${String.fromCharCode(byte)}b`, `X-Test-Client: 10.8.0.${byte}`];
+            const response = await send(server.port, 'GET /npm/lib', headers);
+
+            assert.ok([200, 400].includes(response.status), `byte ${byte} gives ${response.status}`);
+        }
+    });
+
+    test('a doubled slash is an empty segment, never a host', async () => {
+        const response = await send(server.port, 'GET //npm/lib');
+
+        assert.equal(response.status, 404);
+        assert.equal(JSON.parse(response.body).message, "Route '//npm/lib' does not exist.");
+    });
+
+    test('a backslash reads as a slash and a fragment is cut', async () => {
+        const file = await send(server.port, 'GET /npm/lib@1.2.0/dist\\index.mjs');
+        const versions = await send(server.port, 'GET /npm\\lib');
+        const fragment = await send(server.port, 'GET /npm/lib@1.2.0/index.js#top');
+
+        assert.deepEqual([file.status, file.body], [200, 'export default "1.2.0";\n']);
+        assert.equal(JSON.parse(versions.body).message, "Available versions for the 'lib' project.");
+        assert.deepEqual([fragment.status, fragment.body], [200, 'export default "1.2.0";\n']);
+    });
+
+    test('TRACE is refused with the 405 of the core', async () => {
+        const response = await send(server.port, 'TRACE /npm/lib');
+
+        assert.deepEqual([response.status, response.headers.allow], [405, 'GET, HEAD, OPTIONS']);
+    });
+
+    test('none of these requests is logged as an error', () => {
+        assert.equal(server.logs.errors.length, errors);
+    });
+});
+
+describe('reserved names', () => {
+    test('a type folder named like a route or an asset is skipped and logged [change: reserved]', () => {
+        const { types, logged } = scanned(['download', 'search', 'health', 'manifest', 'static', 'npm'], ['static']);
+
+        assert.deepEqual(types, ['npm']);
+        assert.deepEqual(logged, ['download', 'health', 'manifest', 'search', 'static'].map(skipped));
+    });
+
+    test('download and search are compared exactly, health, manifest and assets in any case [change: reserved]', () => {
+        const { types, logged } = scanned(['Download', 'Search', 'Health', 'MANIFEST', 'STATIC', 'npm'], ['static']);
+
+        assert.deepEqual(types, ['Download', 'Search', 'npm']);
+        assert.deepEqual(logged, ['Health', 'MANIFEST', 'STATIC'].map(skipped));
+    });
+
+    test('a type folder named Download is served, since only download is a route', async () => {
+        const tree = makeTree(['Download/tool/1.0.0/a.txt']);
+        const server = await startServer(tree.root, { assets: {} });
+
+        try {
+            const file = await request(server.port, 'GET', '/Download/tool@1.0.0/a.txt');
+            const versions = await request(server.port, 'GET', '/Download/tool');
+
+            assert.deepEqual([file.status, file.body.toString()], [200, 'x\n']);
+            assert.equal(versions.status, 200);
+        } finally {
+            await server.stop();
+            tree.remove();
+        }
+    });
+
+    test('the first segment of every asset URL is reserved, an asset served at the root reserves nothing', () => {
+        const assets = { '/favicon.ico': 'a', '/static/logo.svg': 'b', '/': 'c' };
+
+        assert.deepEqual(reservedNames({ assets }), ['favicon.ico', 'static']);
     });
 });
