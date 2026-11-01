@@ -5,7 +5,7 @@ import type {
     FileEntry,
     IndexNode,
     PackageProject,
-    RouteRequest,
+    RouteInput,
     RouteResponse,
 } from '../types/index.js';
 
@@ -15,10 +15,12 @@ import { deprecationHeaders } from './deprecations.js';
 import { errorBody } from './errors.js';
 import { contentType } from './mime.js';
 import { getProject, hasType, latestVersion, listProjects, resolveVersion, searchPackages } from './packages.js';
-import { MAX_LINKS, normalizePath, resolvePath } from './paths.js';
+import { MAX_LINKS, resolvePath } from './paths.js';
+import { matchPath } from './router.js';
 
 interface Scope {
-    request: RouteRequest;
+    request: RouteInput;
+    url: URL;
     catalog: Catalog;
     headers: Record<string, string>;
     name: string;
@@ -27,25 +29,8 @@ interface Scope {
     deprecated?: Deprecation;
 }
 
-type Handler = (scope: Scope, params: string[]) => RouteResponse | undefined;
-
 // Message of every 500, which never names a server path
 export const INTERNAL = 'An unexpected error occurred.';
-
-// Patterns of the 3.3.1 Express stack, as path-to-regexp 8.4.2 compiles them for router 2.2.0
-const LAYERS: [RegExp, Handler][] = [
-    [/^(?:\/search)(?:\/$)?$/i, searchRoute],
-    [/^(?:\/download)(?:\/$)?$/i, downloadsRoute],
-    [/^(?:\/download\/([^/]+))(?:\/$)?$/i, typeDownloadsRoute],
-    [/^(?:\/download\/([^/]+)\/([^/]+))(?:\/$)?$/i, archiveRoute],
-    [/^(?:\/([^/]+))(?:\/$)?(?=\/|$)/i, typeGuard],
-    [/^(?:\/([^/]+)\/([^/]+)\/changelog)(?:\/$)?$/i, changelogRoute],
-    [/^(?:\/([^/]+)\/([^/]+))(?:\/$)?(?=\/|$)/i, projectGuard],
-    [/^(?:\/([^/]+)\/([^/]+)\/([^]+))(?:\/$)?(?=\/|$)/i, fileRoute],
-    [/^(?:\/)(?:\/$)?$/i, rootRoute],
-    [/^(?:\/([^/]+))(?:\/$)?$/i, typeRoute],
-    [/^(?:\/([^/]+)\/([^/]+))(?:\/$)?$/i, versionRoute],
-];
 
 /**
  * Builds a JSON response, indented with 2 spaces like every answer of the server.
@@ -73,32 +58,6 @@ export function json(status: number, data: unknown, headers: Record<string, stri
  */
 export function failure(status: number, message: string, headers: Record<string, string> = {}): RouteResponse {
     return json(status, errorBody(status, message), headers);
-}
-
-/**
- * Decodes one segment of a route parameter as router 2.2.0 does.
- *
- * @param segment - Raw segment, without a slash
- * @returns The decoded segment; throws a URIError carrying the 400 message of router when it does not decode
- */
-function decodeParam(segment: string): string {
-    try {
-        return decodeURIComponent(segment);
-    } catch {
-        throw new URIError(`Failed to decode param '${segment}'`);
-    }
-}
-
-/**
- * Decodes the captures of a layer pattern as router 2.2.0 decodes route parameters.
- * Each capture is decoded segment by segment, which only matters for the *file wildcard, the one that holds slashes.
- *
- * @param captures - Raw captures of the pattern, in order
- * @returns The decoded captures, their segments joined back with '/'; throws a URIError naming the first segment that
- * does not decode
- */
-function decode(captures: string[]): string[] {
-    return captures.map((capture) => capture.split('/').map(decodeParam).join('/'));
 }
 
 /**
@@ -172,11 +131,11 @@ function archiveResponse(scope: Scope, type: string, name: string, version: stri
  * Answers /search with the projects whose name holds the query, then every project of the type it names.
  *
  * @param scope - Request state, its q query parameter trimmed, a repeated q counting as missing
- * @returns 200 with the query, the count and the results, or 400 when q is missing or blank
+ * @returns 200 with the query, the count and the results, or 400 when q is missing, repeated or blank
  */
 function searchRoute(scope: Scope): RouteResponse {
-    const raw = scope.request.query.q;
-    const query = typeof raw === 'string' ? raw.trim() : '';
+    const values = scope.url.searchParams.getAll('q');
+    const query = values.length === 1 ? values[0].trim() : '';
     if (query.length === 0) return failure(400, 'Missing required query parameter: q');
 
     const results = searchPackages(scope.catalog.packages, query);
@@ -207,11 +166,10 @@ function downloadsRoute(scope: Scope): RouteResponse {
  * Answers /download/{type} with the archive links of every project of a type.
  *
  * @param scope - Request state, whose packages are searched for own keys only
- * @param params - Decoded type
+ * @param type - Decoded type, which may name no type
  * @returns 200 with the message and the links by project, or 404 when the type does not exist
  */
-function typeDownloadsRoute(scope: Scope, params: string[]): RouteResponse {
-    const [type] = params;
+function typeDownloadsRoute(scope: Scope, type: string): RouteResponse {
     const { packages } = scope.catalog;
     if (!hasType(packages, type)) return failure(404, `Package type '${type}' does not exist.`);
 
@@ -228,18 +186,18 @@ function typeDownloadsRoute(scope: Scope, params: string[]): RouteResponse {
  * It is the browser-friendly alias of /{type}/{project}@{version}?download, without a query string.
  *
  * @param scope - Request state, given the Deprecation and Link headers of a deprecated project
- * @param params - Decoded type and project, the version after the first '@' being exact or partial
+ * @param type - Decoded type, which may name no type
+ * @param name - Decoded project name, without its version
+ * @param version - Exact or partial version after the last '@', null for the latest one
  * @returns The archive response, or 404 when the project or the version does not exist
  */
-function archiveRoute(scope: Scope, params: string[]): RouteResponse {
-    const [type, project] = params;
-    const [name, version] = project.split('@');
+function archiveRoute(scope: Scope, type: string, name: string, version: string | null): RouteResponse {
     const entry = getProject(scope.catalog.packages, type, name);
     if (!entry) return failure(404, `Project '${name}' does not exist in /${type}.`);
 
     if (entry.deprecated) Object.assign(scope.headers, deprecationHeaders(entry.deprecated));
 
-    let resolved: string | null = version || 'latest';
+    let resolved: string | null = version ?? 'latest';
     if (resolved === 'latest') {
         resolved = latestVersion(entry);
     } else if (!Object.hasOwn(entry.versions, resolved)) {
@@ -255,11 +213,10 @@ function archiveRoute(scope: Scope, params: string[]): RouteResponse {
  * Stops every path under a package type that does not exist.
  *
  * @param scope - Request state, whose packages are searched for own keys only
- * @param params - Decoded type, the first segment of the path
- * @returns 404 when the type does not exist, else undefined so that a later layer answers
+ * @param type - Decoded type, the first segment of the path
+ * @returns 404 when the type does not exist, else undefined so that the route of the path answers
  */
-function typeGuard(scope: Scope, params: string[]): RouteResponse | undefined {
-    const [type] = params;
+function typeGuard(scope: Scope, type: string): RouteResponse | undefined {
     if (!hasType(scope.catalog.packages, type)) return failure(404, `Package type '${type}' does not exist.`);
 
     return undefined;
@@ -267,16 +224,14 @@ function typeGuard(scope: Scope, params: string[]): RouteResponse | undefined {
 
 /**
  * Answers /{type}/{project}/changelog with every version of a project and its release date.
- * The changelog covers every version, so a version given after '@' is ignored.
  *
  * @param scope - Request state, given the Deprecation and Link headers of a deprecated project
- * @param params - Decoded type and project
+ * @param type - Decoded type, which exists
+ * @param name - Decoded project name, which holds no version
  * @returns 200 with the versions in listing order and their date from the index, or 404 when the project does not
  * exist
  */
-function changelogRoute(scope: Scope, params: string[]): RouteResponse {
-    const [type, project] = params;
-    const [name] = project.split('@');
+function changelogRoute(scope: Scope, type: string, name: string): RouteResponse {
     const entry = getProject(scope.catalog.packages, type, name);
     if (!entry) return failure(404, `Project '${name}' does not exist in /${type}.`);
 
@@ -300,20 +255,20 @@ function changelogRoute(scope: Scope, params: string[]): RouteResponse {
  *
  * @param scope - Request state, given the project name, its deprecation notice, the version and the pinned flag for
  * the routes after, and the Deprecation and Link headers of a deprecated project
- * @param params - Decoded type and project, the version after the first '@' and anything after a second '@' ignored
+ * @param type - Decoded type, which exists
+ * @param name - Decoded project name, without its version
+ * @param version - Exact, partial or latest version after the last '@', null when the path names none
  * @returns 200 with the versions when the path names none, 404 when the project or the version does not exist, else
  * undefined so that the file or the version route answers
  */
-function projectGuard(scope: Scope, params: string[]): RouteResponse | undefined {
-    const [type, project] = params;
-    const [name, version] = project.split('@');
+function projectGuard(scope: Scope, type: string, name: string, version: string | null): RouteResponse | undefined {
     const entry = getProject(scope.catalog.packages, type, name);
     if (!entry) return failure(404, `Project '${name}' does not exist in /${type}.`);
 
     const { deprecated } = entry;
     if (deprecated) Object.assign(scope.headers, deprecationHeaders(deprecated));
 
-    if (!version) {
+    if (version === null) {
         const versions = Object.keys(entry.versions).reduce<Record<string, string>>((acc, ver) => {
             acc[ver] = `/${type}/${name}@${ver}`;
             return acc;
@@ -342,40 +297,43 @@ function projectGuard(scope: Scope, params: string[]): RouteResponse | undefined
 
 /**
  * Answers /{type}/{project}@{version}/{file} with a file or the listing of a folder of the version.
- * '..' segments and links are resolved inside the version only, so a path out of it reads as a missing file.
+ * Links are resolved inside the version only, so a link out of it reads as a missing file.
  *
  * @param scope - Request state set by projectGuard, its If-None-Match compared with the file ETag
- * @param params - Decoded type, project and file path, the path segments joined with '/'
- * @returns 200 with a listing or a file body, 304 when the ETag matches, 404 when the file is missing, out of the
- * version or past MAX_LINKS link crossings, or 500 for a null version or a folder past them or that could not be read
+ * @param type - Decoded type, which exists
+ * @param file - Decoded path under the version, its segments joined with '/' and none of them empty
+ * @param slash - True when the path ended with '/', which only a folder answers and which a missing file echoes
+ * @returns 200 with a listing or a file body, 304 when the ETag matches, 404 when the file is missing, is a file
+ * reached with a trailing slash or is past MAX_LINKS link crossings, or 500 for a null version or a folder past them
+ * or that could not be read
  */
-function fileRoute(scope: Scope, params: string[]): RouteResponse {
-    const [type, , file] = params;
+function fileRoute(scope: Scope, type: string, file: string, slash: boolean): RouteResponse {
     const { catalog, deprecated, name, version } = scope;
-    const missing = `File '${file}' does not exist in the ${version} version of the '${name}' project.`;
+    const asked = slash ? `${file}/` : file;
+    const missing = `File '${asked}' does not exist in the ${version} version of the '${name}' project.`;
     if (version === null) return failure(500, INTERNAL, scope.headers);
 
     const entry = catalog.versions.get(`${type}/${name}/${version}`);
-    const path = normalizePath(file, [type, name, version]);
-    const resolved = entry && path !== null ? resolvePath(entry, path) : null;
-    if (!entry || path === null || !resolved) return failure(404, missing, scope.headers);
+    const resolved = entry ? resolvePath(entry, file) : null;
+    if (!entry || !resolved) return failure(404, missing, scope.headers);
 
     const { node } = resolved;
+    if (slash && node.kind !== 'dir') return failure(404, missing, scope.headers);
     if (node.kind === 'dir') {
         if (resolved.hops > MAX_LINKS || node.entries === null) return failure(500, INTERNAL, scope.headers);
 
         const files = listing(entry, node.entries, resolved.hops > 0);
 
-        return json(200, { name, version, path: file.replace(/\/$/, ''), deprecated, files }, scope.headers);
+        return json(200, { name, version, path: file, deprecated, files }, scope.headers);
     }
 
     // Only an exact version is immutable: latest and partial versions move to the next release
     const cache = scope.pinned ? 'public, max-age=31536000, immutable' : 'public, max-age=300';
     const etag = `"${node.size.toString(16)}-${node.mtime.toString(16)}"`;
     const headers: Record<string, string> = { ...scope.headers, ETag: etag, 'Cache-Control': cache };
-    if (scope.request.headers['if-none-match'] === etag) return { status: 304, headers, body: { kind: 'empty' } };
+    if (scope.request.headers.get('if-none-match') === etag) return { status: 304, headers, body: { kind: 'empty' } };
 
-    headers['Content-Type'] = contentType(path);
+    headers['Content-Type'] = contentType(file);
     headers['X-Content-Type-Options'] = 'nosniff';
 
     // Past the kernel's link limit, sending the file fails with ELOOP, which 3.3.1 answered as a missing file
@@ -424,12 +382,10 @@ function rootRoute(scope: Scope): RouteResponse {
  * Answers /{type} with the projects of a type that typeGuard found.
  *
  * @param scope - Request state, whose packages hold the type
- * @param params - Decoded type, its first character upper-cased in the message
+ * @param type - Decoded type, which exists and whose first character is upper-cased in the message
  * @returns 200 with the message and the type entry, its 'list' key included
  */
-function typeRoute(scope: Scope, params: string[]): RouteResponse {
-    const [type] = params;
-
+function typeRoute(scope: Scope, type: string): RouteResponse {
     return json(200, {
         message: `${type[0].toUpperCase() + type.slice(1)} projects.`,
         projects: scope.catalog.packages[type],
@@ -441,24 +397,23 @@ function typeRoute(scope: Scope, params: string[]): RouteResponse {
  * ?checksums wins over ?download in any order, and none of these answers sets Cache-Control.
  *
  * @param scope - Request state set by projectGuard, its checksums and download query parameters read for presence
- * @param params - Decoded type and project, the version coming from the scope
+ * @param type - Decoded type, which exists, the project and the version coming from the scope
  * @returns 200 with the listing, the checksums or an archive body, or 500 for a null version, a version that could not
  * be listed or, for the checksums, one with a file that could not be read
  */
-function versionRoute(scope: Scope, params: string[]): RouteResponse {
-    const [type] = params;
-    const { catalog, deprecated, name, request, version } = scope;
+function versionRoute(scope: Scope, type: string): RouteResponse {
+    const { catalog, deprecated, name, url, version } = scope;
     if (version === null) return failure(500, INTERNAL, scope.headers);
 
     const entry = catalog.versions.get(`${type}/${name}/${version}`);
 
-    if (request.query.checksums !== undefined) {
+    if (url.searchParams.has('checksums')) {
         const sums = entry ? checksums(entry) : null;
         if (!sums) return failure(500, INTERNAL, scope.headers);
 
         return json(200, { name, version, deprecated, algorithm: 'sha256', checksums: sums }, scope.headers);
     }
-    if (request.query.download !== undefined) return archiveResponse(scope, type, name, version);
+    if (url.searchParams.has('download')) return archiveResponse(scope, type, name, version);
     if (!entry || entry.root.entries === null) return failure(500, INTERNAL, scope.headers);
 
     const files = listing(entry, entry.root.entries, false);
@@ -467,37 +422,105 @@ function versionRoute(scope: Scope, params: string[]): RouteResponse {
 }
 
 /**
- * Answers a request to the package routes from a catalog, as the 3.3.1 Express stack did after its rate limit.
+ * Answers a path that no route has the shape of, or a path below a project that holds no such route.
+ *
+ * @param scope - Request state, its URL echoed by path only and its headers kept, such as the Deprecation of a project
+ * @returns 404 naming the encoded pathname, never the query
+ */
+function unknownRoute(scope: Scope): RouteResponse {
+    return failure(404, `Route '${scope.url.pathname}' does not exist.`, scope.headers);
+}
+
+/**
+ * Answers a path that goes deeper than a project without a version, which has nothing below it.
+ *
+ * @param scope - Request state, given the Deprecation and Link headers of a deprecated project
+ * @param type - Decoded type, which exists
+ * @param name - Decoded project name, which holds no version
+ * @returns 404 when the project does not exist, else the 404 of a route that does not exist, with those headers
+ */
+function beneathRoute(scope: Scope, type: string, name: string): RouteResponse {
+    const entry = getProject(scope.catalog.packages, type, name);
+    if (!entry) return failure(404, `Project '${name}' does not exist in /${type}.`);
+
+    if (entry.deprecated) Object.assign(scope.headers, deprecationHeaders(entry.deprecated));
+
+    return unknownRoute(scope);
+}
+
+/**
+ * Parses the absolute URL of a request, which the router reads as a hierarchical path.
+ *
+ * @param text - URL as the adapter built it
+ * @returns The URL, or null when it does not parse or its scheme is neither http nor https, so that a URL with no
+ * path such as data: or mailto: is never routed
+ */
+function parseUrl(text: string): URL | null {
+    try {
+        const url = new URL(text);
+
+        return url.protocol === 'http:' || url.protocol === 'https:' ? url : null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Answers a request to the package routes from a catalog, once the adapter has applied its rate limit.
  * It reads no disk, clock or log, never throws on client input, and answers HEAD as GET.
  *
- * @param request - Request whose path is raw and undecoded and whose query is already parsed; its target is only
- * echoed by the final 404
+ * @param request - Request to answer, its method upper case and its url absolute with an http or https scheme, of which
+ * only the path and the query are read
  * @param catalog - Catalog built by loadIndex
  * @returns The status, the headers the core owns and the body, a file or an archive body being left to the caller to
  * stream
  */
-export function route(request: RouteRequest, catalog: Catalog): RouteResponse {
+export function route(request: RouteInput, catalog: Catalog): RouteResponse {
     if (request.method !== 'GET' && request.method !== 'HEAD') {
         const message = `Method '${request.method}' is not allowed, use GET or HEAD.`;
         return failure(405, message, { Allow: 'GET, HEAD, OPTIONS' });
     }
 
-    const scope: Scope = { request, catalog, headers: {}, name: '', version: null, pinned: false };
-    for (const [pattern, handle] of LAYERS) {
-        const match = pattern.exec(request.path);
-        if (!match) continue;
+    const url = parseUrl(request.url);
+    if (!url) return failure(400, 'The request URL is not valid.');
 
-        let params: string[];
-        try {
-            params = decode(match.slice(1));
-        } catch (error) {
-            // Router holds a decoding error and skips every later handler, so the headers set so far stay
-            return failure(400, (error as URIError).message, scope.headers);
-        }
+    const scope: Scope = { request, url, catalog, headers: {}, name: '', version: null, pinned: false };
+    const match = matchPath(url.pathname);
 
-        const response = handle(scope, params);
-        if (response) return response;
+    switch (match.id) {
+        case 'encoding':
+            return failure(400, 'The path holds an invalid percent-encoding.');
+        case 'unknown':
+            return unknownRoute(scope);
+        case 'root':
+            return rootRoute(scope);
+        case 'search':
+            return searchRoute(scope);
+        case 'downloads':
+            return downloadsRoute(scope);
+        case 'typeDownloads':
+            return typeDownloadsRoute(scope, match.type);
+        case 'archive':
+            return archiveRoute(scope, match.type, match.name, match.version);
     }
 
-    return failure(404, `Route '${request.target}' does not exist.`, scope.headers);
+    const refusal = typeGuard(scope, match.type);
+    if (refusal) return refusal;
+
+    switch (match.id) {
+        case 'type':
+            return typeRoute(scope, match.type);
+        case 'changelog':
+            return changelogRoute(scope, match.type, match.name);
+        case 'beneath':
+            return beneathRoute(scope, match.type, match.name);
+    }
+
+    const version = match.id === 'versions' ? null : match.version;
+    const guard = projectGuard(scope, match.type, match.name, version);
+    if (guard) return guard;
+
+    return match.id === 'file'
+        ? fileRoute(scope, match.type, match.path, match.slash)
+        : versionRoute(scope, match.type);
 }
