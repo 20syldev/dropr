@@ -149,18 +149,6 @@ export interface Resolved {
     hops: number;
 }
 
-export type Query = Readonly<Record<string, unknown>>;
-
-export type RequestHeaders = Readonly<Record<string, string | string[] | undefined>>;
-
-export interface RouteRequest {
-    method: string;
-    target: string;
-    path: string;
-    query: Query;
-    headers: RequestHeaders;
-}
-
 export type RouteInput = Pick<Request, 'method' | 'url' | 'headers'>;
 
 export type Match =
