@@ -410,7 +410,7 @@ exports[`routes > GET /bash/gft@1.2.0/README.md 1`] = `
     "cache-control": "public, max-age=31536000, immutable",
     "content-length": "6",
     "content-type": "text/markdown; charset=utf-8",
-    "etag": "\\"6-19421bcaa00\\"",
+    "etag": "\\"6d35ac992a95dbc350407cd4e4f1248ac796bc16c8fb92e7d90546a77856ba2a\\"",
     "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
@@ -426,7 +426,7 @@ exports[`routes > GET /bash/gft@1.2.0/gft 1`] = `
     "cache-control": "public, max-age=31536000, immutable",
     "content-length": "29",
     "content-type": "text/plain; charset=utf-8",
-    "etag": "\\"1d-19421bcaa00\\"",
+    "etag": "\\"50b24ab93d8336588ac1a938a631dc9c2d652c1ad9567dadac5b1d483feb982b\\"",
     "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
@@ -466,7 +466,7 @@ exports[`routes > GET /config/styles@1.0.0/data.json 1`] = `
     "cache-control": "public, max-age=31536000, immutable",
     "content-length": "19",
     "content-type": "application/json; charset=utf-8",
-    "etag": "\\"13-19421bcaa00\\"",
+    "etag": "\\"60c24ec29eb9365c8edbd8183e566e126ea3c1b59d4b0fd1fed8644d8b94141d\\"",
     "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
@@ -482,7 +482,7 @@ exports[`routes > GET /config/styles@1.0.0/logo.svg 1`] = `
     "cache-control": "public, max-age=31536000, immutable",
     "content-length": "42",
     "content-type": "image/svg+xml",
-    "etag": "\\"2a-19421bcaa00\\"",
+    "etag": "\\"fb91f9a03c202c5f160eef644da6f2f704b19ac5c5f8b4c124e1b0b485ad57a0\\"",
     "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
@@ -498,7 +498,7 @@ exports[`routes > GET /config/styles@1.0.0/theme.css 1`] = `
     "cache-control": "public, max-age=31536000, immutable",
     "content-length": "22",
     "content-type": "text/css; charset=utf-8",
-    "etag": "\\"16-19421bcaa00\\"",
+    "etag": "\\"69391ea83b653c2edebd61559e0a86ed0c06fecf1f4c21e37d8f5f848f0c9731\\"",
     "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
@@ -1900,7 +1900,7 @@ exports[`routes > GET /npm/lib@1.0.0/index.js (if-modified-since: Wed, 01 Jan 20
     "cache-control": "public, max-age=31536000, immutable",
     "content-length": "24",
     "content-type": "text/javascript; charset=utf-8",
-    "etag": "\\"18-19421bcade7.9d3\\"",
+    "etag": "\\"ab2604b541611b14e7a638ef64dc70abec3e80a0ece98d457ae65f17796af049\\"",
     "last-modified": "Wed, 01 Jan 2025 12:00:01 GMT",
     "x-content-type-options": "nosniff"
   },
@@ -1916,7 +1916,7 @@ exports[`routes > GET /npm/lib@1.0.0/index.js 1`] = `
     "cache-control": "public, max-age=31536000, immutable",
     "content-length": "24",
     "content-type": "text/javascript; charset=utf-8",
-    "etag": "\\"18-19421bcade7.9d3\\"",
+    "etag": "\\"ab2604b541611b14e7a638ef64dc70abec3e80a0ece98d457ae65f17796af049\\"",
     "last-modified": "Wed, 01 Jan 2025 12:00:01 GMT",
     "x-content-type-options": "nosniff"
   },
@@ -2272,7 +2272,7 @@ exports[`routes > GET /npm/lib@1.2.0/.npmignore 1`] = `
     "cache-control": "public, max-age=31536000, immutable",
     "content-length": "5",
     "content-type": "text/plain; charset=utf-8",
-    "etag": "\\"5-19421bcaa00\\"",
+    "etag": "\\"911683b05e6c5f31f8f3b09c6ec94af4455e6b1b25981ddeaa0d29e3377e421c\\"",
     "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
@@ -2440,7 +2440,7 @@ exports[`routes > GET /npm/lib@1.2.0/dist/index.d.ts 1`] = `
     "cache-control": "public, max-age=31536000, immutable",
     "content-length": "55",
     "content-type": "text/plain; charset=utf-8",
-    "etag": "\\"37-19421bcaa00\\"",
+    "etag": "\\"a9d634180acf795e24b4c0919dc7fb38b1f7bada36ca95b46fd1844f5700c4cd\\"",
     "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
@@ -2456,7 +2456,7 @@ exports[`routes > GET /npm/lib@1.2.0/dist/nested/deep.cjs 1`] = `
     "cache-control": "public, max-age=31536000, immutable",
     "content-length": "25",
     "content-type": "text/javascript; charset=utf-8",
-    "etag": "\\"19-19421bcaa00\\"",
+    "etag": "\\"a0bf899d2ab2065ef8f60c504b552bd08eb732adb8975c32170f8a5384f18357\\"",
     "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
@@ -2472,7 +2472,7 @@ exports[`routes > GET /npm/lib@1.2.0/dist\\index.mjs 1`] = `
     "cache-control": "public, max-age=31536000, immutable",
     "content-length": "24",
     "content-type": "text/javascript; charset=utf-8",
-    "etag": "\\"18-19421bcaa00\\"",
+    "etag": "\\"8ce693b8335934d70db4f1cd8d6f8a7e21d924234f9b20657d4100bbd605f1c2\\"",
     "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
@@ -2488,7 +2488,7 @@ exports[`routes > GET /npm/lib@1.2.0/dist\\index.mjs#x 1`] = `
     "cache-control": "public, max-age=31536000, immutable",
     "content-length": "24",
     "content-type": "text/javascript; charset=utf-8",
-    "etag": "\\"18-19421bcaa00\\"",
+    "etag": "\\"8ce693b8335934d70db4f1cd8d6f8a7e21d924234f9b20657d4100bbd605f1c2\\"",
     "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
@@ -2520,7 +2520,7 @@ exports[`routes > GET /npm/lib@1.2.0/index.js (if-modified-since: Wed, 01 Jan 20
   "headers": {
     "accept-ranges": "bytes",
     "cache-control": "public, max-age=31536000, immutable",
-    "etag": "\\"18-19421bcaa00\\"",
+    "etag": "\\"8ce693b8335934d70db4f1cd8d6f8a7e21d924234f9b20657d4100bbd605f1c2\\"",
     "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
@@ -2534,7 +2534,7 @@ exports[`routes > GET /npm/lib@1.2.0/index.js (if-none-match: *) 1`] = `
   "headers": {
     "accept-ranges": "bytes",
     "cache-control": "public, max-age=31536000, immutable",
-    "etag": "\\"18-19421bcaa00\\"",
+    "etag": "\\"8ce693b8335934d70db4f1cd8d6f8a7e21d924234f9b20657d4100bbd605f1c2\\"",
     "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
@@ -2547,7 +2547,7 @@ exports[`routes > GET /npm/lib@1.2.0/index.js (if-none-match: its etag) 1`] = `
   "status": 304,
   "headers": {
     "cache-control": "public, max-age=31536000, immutable",
-    "etag": "\\"18-19421bcaa00\\""
+    "etag": "\\"8ce693b8335934d70db4f1cd8d6f8a7e21d924234f9b20657d4100bbd605f1c2\\""
   },
   "body": ""
 }
@@ -2563,7 +2563,7 @@ exports[`routes > GET /npm/lib@1.2.0/index.js (origin: https://example.com) 1`] 
     "cache-control": "public, max-age=31536000, immutable",
     "content-length": "24",
     "content-type": "text/javascript; charset=utf-8",
-    "etag": "\\"18-19421bcaa00\\"",
+    "etag": "\\"8ce693b8335934d70db4f1cd8d6f8a7e21d924234f9b20657d4100bbd605f1c2\\"",
     "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
@@ -2580,7 +2580,7 @@ exports[`routes > GET /npm/lib@1.2.0/index.js (range: bytes=-6) 1`] = `
     "content-length": "6",
     "content-range": "bytes 18-23/24",
     "content-type": "text/javascript; charset=utf-8",
-    "etag": "\\"18-19421bcaa00\\"",
+    "etag": "\\"8ce693b8335934d70db4f1cd8d6f8a7e21d924234f9b20657d4100bbd605f1c2\\"",
     "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
@@ -2597,7 +2597,7 @@ exports[`routes > GET /npm/lib@1.2.0/index.js (range: bytes=0-5) 1`] = `
     "content-length": "6",
     "content-range": "bytes 0-5/24",
     "content-type": "text/javascript; charset=utf-8",
-    "etag": "\\"18-19421bcaa00\\"",
+    "etag": "\\"8ce693b8335934d70db4f1cd8d6f8a7e21d924234f9b20657d4100bbd605f1c2\\"",
     "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
@@ -2613,7 +2613,7 @@ exports[`routes > GET /npm/lib@1.2.0/index.js (range: bytes=0-5, if-range: foo) 
     "cache-control": "public, max-age=31536000, immutable",
     "content-length": "24",
     "content-type": "text/javascript; charset=utf-8",
-    "etag": "\\"18-19421bcaa00\\"",
+    "etag": "\\"8ce693b8335934d70db4f1cd8d6f8a7e21d924234f9b20657d4100bbd605f1c2\\"",
     "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
@@ -2648,7 +2648,7 @@ exports[`routes > GET /npm/lib@1.2.0/index.js 1`] = `
     "cache-control": "public, max-age=31536000, immutable",
     "content-length": "24",
     "content-type": "text/javascript; charset=utf-8",
-    "etag": "\\"18-19421bcaa00\\"",
+    "etag": "\\"8ce693b8335934d70db4f1cd8d6f8a7e21d924234f9b20657d4100bbd605f1c2\\"",
     "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
@@ -2890,7 +2890,7 @@ exports[`routes > GET /npm/lib@1.2.0\\dist\\index.mjs 1`] = `
     "cache-control": "public, max-age=31536000, immutable",
     "content-length": "24",
     "content-type": "text/javascript; charset=utf-8",
-    "etag": "\\"18-19421bcaa00\\"",
+    "etag": "\\"8ce693b8335934d70db4f1cd8d6f8a7e21d924234f9b20657d4100bbd605f1c2\\"",
     "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
@@ -3016,7 +3016,7 @@ exports[`routes > GET /npm/lib@latest/index.js 1`] = `
     "cache-control": "public, max-age=300",
     "content-length": "25",
     "content-type": "text/javascript; charset=utf-8",
-    "etag": "\\"19-19421bcaa00\\"",
+    "etag": "\\"7dfac9a211c86d20d8511dcc8e1711f9cb3fa2afc6f2e25d1ca499069b164ed0\\"",
     "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
@@ -3174,7 +3174,7 @@ exports[`routes > GET /npm/links@1.0.0/dist/loop/... (index.js after 40 and 41 l
     "cache-control": "public, max-age=31536000, immutable",
     "content-length": "24",
     "content-type": "text/javascript; charset=utf-8",
-    "etag": "\\"18-19421bcaa00\\"",
+    "etag": "\\"29293641f94119e74870f6b4d84f0749354160ee57d6677ed33555e114807686\\"",
     "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
@@ -3223,7 +3223,7 @@ exports[`routes > GET /npm/links@1.0.0/dist/loop/index.js 1`] = `
     "cache-control": "public, max-age=31536000, immutable",
     "content-length": "24",
     "content-type": "text/javascript; charset=utf-8",
-    "etag": "\\"18-19421bcaa00\\"",
+    "etag": "\\"29293641f94119e74870f6b4d84f0749354160ee57d6677ed33555e114807686\\"",
     "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
@@ -3267,7 +3267,7 @@ exports[`routes > GET /npm/links@1.0.0/folder/file.js 1`] = `
     "cache-control": "public, max-age=31536000, immutable",
     "content-length": "23",
     "content-type": "text/javascript; charset=utf-8",
-    "etag": "\\"17-19421bcaa00\\"",
+    "etag": "\\"b50e48c018a3c90ef74a53b938fd5a361c1b9c8634f73371b0d979968601f22d\\"",
     "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
@@ -3283,7 +3283,7 @@ exports[`routes > GET /npm/links@1.0.0/inside 1`] = `
     "cache-control": "public, max-age=31536000, immutable",
     "content-length": "24",
     "content-type": "text/plain; charset=utf-8",
-    "etag": "\\"18-19421bcaa00\\"",
+    "etag": "\\"29293641f94119e74870f6b4d84f0749354160ee57d6677ed33555e114807686\\"",
     "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
@@ -3592,7 +3592,7 @@ exports[`routes > GET /npm/old@1.0.0/index.js 1`] = `
     "content-length": "22",
     "content-type": "text/javascript; charset=utf-8",
     "deprecation": "@1748736000",
-    "etag": "\\"16-19421bcaa00\\"",
+    "etag": "\\"c6910d39e8e3b4d0cf55fcc4788cd9e1c83de67f613e5c1431d077d84e60fb06\\"",
     "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
     "link": "<https://dropr.sylvain.sh/npm/lib>; rel=\\"successor-version\\"",
     "x-content-type-options": "nosniff"
@@ -3740,7 +3740,7 @@ exports[`routes > GET /npm/sealed@1.0.0/index.js 1`] = `
     "cache-control": "public, max-age=31536000, immutable",
     "content-length": "25",
     "content-type": "text/javascript; charset=utf-8",
-    "etag": "\\"19-19421bcaa00\\"",
+    "etag": "\\"71d180dd896d3d4abaec012acc57d58045ffa65715c4472e31ddbb36e3c5b84a\\"",
     "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
@@ -4201,7 +4201,7 @@ exports[`routes > HEAD /npm/lib@1.2.0/index.js 1`] = `
     "cache-control": "public, max-age=31536000, immutable",
     "content-length": "24",
     "content-type": "text/javascript; charset=utf-8",
-    "etag": "\\"18-19421bcaa00\\"",
+    "etag": "\\"8ce693b8335934d70db4f1cd8d6f8a7e21d924234f9b20657d4100bbd605f1c2\\"",
     "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
