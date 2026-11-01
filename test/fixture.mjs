@@ -2,7 +2,7 @@ import fs from 'fs';
 import os from 'os';
 import { dirname, join } from 'path';
 
-// Date given to every entry (2025-01-01T12:00:00Z), so ETags and the changelog mtime fallback never change
+// Date given to every entry (2025-01-01T12:00:00Z), so Last-Modified and the changelog mtime fallback never change
 const TIME = 1735732800;
 
 // Files of the generated tree, by path under the fixture root; secret.txt sits outside packages/ on purpose
@@ -68,7 +68,7 @@ const LOCKED = 'packages/npm/broken/1.0.0/locked.bin';
 // Folder made unreadable before the server starts, so that its listing fails while the rest of its version serves
 const VAULT = 'packages/npm/sealed/1.0.0/vault';
 
-// File dated a fraction of a millisecond before 12:00:01, which file ETags keep and Last-Modified rounds up
+// File dated a fraction of a millisecond before 12:00:01, which the index keeps and Last-Modified rounds up
 const FRACTIONAL = { path: 'packages/npm/lib/1.0.0/index.js', time: 1735732800.999614 };
 
 /**

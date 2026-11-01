@@ -342,6 +342,31 @@ describe('route() on synthetic indexes', () => {
         assert.equal(get('/9/10@9/constructor', odd).body.path, '9/10/9/constructor');
     });
 
+    test('the ETag of a file is its quoted SHA-256, so equal sizes and dates with other bytes give other tags', () => {
+        const first = { ...file('a.js'), size: 4, sha256: 'a'.repeat(64) };
+        const second = { ...file('b.js'), size: 4, sha256: 'b'.repeat(64) };
+        const same = { ...file('c.js'), size: 9, mtime: TIME + 1, sha256: 'a'.repeat(64) };
+        const bytes = catalogOf([['p', [first, second, same]]]);
+
+        assert.equal(get('/npm/p@1.0.0/a.js', bytes).headers.ETag, `"${'a'.repeat(64)}"`);
+        assert.equal(get('/npm/p@1.0.0/b.js', bytes).headers.ETag, `"${'b'.repeat(64)}"`);
+        assert.equal(get('/npm/p@1.0.0/c.js', bytes).headers.ETag, get('/npm/p@1.0.0/a.js', bytes).headers.ETag);
+    });
+
+    test('a file without a hash has no ETag from the core, and no tag makes it answer 304', () => {
+        const unread = { ...file('unread.js'), sha256: null };
+        const unhashed = catalogOf([['p', [unread, link('alias', 'unread.js', 'unread.js')]]]);
+
+        for (const path of ['unread.js', 'alias']) {
+            const answer = route(toRequest({ path: `/npm/p@1.0.0/${path}` }), unhashed);
+            const conditional = { path: `/npm/p@1.0.0/${path}`, headers: { 'if-none-match': '"null"' } };
+
+            assert.equal(answer.status, 200, path);
+            assert.equal(answer.headers.ETag, undefined, path);
+            assert.equal(route(toRequest(conditional), unhashed).status, 200, path);
+        }
+    });
+
     test('a link chain resolves to its file, a link to itself is never served nor listed', () => {
         const links = [
             link('first', 'second', 'file.js'),
