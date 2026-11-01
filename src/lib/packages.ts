@@ -11,9 +11,6 @@ import type {
 
 export const EXCLUDED_DIRS = ['node_modules', 'src', 'scripts', 'lib', 'dist', 'public', '.github'];
 
-// Top-level paths taken by the server's own routes, never scanned as package types
-export const RESERVED_NAMES = ['download', 'health', 'manifest', 'search'];
-
 /**
  * Splits a version string into its numeric core and its pre-release tag.
  *
