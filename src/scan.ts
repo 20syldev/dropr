@@ -95,19 +95,31 @@ function readDates(projectPath: string, logger: ErrorLogger): Map<string, string
     return dates;
 }
 
+// Read buffer shared by every hash, since the scan is synchronous
+const CHUNK = Buffer.allocUnsafe(1024 * 1024);
+
 /**
- * Hashes a file of a version with SHA-256.
+ * Hashes a file of a version with SHA-256, read one megabyte at a time so that its size is not limited.
  *
- * @param path - Absolute path of a regular file, read whole
+ * @param path - Absolute path of a regular file
  * @param logger - Receives each failure this function logs through its error() and nothing else
  * @returns The lowercase hex digest, or null when the file cannot be read, which is logged
  */
 function hashFile(path: string, logger: ErrorLogger): string | null {
+    let fd: number | null = null;
     try {
-        return crypto.createHash('sha256').update(fs.readFileSync(path)).digest('hex');
+        fd = fs.openSync(path, 'r');
+        const hash = crypto.createHash('sha256');
+        for (let read = fs.readSync(fd, CHUNK); read > 0; read = fs.readSync(fd, CHUNK)) {
+            hash.update(CHUNK.subarray(0, read));
+        }
+
+        return hash.digest('hex');
     } catch (error) {
         logger.error(`Error reading ${path}:`, error);
         return null;
+    } finally {
+        if (fd !== null) fs.closeSync(fd);
     }
 }
 
