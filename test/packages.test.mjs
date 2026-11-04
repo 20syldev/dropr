@@ -73,6 +73,10 @@ describe('packages/', () => {
         assert.deepEqual(Object.keys(JSON.parse(body).packages).sort(), folders(packagesDir));
     });
 
+    test('the scan logs nothing: every version is named, dated and read whole', () => {
+        assert.deepEqual(server.logs.errors, []);
+    });
+
     for (const type of folders(packagesDir)) {
         for (const project of folders(join(packagesDir, type))) {
             test(`${type}/${project}`, async () => {

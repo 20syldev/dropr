@@ -59,12 +59,15 @@ export async function listen(app) {
  *
  * @param packagesDir - Packages tree, the repository's packages/ by default
  * @param change - Config keys that replace the ones of the repository config
+ * @param edit - Called with the scanned index before the app loads it, to change it in place
  * @returns The port, stop(), and what the app logged in requests and errors, the scan messages included
  */
-export async function startServer(packagesDir = config.packagesDir, change = {}) {
+export async function startServer(packagesDir = config.packagesDir, change = {}, edit = () => {}) {
     const logs = { requests: [], errors: [] };
     const logger = { request: (entry) => logs.requests.push(entry), error: (...args) => logs.errors.push(args) };
-    const app = createApp({ ...config, ...change }, { index: scan(packagesDir, logger), packagesDir, version, logger });
+    const index = scan(packagesDir, logger);
+    edit(index);
+    const app = createApp({ ...config, ...change }, { index, packagesDir, version, logger });
 
     return { ...(await listen(app)), logs };
 }

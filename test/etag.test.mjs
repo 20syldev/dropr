@@ -113,19 +113,81 @@ describe('ETag of a file', () => {
         assert.equal((await send({ range: 'bytes=0-5', 'if-range': '"other"' })).status, 200);
     });
 
-    test('is a weak tag of send for a file that could not be read at startup and is readable later', async (t) => {
-        if (!fixture.locked) {
-            assert.ok(!process.env.CI, 'the locked file stays readable, so CI cannot check it');
-            return t.skip('the locked file stays readable, as it does for root');
+    test('is the weak tag of send for a file that has no checksum in the index', async () => {
+        const unhashed = (index) => {
+            const lib = index.types.find(({ name }) => name === 'npm').projects.find(({ name }) => name === 'lib');
+            lib.versions
+                .find(({ name }) => name === '1.2.0')
+                .root.entries.find(({ name }) => name === 'index.js').sha256 = null;
+        };
+        const edited = await startServer(fixture.packagesDir, {}, unhashed);
+
+        try {
+            const response = await request(edited.port, 'GET', '/npm/lib@1.2.0/index.js');
+
+            assert.equal(response.status, 200);
+            assert.match(response.headers.etag, /^W\/"[0-9a-f]+-[0-9a-f]+"$/);
+            assert.equal(response.headers['last-modified'], 'Thu, 01 May 2025 00:00:00 GMT');
+        } finally {
+            await edited.stop();
         }
+    });
+});
 
-        const path = '/npm/broken@1.0.0/locked.bin';
-        assert.equal((await request(server.port, 'GET', path)).status, 404, 'still locked');
+describe('Last-Modified of a file', () => {
+    const path = '/npm/lib@1.2.0/index.js';
+    const released = 'Thu, 01 May 2025 00:00:00 GMT';
+    let fixture;
+    let server;
 
-        fs.chmodSync(join(fixture.root, 'packages/npm/broken/1.0.0/locked.bin'), 0o644);
-        const response = await request(server.port, 'GET', path);
+    before(async () => {
+        fixture = createFixture();
+        server = await startServer(fixture.packagesDir);
+    });
 
-        assert.equal(response.status, 200);
-        assert.match(response.headers.etag, /^W\/"[0-9a-f]+-[0-9a-f]+"$/);
+    after(async () => {
+        await server?.stop();
+        fixture?.remove();
+    });
+
+    test('is the release day of the version at 00:00:00 GMT, whatever the date of the file', async () => {
+        const send = (method, headers) => request(server.port, method, path, headers);
+
+        assert.equal((await send('GET')).headers['last-modified'], released);
+        assert.equal((await send('HEAD')).headers['last-modified'], released);
+        assert.equal((await send('GET', { range: 'bytes=0-5' })).headers['last-modified'], released);
+        assert.equal(
+            (await send('GET', { 'if-none-match': (await send('GET')).headers.etag })).headers['last-modified'],
+            released,
+        );
+    });
+
+    test('is the validator of If-Modified-Since and If-Unmodified-Since', async () => {
+        const send = (headers) => request(server.port, 'GET', path, headers);
+
+        assert.equal((await send({ 'if-modified-since': released })).status, 304);
+        assert.equal((await send({ 'if-modified-since': 'Wed, 30 Apr 2025 23:59:59 GMT' })).status, 200);
+        assert.equal((await send({ 'if-unmodified-since': released })).status, 200);
+        assert.equal((await send({ 'if-unmodified-since': 'Wed, 30 Apr 2025 23:59:59 GMT' })).status, 412);
+    });
+
+    test('is not sent for a date that is not a real day, and send does not put the date of the file back', async () => {
+        const dated = (date) => (index) => {
+            const lib = index.types.find(({ name }) => name === 'npm').projects.find(({ name }) => name === 'lib');
+            lib.versions.find(({ name }) => name === '1.2.0').date = date;
+        };
+
+        for (const date of ['garbage', '2025-02-30', '2025-1-1']) {
+            const edited = await startServer(fixture.packagesDir, {}, dated(date));
+
+            try {
+                const response = await request(edited.port, 'GET', path);
+
+                assert.equal(response.status, 200, date);
+                assert.equal(response.headers['last-modified'], undefined, date);
+            } finally {
+                await edited.stop();
+            }
+        }
     });
 });

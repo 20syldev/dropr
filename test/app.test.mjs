@@ -133,7 +133,9 @@ function scanned(names, assets = []) {
     try {
         const index = scan(tree.root, { error: (message) => logged.push(message) }, assets);
 
-        return { types: index.types.map(({ name }) => name).sort(), logged: logged.sort() };
+        const skips = logged.filter((line) => line.startsWith('Skipping'));
+
+        return { types: index.types.map(({ name }) => name).sort(), logged: skips.sort() };
     } finally {
         tree.remove();
     }
@@ -398,7 +400,7 @@ describe('dist/serve.js', () => {
                 }),
             );
 
-            assert.equal(stderr, "Skipping type 'static': reserved name.\n");
+            assert.equal(stderr.split('\n')[0], "Skipping type 'static': reserved name.");
             assert.equal(probed.asset.status, 200);
             assert.equal(probed.skipped.status, 404);
             assert.equal(JSON.parse(probed.skipped.body).message, "Package type 'static' does not exist.");

@@ -81,8 +81,8 @@ describe('routes', () => {
         );
     });
 
-    test('GET /npm/sealed@1.0.0 (version folder made unreadable after startup)', async (t) => {
-        const folder = join(fixture.packagesDir, 'npm', 'sealed', '1.0.0');
+    test('GET /npm/bash-utils@1.0.0 (version folder made unreadable after startup)', async (t) => {
+        const folder = join(fixture.packagesDir, 'npm', 'bash-utils', '1.0.0');
         const { mode } = fs.statSync(folder);
 
         fs.chmodSync(folder, 0o000);
@@ -90,7 +90,11 @@ describe('routes', () => {
             if (isReadable(folder)) return skipLocked(t, 'the folder stays readable, as it does for root');
 
             // Snapshot keys hold no path, so entries 1, 2 and 3 follow the order of this list
-            for (const path of ['/npm/sealed@1.0.0', '/npm/sealed@1.0.0?download', '/npm/sealed@1.0.0/index.js']) {
+            for (const path of [
+                '/npm/bash-utils@1.0.0',
+                '/npm/bash-utils@1.0.0?download',
+                '/npm/bash-utils@1.0.0/index.js',
+            ]) {
                 const response = await request(server.port, 'GET', path);
                 assert.ok(!response.body.toString('utf-8').includes(fixture.root), 'the error names a server path');
 

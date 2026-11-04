@@ -234,18 +234,21 @@ describe('scan', () => {
         assert.deepEqual(loadIndex(copy), loadIndex(index));
     });
 
-    test('a file or a folder that cannot be read is logged and indexed with a null hash or null entries', () => {
-        const broken = catalog.versions.get('npm/broken/1.0.0').nodes.get('locked.bin');
-        const sealed = catalog.versions.get('npm/sealed/1.0.0');
-        const vault = sealed.nodes.get('vault');
-        const unread = ['npm/broken/1.0.0/locked.bin', 'npm/sealed/1.0.0/vault'];
+    test('a version with a file or a folder that cannot be read is logged and left out', () => {
+        const versions = ['npm/broken/1.0.0', 'npm/sealed/1.0.0'];
+        const reads = ['npm/broken/1.0.0/locked.bin', 'npm/sealed/1.0.0/vault'].map((path) =>
+            join(fixture.packagesDir, path),
+        );
+        const left = versions.map(
+            (path) => `Skipping version ${join(fixture.packagesDir, path)}: it could not be read whole.`,
+        );
+        const lines = logged.filter((line) => !line.startsWith('No release date'));
 
-        assert.deepEqual(logged, [
+        assert.deepEqual(lines, [
             "Skipping type 'download': reserved name.",
-            ...(fixture.locked ? unread.map((path) => `Error reading ${join(fixture.packagesDir, path)}:`) : []),
+            ...(fixture.locked ? [`Error reading ${reads[0]}:`, left[0], `Error reading ${reads[1]}:`, left[1]] : []),
         ]);
-        assert.equal(broken.sha256 === null, fixture.locked);
-        assert.equal(vault.entries === null && vault.size === null && sealed.root.size === null, fixture.locked);
+        for (const version of versions) assert.equal(catalog.versions.has(version), !fixture.locked, version);
     });
 
     test('a file with the owner execute bit is archived with mode 0755, any other file with 0644', () => {
@@ -395,7 +398,7 @@ describe('route() on synthetic indexes', () => {
         );
     });
 
-    test('a path may cross 40 links: past them a file gives 404 with nosniff and a folder 500', () => {
+    test('a path may cross 40 links: past them a file gives 404 with nosniff, even with its tag, and a folder 500', () => {
         const loops = catalogOf([['p', [folder('dist', [link('loop', '..', '')]), file('index.js')]]]);
         const loop = 'dist/loop/';
 
@@ -409,6 +412,13 @@ describe('route() on synthetic indexes', () => {
             'X-Content-Type-Options': 'nosniff',
         });
         assert.equal(get(`/npm/p@1.0.0/${loop.repeat(41)}dist`, loops).status, 500);
+
+        const tag = get(`/npm/p@1.0.0/${loop.repeat(40)}index.js`, loops).headers.ETag;
+        const request = toRequest({
+            path: `/npm/p@1.0.0/${loop.repeat(41)}index.js`,
+            headers: { 'if-none-match': tag },
+        });
+        assert.equal(route(request, loops).status, 404);
     });
 
     test('a path that climbs above the root stops there, and one that climbs into another project names it', () => {
