@@ -49,5 +49,8 @@
     "bugs": {
         "url": "https://github.com/20syldev/dropr/issues"
     },
-    "homepage": "https://dropr.sylvain.sh"
+    "homepage": "https://dropr.sylvain.sh",
+    "overrides": {
+        "minimatch": "^11.0.1"
+    }
 }
