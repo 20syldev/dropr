@@ -4,7 +4,7 @@ import { join, sep } from 'path';
 
 import { parseDay } from './lib/dates.js';
 import { parseDeprecation } from './lib/deprecations.js';
-import { compareVersions, EXCLUDED_DIRS, indexNodes } from './lib/packages.js';
+import { compareVersions, EXCLUDED_DIRS, indexNodes, isVersionName } from './lib/packages.js';
 import { RESERVED } from './lib/router.js';
 import type {
     Deprecation,
@@ -272,14 +272,20 @@ function scanVersion(path: string, name: string, date: string | undefined, logge
  * @param path - Absolute path of the project folder, whose subfolders are the versions, symlinked ones left out
  * @param name - Project name, the folder name
  * @param logger - Receives each failure this function logs through its error() and nothing else
- * @returns The project node, without a version that cannot be stat'ed, which is logged; throws when the folder cannot
- * be listed
+ * @returns The project node, without a folder that isVersionName refuses, nor a version that cannot be indexed, each
+ * logged; throws when the folder cannot be listed
  */
 function scanProject(path: string, name: string, logger: ErrorLogger): IndexProject {
     const versions = fs
         .readdirSync(path, { withFileTypes: true })
         .filter((dirent) => dirent.isDirectory())
         .map((dirent) => dirent.name)
+        .filter((version) => {
+            if (isVersionName(version)) return true;
+
+            logger.error(`Skipping ${join(path, version)}: a version is never named latest nor holds an '@'.`);
+            return false;
+        })
         .sort(compareVersions);
     const dates = readDates(path, logger);
     const deprecated = readDeprecation(path, logger);
