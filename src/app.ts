@@ -69,12 +69,13 @@ function requestOf(req: Request): RouteInput {
  * Sends a package file through send, which adds the Range, conditional and HEAD handling of 3.3.1.
  * The path is the real one from the index, so send never resolves a link again.
  *
- * @param res - Response holding the headers of the file route, its ETag and Last-Modified kept by send
+ * @param res - Response holding the headers of the file route, its ETag and Last-Modified kept by send, which adds
+ * no Last-Modified of its own from the date of the file
  * @param body - File body, its path relative to packagesDir and its messages used when sending fails
  * @param context - Folder the file is read from, and the logger of the reply
  */
 function sendPackageFile(res: Response, body: FileBody, context: Context): void {
-    res.sendFile(body.path, { root: context.packagesDir, dotfiles: 'allow' }, (error) => {
+    res.sendFile(body.path, { root: context.packagesDir, dotfiles: 'allow', lastModified: false }, (error) => {
         if (!error) return;
         if (res.headersSent) return void res.destroy();
 
