@@ -19,7 +19,7 @@ exports[`routes > GET / 1`] = `
 {
   "status": 200,
   "headers": {
-    "content-length": "2289",
+    "content-length": "2209",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
@@ -64,8 +64,7 @@ exports[`routes > GET / 1`] = `
         "broken": {
           "list": "/npm/broken",
           "versions": {
-            "latest": "/npm/broken@latest",
-            "1.0.0": "/npm/broken@1.0.0"
+            "latest": "/npm/broken@latest"
           }
         },
         "lib": {
@@ -108,8 +107,7 @@ exports[`routes > GET / 1`] = `
         "sealed": {
           "list": "/npm/sealed",
           "versions": {
-            "latest": "/npm/sealed@latest",
-            "1.0.0": "/npm/sealed@1.0.0"
+            "latest": "/npm/sealed@latest"
           }
         }
       }
@@ -122,7 +120,7 @@ exports[`routes > GET /%64ownload/npm 1`] = `
 {
   "status": 200,
   "headers": {
-    "content-length": "1392",
+    "content-length": "1286",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
@@ -137,9 +135,7 @@ exports[`routes > GET /%64ownload/npm 1`] = `
       },
       "broken": {
         "latest": "/download/npm/broken",
-        "versions": {
-          "1.0.0": "/download/npm/broken@1.0.0"
-        }
+        "versions": {}
       },
       "lib": {
         "latest": "/download/npm/lib",
@@ -176,9 +172,7 @@ exports[`routes > GET /%64ownload/npm 1`] = `
       },
       "sealed": {
         "latest": "/download/npm/sealed",
-        "versions": {
-          "1.0.0": "/download/npm/sealed@1.0.0"
-        }
+        "versions": {}
       }
     }
   }
@@ -411,7 +405,7 @@ exports[`routes > GET /bash/gft@1.2.0/README.md 1`] = `
     "content-length": "6",
     "content-type": "text/markdown; charset=utf-8",
     "etag": "\\"6d35ac992a95dbc350407cd4e4f1248ac796bc16c8fb92e7d90546a77856ba2a\\"",
-    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "last-modified": "Wed, 01 Jan 2025 00:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
   "body": "# gft\\n"
@@ -427,7 +421,7 @@ exports[`routes > GET /bash/gft@1.2.0/gft 1`] = `
     "content-length": "29",
     "content-type": "text/plain; charset=utf-8",
     "etag": "\\"50b24ab93d8336588ac1a938a631dc9c2d652c1ad9567dadac5b1d483feb982b\\"",
-    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "last-modified": "Wed, 01 Jan 2025 00:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
   "body": "#!/bin/bash\\necho \\"gft 1.2.0\\"\\n"
@@ -467,7 +461,7 @@ exports[`routes > GET /config/styles@1.0.0/data.json 1`] = `
     "content-length": "19",
     "content-type": "application/json; charset=utf-8",
     "etag": "\\"60c24ec29eb9365c8edbd8183e566e126ea3c1b59d4b0fd1fed8644d8b94141d\\"",
-    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "last-modified": "Wed, 01 Jan 2025 00:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
   "body": "{ \\"b\\": 1, \\"a\\": 2 }\\n"
@@ -483,7 +477,7 @@ exports[`routes > GET /config/styles@1.0.0/logo.svg 1`] = `
     "content-length": "42",
     "content-type": "image/svg+xml",
     "etag": "\\"fb91f9a03c202c5f160eef644da6f2f704b19ac5c5f8b4c124e1b0b485ad57a0\\"",
-    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "last-modified": "Wed, 01 Jan 2025 00:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
   "body": "<svg xmlns=\\"http://www.w3.org/2000/svg\\"/>\\n"
@@ -499,7 +493,7 @@ exports[`routes > GET /config/styles@1.0.0/theme.css 1`] = `
     "content-length": "22",
     "content-type": "text/css; charset=utf-8",
     "etag": "\\"69391ea83b653c2edebd61559e0a86ed0c06fecf1f4c21e37d8f5f848f0c9731\\"",
-    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "last-modified": "Wed, 01 Jan 2025 00:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
   "body": ":root { color: red; }\\n"
@@ -526,7 +520,7 @@ exports[`routes > GET /download 1`] = `
 {
   "status": 200,
   "headers": {
-    "content-length": "1952",
+    "content-length": "1838",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
@@ -560,9 +554,7 @@ exports[`routes > GET /download 1`] = `
         },
         "broken": {
           "latest": "/download/npm/broken",
-          "versions": {
-            "1.0.0": "/download/npm/broken@1.0.0"
-          }
+          "versions": {}
         },
         "lib": {
           "latest": "/download/npm/lib",
@@ -599,9 +591,7 @@ exports[`routes > GET /download 1`] = `
         },
         "sealed": {
           "latest": "/download/npm/sealed",
-          "versions": {
-            "1.0.0": "/download/npm/sealed@1.0.0"
-          }
+          "versions": {}
         }
       }
     }
@@ -645,7 +635,7 @@ exports[`routes > GET /download/npm 1`] = `
 {
   "status": 200,
   "headers": {
-    "content-length": "1392",
+    "content-length": "1286",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
@@ -660,9 +650,7 @@ exports[`routes > GET /download/npm 1`] = `
       },
       "broken": {
         "latest": "/download/npm/broken",
-        "versions": {
-          "1.0.0": "/download/npm/broken@1.0.0"
-        }
+        "versions": {}
       },
       "lib": {
         "latest": "/download/npm/lib",
@@ -699,9 +687,7 @@ exports[`routes > GET /download/npm 1`] = `
       },
       "sealed": {
         "latest": "/download/npm/sealed",
-        "versions": {
-          "1.0.0": "/download/npm/sealed@1.0.0"
-        }
+        "versions": {}
       }
     }
   }
@@ -712,7 +698,7 @@ exports[`routes > GET /download/npm/ 1`] = `
 {
   "status": 200,
   "headers": {
-    "content-length": "1392",
+    "content-length": "1286",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
@@ -727,9 +713,7 @@ exports[`routes > GET /download/npm/ 1`] = `
       },
       "broken": {
         "latest": "/download/npm/broken",
-        "versions": {
-          "1.0.0": "/download/npm/broken@1.0.0"
-        }
+        "versions": {}
       },
       "lib": {
         "latest": "/download/npm/lib",
@@ -766,9 +750,7 @@ exports[`routes > GET /download/npm/ 1`] = `
       },
       "sealed": {
         "latest": "/download/npm/sealed",
-        "versions": {
-          "1.0.0": "/download/npm/sealed@1.0.0"
-        }
+        "versions": {}
       }
     }
   }
@@ -1420,7 +1402,7 @@ exports[`routes > GET /npm 1`] = `
 {
   "status": 200,
   "headers": {
-    "content-length": "1487",
+    "content-length": "1411",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
@@ -1438,8 +1420,7 @@ exports[`routes > GET /npm 1`] = `
       "broken": {
         "list": "/npm/broken",
         "versions": {
-          "latest": "/npm/broken@latest",
-          "1.0.0": "/npm/broken@1.0.0"
+          "latest": "/npm/broken@latest"
         }
       },
       "lib": {
@@ -1482,8 +1463,7 @@ exports[`routes > GET /npm 1`] = `
       "sealed": {
         "list": "/npm/sealed",
         "versions": {
-          "latest": "/npm/sealed@latest",
-          "1.0.0": "/npm/sealed@1.0.0"
+          "latest": "/npm/sealed@latest"
         }
       }
     }
@@ -1495,7 +1475,7 @@ exports[`routes > GET /npm/ 1`] = `
 {
   "status": 200,
   "headers": {
-    "content-length": "1487",
+    "content-length": "1411",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
@@ -1513,8 +1493,7 @@ exports[`routes > GET /npm/ 1`] = `
       "broken": {
         "list": "/npm/broken",
         "versions": {
-          "latest": "/npm/broken@latest",
-          "1.0.0": "/npm/broken@1.0.0"
+          "latest": "/npm/broken@latest"
         }
       },
       "lib": {
@@ -1557,8 +1536,7 @@ exports[`routes > GET /npm/ 1`] = `
       "sealed": {
         "list": "/npm/sealed",
         "versions": {
-          "latest": "/npm/sealed@latest",
-          "1.0.0": "/npm/sealed@1.0.0"
+          "latest": "/npm/sealed@latest"
         }
       }
     }
@@ -1614,48 +1592,101 @@ exports[`routes > GET /npm/__proto__ 1`] = `
 }
 `;
 
-exports[`routes > GET /npm/broken@1.0.0/locked.bin 1`] = `
+exports[`routes > GET /npm/bash-utils@1.0.0 (version folder made unreadable after startup) 1`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-length": "180",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "name": "bash-utils",
+    "version": "1.0.0",
+    "current": "bash-utils@1.0.0",
+    "files": [
+      {
+        "name": "index.js",
+        "size": 29,
+        "directory": false
+      }
+    ]
+  }
+}
+`;
+
+exports[`routes > GET /npm/bash-utils@1.0.0 (version folder made unreadable after startup) 2`] = `
+{
+  "status": 200,
+  "headers": {
+    "content-disposition": "attachment; filename=\\"bash-utils-1.0.0.tar.gz\\"",
+    "content-type": "application/gzip"
+  },
+  "aborted": true
+}
+`;
+
+exports[`routes > GET /npm/bash-utils@1.0.0 (version folder made unreadable after startup) 3`] = `
 {
   "status": 404,
   "headers": {
-    "accept-ranges": "bytes",
-    "content-length": "138",
+    "content-length": "140",
     "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>",
-    "x-content-type-options": "nosniff"
+    "etag": "W/<weak>"
   },
   "body": {
     "status": 404,
     "error": "Not Found",
-    "message": "File 'locked.bin' does not exist in the 1.0.0 version of the 'broken' project."
+    "message": "File 'index.js' does not exist in the 1.0.0 version of the 'bash-utils' project."
+  }
+}
+`;
+
+exports[`routes > GET /npm/broken@1.0.0/locked.bin 1`] = `
+{
+  "status": 404,
+  "headers": {
+    "content-length": "113",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
+  },
+  "body": {
+    "status": 404,
+    "error": "Not Found",
+    "message": "Version 1.0.0 does not exist in the 'broken' project."
   }
 }
 `;
 
 exports[`routes > GET /npm/broken@1.0.0?checksums 1`] = `
 {
-  "status": 500,
+  "status": 404,
   "headers": {
-    "content-length": "101",
+    "content-length": "113",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
   "body": {
-    "status": 500,
-    "error": "Internal Server Error",
-    "message": "An unexpected error occurred."
+    "status": 404,
+    "error": "Not Found",
+    "message": "Version 1.0.0 does not exist in the 'broken' project."
   }
 }
 `;
 
 exports[`routes > GET /npm/broken@1.0.0?download 1`] = `
 {
-  "status": 200,
+  "status": 404,
   "headers": {
-    "content-disposition": "attachment; filename=\\"broken-1.0.0.tar.gz\\"",
-    "content-type": "application/gzip"
+    "content-length": "113",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
   },
-  "aborted": true
+  "body": {
+    "status": 404,
+    "error": "Not Found",
+    "message": "Version 1.0.0 does not exist in the 'broken' project."
+  }
 }
 `;
 
@@ -1901,7 +1932,7 @@ exports[`routes > GET /npm/lib@1.0.0/index.js (if-modified-since: Wed, 01 Jan 20
     "content-length": "24",
     "content-type": "text/javascript; charset=utf-8",
     "etag": "\\"ab2604b541611b14e7a638ef64dc70abec3e80a0ece98d457ae65f17796af049\\"",
-    "last-modified": "Wed, 01 Jan 2025 12:00:01 GMT",
+    "last-modified": "Sat, 01 Feb 2025 00:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
   "body": "export default \\"1.0.0\\";\\n"
@@ -1917,7 +1948,7 @@ exports[`routes > GET /npm/lib@1.0.0/index.js 1`] = `
     "content-length": "24",
     "content-type": "text/javascript; charset=utf-8",
     "etag": "\\"ab2604b541611b14e7a638ef64dc70abec3e80a0ece98d457ae65f17796af049\\"",
-    "last-modified": "Wed, 01 Jan 2025 12:00:01 GMT",
+    "last-modified": "Sat, 01 Feb 2025 00:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
   "body": "export default \\"1.0.0\\";\\n"
@@ -2273,7 +2304,7 @@ exports[`routes > GET /npm/lib@1.2.0/.npmignore 1`] = `
     "content-length": "5",
     "content-type": "text/plain; charset=utf-8",
     "etag": "\\"911683b05e6c5f31f8f3b09c6ec94af4455e6b1b25981ddeaa0d29e3377e421c\\"",
-    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "last-modified": "Thu, 01 May 2025 00:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
   "body": "src/\\n"
@@ -2441,7 +2472,7 @@ exports[`routes > GET /npm/lib@1.2.0/dist/index.d.ts 1`] = `
     "content-length": "55",
     "content-type": "text/plain; charset=utf-8",
     "etag": "\\"a9d634180acf795e24b4c0919dc7fb38b1f7bada36ca95b46fd1844f5700c4cd\\"",
-    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "last-modified": "Thu, 01 May 2025 00:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
   "body": "declare const version: string;\\nexport default version;\\n"
@@ -2457,7 +2488,7 @@ exports[`routes > GET /npm/lib@1.2.0/dist/nested/deep.cjs 1`] = `
     "content-length": "25",
     "content-type": "text/javascript; charset=utf-8",
     "etag": "\\"a0bf899d2ab2065ef8f60c504b552bd08eb732adb8975c32170f8a5384f18357\\"",
-    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "last-modified": "Thu, 01 May 2025 00:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
   "body": "module.exports = \\"deep\\";\\n"
@@ -2473,7 +2504,7 @@ exports[`routes > GET /npm/lib@1.2.0/dist\\index.mjs 1`] = `
     "content-length": "24",
     "content-type": "text/javascript; charset=utf-8",
     "etag": "\\"8ce693b8335934d70db4f1cd8d6f8a7e21d924234f9b20657d4100bbd605f1c2\\"",
-    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "last-modified": "Thu, 01 May 2025 00:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
   "body": "export default \\"1.2.0\\";\\n"
@@ -2489,7 +2520,7 @@ exports[`routes > GET /npm/lib@1.2.0/dist\\index.mjs#x 1`] = `
     "content-length": "24",
     "content-type": "text/javascript; charset=utf-8",
     "etag": "\\"8ce693b8335934d70db4f1cd8d6f8a7e21d924234f9b20657d4100bbd605f1c2\\"",
-    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "last-modified": "Thu, 01 May 2025 00:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
   "body": "export default \\"1.2.0\\";\\n"
@@ -2516,15 +2547,17 @@ exports[`routes > GET /npm/lib@1.2.0/index.js (if-match: \"nope\") 1`] = `
 
 exports[`routes > GET /npm/lib@1.2.0/index.js (if-modified-since: Wed, 01 Jan 2025 12:00:00 GMT) 1`] = `
 {
-  "status": 304,
+  "status": 200,
   "headers": {
     "accept-ranges": "bytes",
     "cache-control": "public, max-age=31536000, immutable",
+    "content-length": "24",
+    "content-type": "text/javascript; charset=utf-8",
     "etag": "\\"8ce693b8335934d70db4f1cd8d6f8a7e21d924234f9b20657d4100bbd605f1c2\\"",
-    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "last-modified": "Thu, 01 May 2025 00:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
-  "body": ""
+  "body": "export default \\"1.2.0\\";\\n"
 }
 `;
 
@@ -2535,7 +2568,7 @@ exports[`routes > GET /npm/lib@1.2.0/index.js (if-none-match: *) 1`] = `
     "accept-ranges": "bytes",
     "cache-control": "public, max-age=31536000, immutable",
     "etag": "\\"8ce693b8335934d70db4f1cd8d6f8a7e21d924234f9b20657d4100bbd605f1c2\\"",
-    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "last-modified": "Thu, 01 May 2025 00:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
   "body": ""
@@ -2547,7 +2580,8 @@ exports[`routes > GET /npm/lib@1.2.0/index.js (if-none-match: its etag) 1`] = `
   "status": 304,
   "headers": {
     "cache-control": "public, max-age=31536000, immutable",
-    "etag": "\\"8ce693b8335934d70db4f1cd8d6f8a7e21d924234f9b20657d4100bbd605f1c2\\""
+    "etag": "\\"8ce693b8335934d70db4f1cd8d6f8a7e21d924234f9b20657d4100bbd605f1c2\\"",
+    "last-modified": "Thu, 01 May 2025 00:00:00 GMT"
   },
   "body": ""
 }
@@ -2564,7 +2598,7 @@ exports[`routes > GET /npm/lib@1.2.0/index.js (origin: https://example.com) 1`] 
     "content-length": "24",
     "content-type": "text/javascript; charset=utf-8",
     "etag": "\\"8ce693b8335934d70db4f1cd8d6f8a7e21d924234f9b20657d4100bbd605f1c2\\"",
-    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "last-modified": "Thu, 01 May 2025 00:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
   "body": "export default \\"1.2.0\\";\\n"
@@ -2581,7 +2615,7 @@ exports[`routes > GET /npm/lib@1.2.0/index.js (range: bytes=-6) 1`] = `
     "content-range": "bytes 18-23/24",
     "content-type": "text/javascript; charset=utf-8",
     "etag": "\\"8ce693b8335934d70db4f1cd8d6f8a7e21d924234f9b20657d4100bbd605f1c2\\"",
-    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "last-modified": "Thu, 01 May 2025 00:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
   "body": "2.0\\";\\n"
@@ -2598,7 +2632,7 @@ exports[`routes > GET /npm/lib@1.2.0/index.js (range: bytes=0-5) 1`] = `
     "content-range": "bytes 0-5/24",
     "content-type": "text/javascript; charset=utf-8",
     "etag": "\\"8ce693b8335934d70db4f1cd8d6f8a7e21d924234f9b20657d4100bbd605f1c2\\"",
-    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "last-modified": "Thu, 01 May 2025 00:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
   "body": "export"
@@ -2614,7 +2648,7 @@ exports[`routes > GET /npm/lib@1.2.0/index.js (range: bytes=0-5, if-range: foo) 
     "content-length": "24",
     "content-type": "text/javascript; charset=utf-8",
     "etag": "\\"8ce693b8335934d70db4f1cd8d6f8a7e21d924234f9b20657d4100bbd605f1c2\\"",
-    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "last-modified": "Thu, 01 May 2025 00:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
   "body": "export default \\"1.2.0\\";\\n"
@@ -2649,7 +2683,7 @@ exports[`routes > GET /npm/lib@1.2.0/index.js 1`] = `
     "content-length": "24",
     "content-type": "text/javascript; charset=utf-8",
     "etag": "\\"8ce693b8335934d70db4f1cd8d6f8a7e21d924234f9b20657d4100bbd605f1c2\\"",
-    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "last-modified": "Thu, 01 May 2025 00:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
   "body": "export default \\"1.2.0\\";\\n"
@@ -2891,7 +2925,7 @@ exports[`routes > GET /npm/lib@1.2.0\\dist\\index.mjs 1`] = `
     "content-length": "24",
     "content-type": "text/javascript; charset=utf-8",
     "etag": "\\"8ce693b8335934d70db4f1cd8d6f8a7e21d924234f9b20657d4100bbd605f1c2\\"",
-    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "last-modified": "Thu, 01 May 2025 00:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
   "body": "export default \\"1.2.0\\";\\n"
@@ -3017,7 +3051,7 @@ exports[`routes > GET /npm/lib@latest/index.js 1`] = `
     "content-length": "25",
     "content-type": "text/javascript; charset=utf-8",
     "etag": "\\"7dfac9a211c86d20d8511dcc8e1711f9cb3fa2afc6f2e25d1ca499069b164ed0\\"",
-    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "last-modified": "Wed, 01 Jan 2025 00:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
   "body": "export default \\"1.10.0\\";\\n"
@@ -3175,7 +3209,7 @@ exports[`routes > GET /npm/links@1.0.0/dist/loop/... (index.js after 40 and 41 l
     "content-length": "24",
     "content-type": "text/javascript; charset=utf-8",
     "etag": "\\"29293641f94119e74870f6b4d84f0749354160ee57d6677ed33555e114807686\\"",
-    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "last-modified": "Wed, 01 Jan 2025 00:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
   "body": "export default \\"links\\";\\n"
@@ -3224,7 +3258,7 @@ exports[`routes > GET /npm/links@1.0.0/dist/loop/index.js 1`] = `
     "content-length": "24",
     "content-type": "text/javascript; charset=utf-8",
     "etag": "\\"29293641f94119e74870f6b4d84f0749354160ee57d6677ed33555e114807686\\"",
-    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "last-modified": "Wed, 01 Jan 2025 00:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
   "body": "export default \\"links\\";\\n"
@@ -3268,7 +3302,7 @@ exports[`routes > GET /npm/links@1.0.0/folder/file.js 1`] = `
     "content-length": "23",
     "content-type": "text/javascript; charset=utf-8",
     "etag": "\\"b50e48c018a3c90ef74a53b938fd5a361c1b9c8634f73371b0d979968601f22d\\"",
-    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "last-modified": "Wed, 01 Jan 2025 00:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
   "body": "export default \\"file\\";\\n"
@@ -3284,7 +3318,7 @@ exports[`routes > GET /npm/links@1.0.0/inside 1`] = `
     "content-length": "24",
     "content-type": "text/plain; charset=utf-8",
     "etag": "\\"29293641f94119e74870f6b4d84f0749354160ee57d6677ed33555e114807686\\"",
-    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "last-modified": "Wed, 01 Jan 2025 00:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
   "body": "export default \\"links\\";\\n"
@@ -3593,7 +3627,7 @@ exports[`routes > GET /npm/old@1.0.0/index.js 1`] = `
     "content-type": "text/javascript; charset=utf-8",
     "deprecation": "@1748736000",
     "etag": "\\"c6910d39e8e3b4d0cf55fcc4788cd9e1c83de67f613e5c1431d077d84e60fb06\\"",
-    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "last-modified": "Wed, 01 Jan 2025 00:00:00 GMT",
     "link": "<https://dropr.sylvain.sh/npm/lib>; rel=\\"successor-version\\"",
     "x-content-type-options": "nosniff"
   },
@@ -3649,117 +3683,50 @@ exports[`routes > GET /npm/old@latest 1`] = `
 }
 `;
 
-exports[`routes > GET /npm/sealed@1.0.0 (version folder made unreadable after startup) 1`] = `
-{
-  "status": 200,
-  "headers": {
-    "content-length": "253",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
-  },
-  "body": {
-    "name": "sealed",
-    "version": "1.0.0",
-    "current": "sealed@1.0.0",
-    "files": [
-      {
-        "name": "index.js",
-        "size": 25,
-        "directory": false
-      },
-      {
-        "name": "vault/",
-        "size": null,
-        "directory": true
-      }
-    ]
-  }
-}
-`;
-
-exports[`routes > GET /npm/sealed@1.0.0 (version folder made unreadable after startup) 2`] = `
-{
-  "status": 200,
-  "headers": {
-    "content-disposition": "attachment; filename=\\"sealed-1.0.0.tar.gz\\"",
-    "content-type": "application/gzip"
-  },
-  "aborted": true
-}
-`;
-
-exports[`routes > GET /npm/sealed@1.0.0 (version folder made unreadable after startup) 3`] = `
+exports[`routes > GET /npm/sealed@1.0.0 1`] = `
 {
   "status": 404,
   "headers": {
-    "content-length": "136",
+    "content-length": "113",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
   "body": {
     "status": 404,
     "error": "Not Found",
-    "message": "File 'index.js' does not exist in the 1.0.0 version of the 'sealed' project."
-  }
-}
-`;
-
-exports[`routes > GET /npm/sealed@1.0.0 1`] = `
-{
-  "status": 200,
-  "headers": {
-    "content-length": "253",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
-  },
-  "body": {
-    "name": "sealed",
-    "version": "1.0.0",
-    "current": "sealed@1.0.0",
-    "files": [
-      {
-        "name": "index.js",
-        "size": 25,
-        "directory": false
-      },
-      {
-        "name": "vault/",
-        "size": null,
-        "directory": true
-      }
-    ]
+    "message": "Version 1.0.0 does not exist in the 'sealed' project."
   }
 }
 `;
 
 exports[`routes > GET /npm/sealed@1.0.0/index.js 1`] = `
 {
-  "status": 200,
+  "status": 404,
   "headers": {
-    "accept-ranges": "bytes",
-    "cache-control": "public, max-age=31536000, immutable",
-    "content-length": "25",
-    "content-type": "text/javascript; charset=utf-8",
-    "etag": "\\"71d180dd896d3d4abaec012acc57d58045ffa65715c4472e31ddbb36e3c5b84a\\"",
-    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
-    "x-content-type-options": "nosniff"
+    "content-length": "113",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
   },
-  "body": "export default \\"sealed\\";\\n"
+  "body": {
+    "status": 404,
+    "error": "Not Found",
+    "message": "Version 1.0.0 does not exist in the 'sealed' project."
+  }
 }
 `;
 
 exports[`routes > GET /npm/sealed@1.0.0/vault 1`] = `
 {
-  "status": 500,
+  "status": 404,
   "headers": {
-    "content-length": "101",
+    "content-length": "113",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
   "body": {
-    "status": 500,
-    "error": "Internal Server Error",
-    "message": "An unexpected error occurred."
+    "status": 404,
+    "error": "Not Found",
+    "message": "Version 1.0.0 does not exist in the 'sealed' project."
   }
 }
 `;
@@ -3768,42 +3735,47 @@ exports[`routes > GET /npm/sealed@1.0.0/vault/key.txt 1`] = `
 {
   "status": 404,
   "headers": {
-    "content-length": "141",
+    "content-length": "113",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
   "body": {
     "status": 404,
     "error": "Not Found",
-    "message": "File 'vault/key.txt' does not exist in the 1.0.0 version of the 'sealed' project."
+    "message": "Version 1.0.0 does not exist in the 'sealed' project."
   }
 }
 `;
 
 exports[`routes > GET /npm/sealed@1.0.0?checksums 1`] = `
 {
-  "status": 500,
+  "status": 404,
   "headers": {
-    "content-length": "101",
+    "content-length": "113",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
   "body": {
-    "status": 500,
-    "error": "Internal Server Error",
-    "message": "An unexpected error occurred."
+    "status": 404,
+    "error": "Not Found",
+    "message": "Version 1.0.0 does not exist in the 'sealed' project."
   }
 }
 `;
 
 exports[`routes > GET /npm/sealed@1.0.0?download 1`] = `
 {
-  "status": 200,
+  "status": 404,
   "headers": {
-    "content-disposition": "attachment; filename=\\"sealed-1.0.0.tar.gz\\"",
-    "content-type": "application/gzip"
+    "content-length": "113",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/<weak>"
   },
-  "aborted": true
+  "body": {
+    "status": 404,
+    "error": "Not Found",
+    "message": "Version 1.0.0 does not exist in the 'sealed' project."
+  }
 }
 `;
 
@@ -4009,7 +3981,7 @@ exports[`routes > GET /search?q=e 1`] = `
 {
   "status": 200,
   "headers": {
-    "content-length": "677",
+    "content-length": "643",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
@@ -4030,8 +4002,7 @@ exports[`routes > GET /search?q=e 1`] = `
         "type": "npm",
         "name": "broken",
         "versions": [
-          "latest",
-          "1.0.0"
+          "latest"
         ],
         "url": "/npm/broken"
       },
@@ -4049,8 +4020,7 @@ exports[`routes > GET /search?q=e 1`] = `
         "type": "npm",
         "name": "sealed",
         "versions": [
-          "latest",
-          "1.0.0"
+          "latest"
         ],
         "url": "/npm/sealed"
       }
@@ -4092,7 +4062,7 @@ exports[`routes > GET /search?q=npm 1`] = `
 {
   "status": 200,
   "headers": {
-    "content-length": "1322",
+    "content-length": "1288",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
@@ -4113,8 +4083,7 @@ exports[`routes > GET /search?q=npm 1`] = `
         "type": "npm",
         "name": "broken",
         "versions": [
-          "latest",
-          "1.0.0"
+          "latest"
         ],
         "url": "/npm/broken"
       },
@@ -4167,8 +4136,7 @@ exports[`routes > GET /search?q=npm 1`] = `
         "type": "npm",
         "name": "sealed",
         "versions": [
-          "latest",
-          "1.0.0"
+          "latest"
         ],
         "url": "/npm/sealed"
       }
@@ -4202,7 +4170,7 @@ exports[`routes > HEAD /npm/lib@1.2.0/index.js 1`] = `
     "content-length": "24",
     "content-type": "text/javascript; charset=utf-8",
     "etag": "\\"8ce693b8335934d70db4f1cd8d6f8a7e21d924234f9b20657d4100bbd605f1c2\\"",
-    "last-modified": "Wed, 01 Jan 2025 12:00:00 GMT",
+    "last-modified": "Thu, 01 May 2025 00:00:00 GMT",
     "x-content-type-options": "nosniff"
   },
   "body": ""
