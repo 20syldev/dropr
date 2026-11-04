@@ -328,6 +328,11 @@ function fileRoute(scope: Scope, type: string, file: string, slash: boolean): Ro
         return json(200, { name, version, path: file, deprecated, files }, scope.headers);
     }
 
+    // Past the kernel's link limit send fails with ELOOP, a missing file in 3.3.1, and no tag may answer 304 before that
+    if (resolved.hops > MAX_LINKS) {
+        return failure(404, missing, { ...scope.headers, 'X-Content-Type-Options': 'nosniff' });
+    }
+
     // Only an exact version is immutable: latest and partial versions move to the next release
     const cache = scope.pinned ? 'public, max-age=31536000, immutable' : 'public, max-age=300';
     const headers: Record<string, string> = { ...scope.headers, 'Cache-Control': cache };
@@ -341,13 +346,6 @@ function fileRoute(scope: Scope, type: string, file: string, slash: boolean): Ro
 
     headers['Content-Type'] = contentType(file);
     headers['X-Content-Type-Options'] = 'nosniff';
-
-    // Past the kernel's link limit, sending the file fails with ELOOP, which 3.3.1 answered as a missing file
-    if (resolved.hops > MAX_LINKS) {
-        delete headers.ETag;
-        delete headers['Cache-Control'];
-        return failure(404, missing, headers);
-    }
 
     // Rounded to the millisecond as Node's Stats.mtime is, which send read in 3.3.1
     headers['Last-Modified'] = new Date(Math.round(node.mtime)).toUTCString();
