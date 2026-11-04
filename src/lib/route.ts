@@ -11,6 +11,7 @@ import type {
 
 import { archiveEntries } from './archive.js';
 import { checksums } from './checksum.js';
+import { parseDay } from './dates.js';
 import { deprecationHeaders } from './deprecations.js';
 import { errorBody } from './errors.js';
 import { contentType } from './mime.js';
@@ -304,9 +305,10 @@ function projectGuard(scope: Scope, type: string, name: string, version: string 
  * @param file - Decoded path under the version, its segments joined with '/' and none of them empty
  * @param slash - True when the path ended with '/', which only a folder answers and which a missing file echoes
  * @returns 200 with a listing or a file body, 304 when the ETag matches, 404 when the file is missing, is a file
- * reached with a trailing slash or is past MAX_LINKS link crossings, or 500 for a null version or a folder past them
- * or that could not be read; a file has the quoted SHA-256 of its bytes as its ETag, and none from the core when it has
- * no checksum
+ * reached with a trailing slash or is past MAX_LINKS link crossings, whatever If-None-Match says, or 500 for a null
+ * version or a folder past them or that could not be read; a file has the quoted SHA-256 of its bytes as its ETag, and
+ * none from the core when it has no checksum, and the release day of its version as its Last-Modified, on its 304 too,
+ * none when that date is not a real day
  */
 function fileRoute(scope: Scope, type: string, file: string, slash: boolean): RouteResponse {
     const { catalog, deprecated, name, version } = scope;
@@ -340,15 +342,17 @@ function fileRoute(scope: Scope, type: string, file: string, slash: boolean): Ro
     // The tag is the checksum of ?checksums, so it follows the bytes and a link serves the tag of its target
     const etag = node.sha256 === null ? null : `"${node.sha256}"`;
     if (etag !== null) headers.ETag = etag;
+
+    // Every file of a version shares the release day, 00:00:00 GMT; none from a date that is not a real day
+    const released = parseDay(entry.date);
+    if (released !== null) headers['Last-Modified'] = new Date(released).toUTCString();
+
     if (etag !== null && scope.request.headers.get('if-none-match') === etag) {
         return { status: 304, headers, body: { kind: 'empty' } };
     }
 
     headers['Content-Type'] = contentType(file);
     headers['X-Content-Type-Options'] = 'nosniff';
-
-    // Rounded to the millisecond as Node's Stats.mtime is, which send read in 3.3.1
-    headers['Last-Modified'] = new Date(Math.round(node.mtime)).toUTCString();
 
     return {
         status: 200,
