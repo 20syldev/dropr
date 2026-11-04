@@ -231,16 +231,31 @@ function measure(dir: IndexDir, nodes: Map<string, IndexNode>): number | null {
 
 /**
  * Indexes a version folder, its files hashed and its folders measured.
+ * A version is indexed whole or not at all: it is left out when anything in it could not be read.
  *
  * @param path - Absolute path of the version folder
  * @param name - Version name, the folder name
  * @param date - Release date recorded in .versions.json, undefined to use the UTC day of the folder mtime
  * @param logger - Receives each failure this function logs through its error() and nothing else
- * @returns The version node; throws when the version folder cannot be stat'ed
+ * @returns The version node, or null when a file or folder below it could not be read, or is a special file, which is
+ * logged; throws when the version folder cannot be stat'ed
  */
-function scanVersion(path: string, name: string, date: string | undefined, logger: ErrorLogger): IndexVersion {
+function scanVersion(path: string, name: string, date: string | undefined, logger: ErrorLogger): IndexVersion | null {
     const stat = fs.statSync(path);
-    const root = walkFolder(path, name, fs.realpathSync(path), logger);
+    let failures = 0;
+    const counter: ErrorLogger = {
+        error: (...args) => {
+            failures++;
+            logger.error(...args);
+        },
+    };
+
+    const root = walkFolder(path, name, fs.realpathSync(path), counter);
+    if (failures > 0) {
+        logger.error(`Skipping version ${path}: it could not be read whole.`);
+        return null;
+    }
+
     const nodes = new Map<string, IndexNode>([['', root]]);
     indexNodes(root, '', nodes);
     measure(root, nodes);
@@ -271,7 +286,9 @@ function scanProject(path: string, name: string, logger: ErrorLogger): IndexProj
     const scanned = versions.flatMap((version) => {
         const versionPath = join(path, version);
         try {
-            return [scanVersion(versionPath, version, dates.get(version), logger)];
+            const indexed = scanVersion(versionPath, version, dates.get(version), logger);
+
+            return indexed ? [indexed] : [];
         } catch (error) {
             logger.error(`Error reading ${versionPath}:`, error);
             return [];
