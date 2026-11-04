@@ -1,0 +1,209 @@
+#!/bin/bash
+# =========================================================
+# MN - Personal Dynamic Manual
+# Author: 20syldev
+# =========================================================
+
+MN_DIR="$HOME/.config/mn"
+VERSION="$(cat "$MN_DIR/VERSION")"
+
+# Load libraries
+source "$MN_DIR/lib/core.sh"
+source "$MN_DIR/lib/dat.sh"
+source "$MN_DIR/lib/module.sh"
+source "$MN_DIR/lib/crud.sh"
+source "$MN_DIR/lib/ui.sh"
+source "$MN_DIR/lib/plugin.sh"
+
+# Load modules
+for _mn_module_file in "$MN_DIR"/modules/*.sh; do
+    [[ -f "$_mn_module_file" ]] && source "$_mn_module_file"
+done
+unset _mn_module_file
+
+# Load plugins (they self-register in ALL_MODULES)
+for _mn_plugin_dir in "$MN_DIR"/plugins/*/; do
+    [[ -f "${_mn_plugin_dir}mn.sh" ]] && source "${_mn_plugin_dir}mn.sh"
+done
+unset _mn_plugin_dir
+
+# Validate plugin dependencies — remove modules with missing required binaries
+_mn_valid=""
+for _mn_mod in $ALL_MODULES; do
+    _mn_req="PLUGIN_${_mn_mod}_REQUIRES"
+    _mn_ok=true
+    if [[ -n "${!_mn_req}" ]]; then
+        for _mn_dep in ${!_mn_req}; do
+            command -v "$_mn_dep" &>/dev/null || { _mn_ok=false; break; }
+        done
+    fi
+    $_mn_ok && _mn_valid="${_mn_valid:+$_mn_valid }${_mn_mod}"
+done
+ALL_MODULES="$_mn_valid"
+unset _mn_valid _mn_mod _mn_req _mn_dep _mn_ok
+
+# -------------------- MAIN MENU -------------------- #
+
+show_main_menu() {
+    CURRENT_MENU="main"
+    USE_PAGINATION=false
+    _MENU_STATUS=""
+    _MENU_HIDE_ADD="false"
+    MENU_ITEMS=()
+    MENU_ACTIONS=()
+
+    local sorted_mods
+    sorted_mods=$(_sort_modules_by_priority)
+
+    while IFS= read -r mod; do
+        [[ -z "$mod" ]] && continue
+        local label
+        label=$(mod_prop "$mod" "MENU_LABEL")
+        [[ -z "$label" ]] && continue
+        MENU_ITEMS+=("$label")
+        MENU_ACTIONS+=("show_${mod}_menu")
+    done <<< "$sorted_mods"
+
+    MENU_ITEMS+=("$T_MENU_HELP")
+    MENU_ACTIONS+=("show_help")
+}
+
+# -------------------- HELP -------------------- #
+
+# The text alone: it also goes to a pipe or a file
+_help_text() {
+    echo -e "  ${BOLD}$T_HELP_USAGE${NC}"
+    echo "  ───────────────────────────────────────────────"
+    echo -e "  mn              $T_HELP_CMD_MAIN"
+
+    # Dynamic module CLI args
+    local sorted_mods
+    sorted_mods=$(_sort_modules_by_priority)
+    while IFS= read -r mod; do
+        [[ -z "$mod" ]] && continue
+        local cli_args label
+        cli_args=$(mod_prop "$mod" "CLI_ARGS")
+        label=$(mod_prop "$mod" "MENU_LABEL")
+        [[ -z "$cli_args" ]] && continue
+        local first_arg="${cli_args%%|*}"
+        printf "  mn %-12s %s\n" "$first_arg" "$label"
+    done <<< "$sorted_mods"
+
+    echo -e "  mn plugin       $T_PLUGIN_HELP_TITLE"
+    echo -e "  mn update       $T_HELP_CMD_UPDATE"
+    echo -e "  mn uninstall    $T_HELP_CMD_UNINSTALL"
+    echo -e "  mn help         $T_HELP_CMD_HELP"
+    echo ""
+    echo -e "  ${BOLD}$T_HELP_NAV${NC}"
+    echo "  ───────────────────────────────────────────────"
+    echo -e "  ↑/↓ $T_OR j/k    $T_HELP_NAV_ARROWS"
+    echo -e "  Enter           $T_HELP_NAV_ENTER"
+    echo -e "  r               $T_HELP_NAV_BACK"
+    echo -e "  q               $T_HELP_NAV_QUIT"
+    echo -e "  e / d / v       $T_HELP_NAV_ACTIONS"
+    echo -e "  /               $T_HELP_NAV_FILTER"
+    echo -e "  u / U           $T_HELP_NAV_USER"
+    echo -e "  c               $T_HELP_NAV_CMDLINE"
+    echo ""
+    echo -e "  ${BOLD}$T_HELP_CONN${NC}"
+    echo "  ───────────────────────────────────────────────"
+    echo -e "  mn co <alias>          $T_HELP_CONN_DIRECT"
+    echo -e "  mn co <alias> <user>   $T_HELP_CONN_USER"
+    echo -e "  mn co -l               $T_HELP_CONN_LIST"
+    echo ""
+    echo -e "  ${BOLD}$T_HELP_FILES${NC}"
+    echo "  ───────────────────────────────────────────────"
+    echo "  ~/.config/mn/data/connexions.dat  Connexions SSH / Custom"
+    echo "  ~/.config/mn/data/repos.dat       Repositories"
+    echo "  ~/.config/mn/data/aliases.dat     Alias"
+    echo "  ~/.config/mn/data/functions.dat   Functions"
+    echo ""
+    echo "  ~/.bash_aliases                   Bash aliases"
+    echo "  ~/.bash_functions                 Bash functions"
+}
+
+# On the normal screen, not the alternate one: the text is taller than a small
+# terminal and must stay reachable through the scrollback.
+_help_screen() {
+    draw_header "$T_HELP_TITLE ${CYAN}${VERSION}${NC}"
+    echo ""
+    _help_text
+    echo -e "\n${DIM}$T_PRESS_KEY_CONTINUE${NC}"
+    _wait_key
+}
+
+show_help() {
+    [[ -t 1 ]] || { _help_text | sed $'s/\033\\[[0-9;]*m//g'; return; }
+    _run_external _help_screen
+    hide_cursor
+    LAST_MENU=""
+    show_main_menu
+}
+
+# -------------------- ENTRY POINT -------------------- #
+
+main() {
+    init_data_files
+
+    local arg="${1:-}"
+
+    case "$arg" in
+        -v|--version)
+            echo "mn $VERSION"
+            return
+            ;;
+        help|h|-h|--help)
+            show_help
+            # show_help hides the cursor for the TUI; a plain shell needs it back
+            [[ -t 1 ]] && show_cursor
+            return
+            ;;
+        uninstall|delete)
+            config_uninstall
+            return
+            ;;
+        update|u)
+            shift
+            # Loaded on demand: a tree updated by an older mn may not have it yet
+            if [[ ! -f "$MN_DIR/lib/update.sh" ]]; then
+                echo -e "${RED}$T_UPDATE_FAILED: lib/update.sh${NC}"
+                echo -e "${DIM}curl -fsSL https://dropr.sylvain.sh/bash/mn@latest/install.sh | sh${NC}"
+                return 1
+            fi
+            source "$MN_DIR/lib/update.sh"
+            mn_update "$@"
+            return
+            ;;
+        plugin)
+            shift
+            _plugin_cmd "$@"
+            return
+            ;;
+        "")
+            main_loop
+            return
+            ;;
+    esac
+
+    # Dynamic module routing (CRUD, menu, and plugin modules)
+    for mod in $ALL_MODULES; do
+        local cli_args
+        cli_args=$(mod_prop "$mod" "CLI_ARGS")
+        [[ -z "$cli_args" ]] && continue
+        # [[ =~ ]] instead of echo | grep -qE: two forks less per module at startup
+        if [[ "$arg" =~ ^(${cli_args})$ ]]; then
+            shift
+            _route_module "$mod" "$@"
+            return
+        fi
+    done
+
+    echo -e "${RED}$T_ERR_UNKNOWN: $arg${NC}"
+    echo -e "${CYAN}mn help${NC} — $T_ERR_HELP_HINT"
+    exit 1
+}
+
+# Never read past this line: a running mn may be replaced by an update, and bash
+# would otherwise resume at the old offset inside the new file.
+main "$@"
+exit $?
