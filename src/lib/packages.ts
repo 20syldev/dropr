@@ -12,6 +12,18 @@ import type {
 export const EXCLUDED_DIRS = ['node_modules', 'src', 'scripts', 'lib', 'dist', 'public', '.github'];
 
 /**
+ * Tells whether a folder name inside a project can be a version.
+ * The name 'latest' is the alias of the newest release, and the router cuts a project segment at its last '@', so a
+ * version name with an '@' can never be asked for, yet compareVersions would still let it win the alias.
+ *
+ * @param name - Folder name inside a project folder
+ * @returns False for 'latest' and for any name holding an '@'
+ */
+export function isVersionName(name: string): boolean {
+    return name !== 'latest' && !name.includes('@');
+}
+
+/**
  * Splits a version string into its numeric core and its pre-release tag.
  *
  * @param version - Dotted version, the pre-release tag being everything after the first dash (e.g., "6.0.0-pre")
