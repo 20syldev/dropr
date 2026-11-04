@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import fs from 'fs';
 import { join, sep } from 'path';
 
+import { parseDay } from './lib/dates.js';
 import { parseDeprecation } from './lib/deprecations.js';
 import { compareVersions, EXCLUDED_DIRS, indexNodes } from './lib/packages.js';
 import { RESERVED } from './lib/router.js';
@@ -14,6 +15,9 @@ import type {
     IndexProject,
     IndexVersion,
 } from './types/index.js';
+
+// Milliseconds in a day
+const DAY = 86_400_000;
 
 // Names that Express still matches in any case, so a type folder of that name in another case is skipped too
 const LENIENT = ['health', 'manifest'];
@@ -44,12 +48,28 @@ function readDeprecation(projectPath: string, logger: ErrorLogger): Deprecation 
 }
 
 /**
+ * Tells whether a release date can be served: a real YYYY-MM-DD day from 1970 to tomorrow, UTC.
+ * Tomorrow is allowed since fetch.sh writes the date of its own time zone when a release has none.
+ *
+ * @param date - Date read from .versions.json
+ * @returns False for any other spelling, a day before the epoch (tar cannot carry it) or past tomorrow, which no
+ * Last-Modified header may announce
+ */
+function isReleaseDay(date: string): boolean {
+    const time = parseDay(date);
+    const tomorrow = (Math.floor(Date.now() / DAY) + 1) * DAY;
+
+    return time !== null && time >= 0 && time <= tomorrow;
+}
+
+/**
  * Reads the release dates that fetch.sh records in the .versions.json of a project.
+ * Each version is read on its own: an entry that is not usable is logged and costs only the date of its version.
  *
  * @param projectPath - Project folder, read as projectPath/.versions.json
  * @param logger - Receives each failure this function logs through its error() and nothing else
- * @returns Map of version names to their YYYY-MM-DD date, without the versions whose date is missing or not a string;
- * an unreadable file is logged and keeps only the dates read before the failure
+ * @returns Map of version names to their YYYY-MM-DD date, without the versions whose entry is not an object with a
+ * date that isReleaseDay accepts, each logged; an unreadable file is logged and gives no date
  */
 function readDates(projectPath: string, logger: ErrorLogger): Map<string, string> {
     const dates = new Map<string, string>();
@@ -57,12 +77,16 @@ function readDates(projectPath: string, logger: ErrorLogger): Map<string, string
     if (!fs.existsSync(file)) return dates;
 
     try {
-        const entries = JSON.parse(fs.readFileSync(file, 'utf-8')) as Record<string, { date?: unknown }>;
-        for (const [version, entry] of Object.entries(entries)) {
-            if (!entry.date) continue;
+        const entries: unknown = JSON.parse(fs.readFileSync(file, 'utf-8'));
+        if (typeof entries !== 'object' || entries === null || Array.isArray(entries)) {
+            logger.error(`Invalid ${file}: expected an object of versions.`);
+            return dates;
+        }
 
-            if (typeof entry.date === 'string') dates.set(version, entry.date);
-            else logger.error(`Invalid date of ${version} in ${file}: expected a string.`);
+        for (const [version, entry] of Object.entries(entries)) {
+            const date = typeof entry === 'object' && entry !== null ? (entry as { date?: unknown }).date : undefined;
+            if (typeof date === 'string' && isReleaseDay(date)) dates.set(version, date);
+            else logger.error(`Invalid date of ${version} in ${file}: expected a YYYY-MM-DD day, not after tomorrow.`);
         }
     } catch (error) {
         logger.error(`Error reading ${file}:`, error);
@@ -209,8 +233,10 @@ function scanVersion(path: string, name: string, date: string | undefined, logge
     indexNodes(root, '', nodes);
     measure(root, nodes);
 
-    // Versions missing from .versions.json have no recorded date, the folder mtime (fetch or checkout) stands in
-    return { name, date: date ?? stat.mtime.toISOString().split('T')[0], root };
+    // Without a date the folder mtime (fetch or checkout) stands in, never later than now so that it is a real day
+    const day = new Date(Math.max(0, Math.min(stat.mtimeMs, Date.now()))).toISOString().split('T')[0];
+
+    return { name, date: date ?? day, root };
 }
 
 /**
@@ -229,20 +255,26 @@ function scanProject(path: string, name: string, logger: ErrorLogger): IndexProj
         .map((dirent) => dirent.name)
         .sort(compareVersions);
     const dates = readDates(path, logger);
+    const deprecated = readDeprecation(path, logger);
+    const scanned = versions.flatMap((version) => {
+        const versionPath = join(path, version);
+        try {
+            return [scanVersion(versionPath, version, dates.get(version), logger)];
+        } catch (error) {
+            logger.error(`Error reading ${versionPath}:`, error);
+            return [];
+        }
+    });
 
-    return {
-        name,
-        deprecated: readDeprecation(path, logger),
-        versions: versions.flatMap((version) => {
-            const versionPath = join(path, version);
-            try {
-                return [scanVersion(versionPath, version, dates.get(version), logger)];
-            } catch (error) {
-                logger.error(`Error reading ${versionPath}:`, error);
-                return [];
-            }
-        }),
-    };
+    const undated = scanned.filter((version) => !dates.has(version.name)).map((version) => version.name);
+    if (undated.length > 0) {
+        const shown = undated.slice(0, 3).join(', ') + (undated.length > 3 ? ', ...' : '');
+        logger.error(
+            `No release date in ${join(path, '.versions.json')} for ${shown}, using the date of the version folder.`,
+        );
+    }
+
+    return { name, deprecated, versions: scanned };
 }
 
 /**
