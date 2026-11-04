@@ -1,0 +1,15 @@
+mn
+completions/mn.bash
+completions/_mn
+lib/core.sh
+lib/crud.sh
+lib/dat.sh
+lib/module.sh
+lib/plugin.sh
+lib/ui.sh
+modules/alias.sh
+modules/config.sh
+modules/connexions.sh
+modules/docs.sh
+modules/funcs.sh
+modules/repos.sh
