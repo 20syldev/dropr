@@ -383,7 +383,7 @@ describe('dist/serve.js', () => {
         }
     });
 
-    test('reserves the first segment of every asset, skipping its type folder [change: reserved]', async () => {
+    test('reserves the first segment of every asset, skipping its type folder', async () => {
         const port = await freePort();
         const config = { manifest: { baseUrl: 'https://cdn.example.com' }, assets: { '/static/logo.txt': 'logo.txt' } };
         const files = ['packages/static/tool/1.0.0/a.txt', 'packages/npm/lib/1.0.0/b.txt', 'logo.txt', 'config.json'];
@@ -544,14 +544,14 @@ describe('request shapes of the adapter', () => {
 });
 
 describe('reserved names', () => {
-    test('a type folder named like a route or an asset is skipped and logged [change: reserved]', () => {
+    test('a type folder named like a route or an asset is skipped and logged', () => {
         const { types, logged } = scanned(['download', 'search', 'health', 'manifest', 'static', 'npm'], ['static']);
 
         assert.deepEqual(types, ['npm']);
         assert.deepEqual(logged, ['download', 'health', 'manifest', 'search', 'static'].map(skipped));
     });
 
-    test('download and search are compared exactly, health, manifest and assets in any case [change: reserved]', () => {
+    test('download and search are compared exactly, health, manifest and assets in any case', () => {
         const { types, logged } = scanned(['Download', 'Search', 'Health', 'MANIFEST', 'STATIC', 'npm'], ['static']);
 
         assert.deepEqual(types, ['Download', 'Search', 'npm']);

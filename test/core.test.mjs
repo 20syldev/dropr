@@ -484,7 +484,7 @@ describe('route() on synthetic indexes', () => {
         }
     });
 
-    test('a query of over 1000 keys still holds q and checksums, a repeated q is missing [change: query]', () => {
+    test('a query of over 1000 keys still holds q and checksums, a repeated q is missing', () => {
         const keys = Array.from({ length: 1200 }, (_, i) => `k${i}=1`).join('&');
 
         assert.equal(get(`/search?${keys}&q=lib`, catalog).status, 200);
