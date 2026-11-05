@@ -15,7 +15,10 @@ import { scan } from '../dist/scan.js';
 import { createFixture } from './fixture.mjs';
 import { config, freePort, listen, request, rootDir, startServer } from './server.mjs';
 
-const EMPTY = { format: 1, types: [] };
+const EMPTY = { format: 2, types: [] };
+
+// The release day that makeTree gives to every .versions.json it writes, since a version needs one to be indexed
+const DATES = '{ "1.0.0": { "date": "2025-01-01" } }\n';
 
 /**
  * Starts an app from a minimal config, with a logger that records what it is given.
@@ -92,7 +95,7 @@ function send(port, line, headers = []) {
  * Writes a tree of small files into a new temporary folder.
  *
  * @param paths - Files to create, relative to the root of the tree and written with a short content
- * @param contents - Text of the files that must not hold the short content, by path
+ * @param contents - Text of the files that must not hold the short content, by path; a .versions.json dates 1.0.0
  * @returns The root, and remove() which deletes exactly the entries written here, folders last, never recursively
  */
 function makeTree(paths, contents = {}) {
@@ -103,7 +106,7 @@ function makeTree(paths, contents = {}) {
         const file = join(root, path);
         for (let dir = dirname(file); dir !== root && !created.includes(dir); dir = dirname(dir)) created.push(dir);
         fs.mkdirSync(dirname(file), { recursive: true });
-        fs.writeFileSync(file, contents[path] ?? 'x\n');
+        fs.writeFileSync(file, contents[path] ?? (path.endsWith('.versions.json') ? DATES : 'x\n'));
         created.push(file);
     }
 
@@ -127,7 +130,7 @@ function makeTree(paths, contents = {}) {
  * @returns The names of the types that were indexed, sorted, and the messages that were logged, sorted
  */
 function scanned(names, assets = []) {
-    const tree = makeTree(names.map((name) => `${name}/tool/1.0.0/a.txt`));
+    const tree = makeTree(names.flatMap((name) => [`${name}/tool/1.0.0/a.txt`, `${name}/tool/.versions.json`]));
     const logged = [];
 
     try {
@@ -386,7 +389,14 @@ describe('dist/serve.js', () => {
     test('reserves the first segment of every asset, skipping its type folder', async () => {
         const port = await freePort();
         const config = { manifest: { baseUrl: 'https://cdn.example.com' }, assets: { '/static/logo.txt': 'logo.txt' } };
-        const files = ['packages/static/tool/1.0.0/a.txt', 'packages/npm/lib/1.0.0/b.txt', 'logo.txt', 'config.json'];
+        const files = [
+            'packages/static/tool/1.0.0/a.txt',
+            'packages/static/tool/.versions.json',
+            'packages/npm/lib/1.0.0/b.txt',
+            'packages/npm/lib/.versions.json',
+            'logo.txt',
+            'config.json',
+        ];
         const tree = makeTree(files, { 'config.json': JSON.stringify(config) });
 
         try {
@@ -559,7 +569,7 @@ describe('reserved names', () => {
     });
 
     test('a type folder named Download is served, since only download is a route', async () => {
-        const tree = makeTree(['Download/tool/1.0.0/a.txt']);
+        const tree = makeTree(['Download/tool/1.0.0/a.txt', 'Download/tool/.versions.json']);
         const server = await startServer(tree.root, { assets: {} });
 
         try {

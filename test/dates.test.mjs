@@ -3,7 +3,6 @@ import { describe, test } from 'node:test';
 
 import { parseDay } from '../dist/lib/dates.js';
 import { parseDeprecation } from '../dist/lib/deprecations.js';
-import { isVersionName } from '../dist/lib/packages.js';
 
 describe('parseDay', () => {
     test('reads a real YYYY-MM-DD day as 00:00:00 UTC', () => {
@@ -44,17 +43,19 @@ describe('parseDeprecation', () => {
             ...notice,
             successor: 'https://dropr.sylvain.sh/npm/moxon?a=b#c',
         });
-        assert.ok(parseDeprecation({ ...notice, date: 'Oct 17 2026' }), 'the date keeps every form Date.parse reads');
         assert.ok(parseDeprecation({ ...notice, date: '2999-01-01' }), 'a deprecation may announce a future date');
     });
 
-    test('refuses what would break a header or a shape', () => {
+    test('refuses what would break a header or a shape, a date that is no real day included [change: deprecation]', () => {
         const refused = [
             null,
             [],
             'text',
             {},
             { ...notice, date: 'not a date' },
+            { ...notice, date: 'Oct 17 2026' },
+            { ...notice, date: '2026-10-17T00:00:00Z' },
+            { ...notice, date: '2026-02-30' },
             { ...notice, date: 1 },
             { ...notice, message: 1 },
             { ...notice, successor: '' },
@@ -67,14 +68,5 @@ describe('parseDeprecation', () => {
         ];
 
         for (const value of refused) assert.equal(parseDeprecation(value), null, JSON.stringify(value));
-    });
-});
-
-describe('folder names', () => {
-    test('a version folder is anything but latest and a name holding an @', () => {
-        for (const name of ['1.0.0', '2.0.0-pre', 'v1.0.0', '1.0', 'abc', '.git', '1.0.0+build', 'LATEST']) {
-            assert.equal(isVersionName(name), true, name);
-        }
-        for (const name of ['latest', '1.0.0@beta', '@', 'a@b']) assert.equal(isVersionName(name), false, name);
     });
 });

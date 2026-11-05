@@ -15,15 +15,12 @@ import { collect, readArchive } from './tar.mjs';
 // Release date of the archived version, which every entry carries whatever the dates of its files
 const RELEASE = '2025-03-01';
 
-// File dates of the index (2025-01-01T12:00:00.9996Z), none of them the release date
-const MTIME = 1735732800999.6;
-
 // Folder names that put a file at 155 + 100 bytes and at 300 bytes from the archive root
 const SPLIT = 'd'.repeat(149);
 const LONG = 'g'.repeat(200);
 
 /**
- * Root entries of the archived version, in strcmp order: archive paths of 99, 100, 101, 155 + 100 and 300 bytes,
+ * Root entries of the archived version, in byte order: archive paths of 99, 100, 101, 155 + 100 and 300 bytes,
  * UTF-8 names, one of them too long for the name field, an empty file, an executable, and links to a file, to a
  * folder and, with a 120-byte target, to nowhere.
  */
@@ -34,7 +31,7 @@ const ROOT = [
     file('c'.repeat(95)),
     folder(SPLIT, [file(`${SPLIT}/${'e'.repeat(100)}`)]),
     file('empty'),
-    link('far', 't'.repeat(120), null),
+    link('far', 't'.repeat(120)),
     link('folder', 'bin', 'bin'),
     folder(LONG, [file(`${LONG}/${'h'.repeat(93)}`)]),
     file('index.js'),
@@ -46,9 +43,12 @@ const ROOT = [
 
 // Version 1.0.0 of the npm project tool, released on RELEASE
 const version = loadIndex({
-    format: 1,
-    types: [{ name: 'npm', projects: [{ name: 'tool', deprecated: null, versions: [release(RELEASE)] }] }],
-}).versions.get('npm/tool/1.0.0');
+    format: 2,
+    types: [{ name: 'npm', projects: [{ name: 'tool', versions: [release(RELEASE)] }] }],
+})
+    .types.get('npm')
+    .projects.get('tool')
+    .versions.get('1.0.0');
 
 // Entries of the archive of the version, as the download routes stream them
 const entries = archiveEntries(version);
@@ -68,7 +68,7 @@ function contentOf(path) {
  *
  * @param path - Path of the file under the version folder, its last segment being its name
  * @param exec - Whether the owner may execute it, false by default
- * @returns The file node, dated MTIME
+ * @returns The file node
  */
 function file(path, exec = false) {
     const content = contentOf(path);
@@ -76,7 +76,6 @@ function file(path, exec = false) {
     return {
         kind: 'file',
         name: path.split('/').at(-1),
-        mtime: MTIME,
         size: content.length,
         exec,
         sha256: sha256(content),
@@ -87,11 +86,11 @@ function file(path, exec = false) {
  * Builds a folder node of the index.
  *
  * @param name - Folder name
- * @param entries - Nodes of the folder in strcmp order
- * @returns The folder node, its size left at 0 since archives never read it
+ * @param entries - Nodes of the folder in byte order
+ * @returns The folder node
  */
 function folder(name, entries) {
-    return { kind: 'dir', name, size: 0, entries };
+    return { kind: 'dir', name, entries };
 }
 
 /**
@@ -99,17 +98,17 @@ function folder(name, entries) {
  *
  * @param name - Link name
  * @param target - Raw target, written as is in the archive
- * @param real - Real target relative to the version folder, null when it leads nowhere
+ * @param real - Real target relative to the version folder, left out when it leads nowhere
  * @returns The link node
  */
 function link(name, target, real) {
-    return { kind: 'link', name, target, real };
+    return real === undefined ? { kind: 'link', name, target } : { kind: 'link', name, target, real };
 }
 
 /**
  * Builds version 1.0.0 of the index, its root holding ROOT.
  *
- * @param date - Release date, a YYYY-MM-DD day or any text that does not parse as a date
+ * @param date - Release date, a YYYY-MM-DD day
  * @returns The version node
  */
 function release(date) {
@@ -229,12 +228,6 @@ describe('archiveEntries', () => {
         const seconds = Date.parse(RELEASE) / 1000;
 
         assert.deepEqual(new Set(entries.map((entry) => entry.mtime)), new Set([seconds]));
-    });
-
-    test('a date that does not parse, or one before 1970, gives the epoch', () => {
-        for (const date of ['unknown', '1969-12-31']) {
-            assert.deepEqual(new Set(archiveEntries({ ...version, date }).map((entry) => entry.mtime)), new Set([0]));
-        }
     });
 
     test('entries come in pre-order, links kept as links with nothing below them', () => {

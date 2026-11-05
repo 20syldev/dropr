@@ -1,7 +1,7 @@
 import assert from 'assert/strict';
 import { describe, test } from 'node:test';
 
-import { latestVersion, loadIndex, resolveVersion } from '../dist/lib/packages.js';
+import { loadIndex, resolveVersion } from '../dist/lib/packages.js';
 import { route } from '../dist/lib/route.js';
 import { matchPath, RESERVED } from '../dist/lib/router.js';
 import { ROUTES } from '../dist/manifest.js';
@@ -95,19 +95,13 @@ function decodedParts(match) {
 }
 
 /**
- * Loads the catalog of the fixture without its unreadable projects, whose routes answer 500 by design.
+ * Loads the catalog of the fixture.
  *
- * @param packagesDir - Folder of a generated fixture, which holds the unreadable sealed and broken projects
- * @returns The catalog, with no sealed and no broken project
+ * @param packagesDir - Folder of a generated fixture
+ * @returns The catalog, without the projects that the scan left out
  */
 function readableCatalog(packagesDir) {
-    const index = scan(packagesDir, { error: () => {} });
-
-    for (const type of index.types) {
-        type.projects = type.projects.filter(({ name }) => name !== 'sealed' && name !== 'broken');
-    }
-
-    return loadIndex(index);
+    return loadIndex(scan(packagesDir, { error: () => {} }));
 }
 
 /**
@@ -123,11 +117,13 @@ function servesAskedVersion(catalog, target, served) {
     const match = matchPath(new URL(`http://localhost${target}`).pathname);
     if (match.id !== 'file') return false;
 
-    const project = catalog.packages[match.type]?.[match.name];
-    const version = match.version === 'latest' ? latestVersion(project) : resolveVersion(match.version, project);
+    const project = catalog.types.get(match.type)?.projects.get(match.name);
+    const asked = match.version;
+    const version =
+        asked === 'latest' ? project.latest : (project.versions.get(asked) ?? resolveVersion(asked, project));
     const [type, name, resolved, ...rest] = served.split('/');
 
-    return type === match.type && name === match.name && resolved === version && !rest.includes('..');
+    return type === match.type && name === match.name && resolved === version.name && !rest.includes('..');
 }
 
 /**

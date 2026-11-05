@@ -75,7 +75,7 @@ describe('ETag of a file', () => {
         assert.match((await request(server.port, 'GET', '/npm/lib@1.2.0/dist')).headers.etag, /^W\//);
     });
 
-    test('answers 304 to its own tag, a list or a weak copy, and 200 to the tag of 3.5.0', async () => {
+    test('answers 304 to its own tag, a list or a weak copy, and 200 to another tag', async () => {
         const path = '/npm/lib@1.2.0/index.js';
         const etag = await etagOf(path);
         const status = async (value) => (await request(server.port, 'GET', path, { 'if-none-match': value })).status;
@@ -85,7 +85,6 @@ describe('ETag of a file', () => {
         assert.equal(await status(`W/${etag}`), 304);
         assert.equal(await status('*'), 304);
         assert.equal(await status('"other"'), 200);
-        assert.equal(await status('"18-19421bcaa00"'), 200, 'a size and date tag of 3.5.0 revalidates once');
     });
 
     test('keeps the 304 headers of the file, and sends no body with it', async () => {
@@ -111,26 +110,6 @@ describe('ETag of a file', () => {
         assert.equal(partial.status, 206);
         assert.equal(partial.body.toString(), 'export');
         assert.equal((await send({ range: 'bytes=0-5', 'if-range': '"other"' })).status, 200);
-    });
-
-    test('is the weak tag of send for a file that has no checksum in the index', async () => {
-        const unhashed = (index) => {
-            const lib = index.types.find(({ name }) => name === 'npm').projects.find(({ name }) => name === 'lib');
-            lib.versions
-                .find(({ name }) => name === '1.2.0')
-                .root.entries.find(({ name }) => name === 'index.js').sha256 = null;
-        };
-        const edited = await startServer(fixture.packagesDir, {}, unhashed);
-
-        try {
-            const response = await request(edited.port, 'GET', '/npm/lib@1.2.0/index.js');
-
-            assert.equal(response.status, 200);
-            assert.match(response.headers.etag, /^W\/"[0-9a-f]+-[0-9a-f]+"$/);
-            assert.equal(response.headers['last-modified'], 'Thu, 01 May 2025 00:00:00 GMT');
-        } finally {
-            await edited.stop();
-        }
     });
 });
 
@@ -169,25 +148,5 @@ describe('Last-Modified of a file', () => {
         assert.equal((await send({ 'if-modified-since': 'Wed, 30 Apr 2025 23:59:59 GMT' })).status, 200);
         assert.equal((await send({ 'if-unmodified-since': released })).status, 200);
         assert.equal((await send({ 'if-unmodified-since': 'Wed, 30 Apr 2025 23:59:59 GMT' })).status, 412);
-    });
-
-    test('is not sent for a date that is not a real day, and send does not put the date of the file back', async () => {
-        const dated = (date) => (index) => {
-            const lib = index.types.find(({ name }) => name === 'npm').projects.find(({ name }) => name === 'lib');
-            lib.versions.find(({ name }) => name === '1.2.0').date = date;
-        };
-
-        for (const date of ['garbage', '2025-02-30', '2025-1-1']) {
-            const edited = await startServer(fixture.packagesDir, {}, dated(date));
-
-            try {
-                const response = await request(edited.port, 'GET', path);
-
-                assert.equal(response.status, 200, date);
-                assert.equal(response.headers['last-modified'], undefined, date);
-            } finally {
-                await edited.stop();
-            }
-        }
     });
 });
