@@ -107,10 +107,13 @@ if [ -z "$RESOLVED" ]; then
     err "Could not fetch version for ${BOLD}${NPM_PACKAGE:-$REPO}${NC}."
     exit 1
 fi
-VERSION="$RESOLVED"
+# The tag names the release on GitHub, the version names the folder: a leading v belongs to the tag only
+TAG="$RESOLVED"
+VERSION="${TAG#v}"
 
-# The folder name is the version, and the server reads anything else (latest, 6) as an alias
-if [[ ! "${VERSION#v}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+# Same rule as versions.mjs, matched in the C locale since a UTF-8 one lets [0-9] match full-width digits
+SEMVER='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(\.(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?$'
+if ! (LC_ALL=C; [[ "$VERSION" =~ $SEMVER ]]); then
     err "Version ${BOLD}$VERSION${NC} is not an exact version (X.Y.Z or X.Y.Z-tag)."
     exit 1
 fi
@@ -124,8 +127,7 @@ fi
 DEST="$ROOT_DIR/$PATH_DIR/$NAME/$VERSION"
 if [ -d "$DEST" ]; then
     if [ "$FORCE" = true ]; then
-        warn "Overwriting ${BOLD}$PATH_DIR/$NAME/$VERSION${NC}..."
-        rm -rf "$DEST"
+        warn "Overwriting ${BOLD}$PATH_DIR/$NAME/$VERSION${NC} once the release is fetched..."
     else
         info "Version ${BOLD}$VERSION${NC} already exists at ${BOLD}$PATH_DIR/$NAME/$VERSION${NC}."
         info "Use ${BOLD}--force${NC} to overwrite."
@@ -153,8 +155,8 @@ if [ -n "$NPM_PACKAGE" ]; then
     # npm packages are stored as their tarball minus top-level dotfiles (.prettierignore, .npmignore...)
     RSYNC_EXCLUDES+=(--exclude='/.*')
 else
-    step "Cloning ${BOLD}$REPO${NC}@${BOLD}$VERSION${NC}..."
-    git clone --depth 1 --branch "$VERSION" "https://github.com/$REPO.git" "$TMPDIR/repo" --quiet
+    step "Cloning ${BOLD}$REPO${NC}@${BOLD}$TAG${NC}..."
+    git clone --depth 1 --branch "$TAG" "https://github.com/$REPO.git" "$TMPDIR/repo" --quiet
     SOURCE="$TMPDIR/repo"
 
     # Build if needed
@@ -164,33 +166,35 @@ else
     fi
 fi
 
-# Copy files
+# Fetch release date from the GitHub release, trying the v-prefixed tag too for npm versions
+PUBLISHED=""
+for CANDIDATE in "$TAG" "v$VERSION"; do
+    if command -v gft &>/dev/null; then
+        PUBLISHED=$(gft "$REPO" "$CANDIDATE" --json 2>/dev/null | sed -n 's/.*"published_at":"\([^"]*\)".*/\1/p' || true)
+    else
+        PUBLISHED=$(curl -s "https://api.github.com/repos/$REPO/releases/tags/$CANDIDATE" | grep -o '"published_at":"[^"]*"' | cut -d'"' -f4 || true)
+    fi
+    [ -n "$PUBLISHED" ] && break
+done
+
+# The server reads the release day in UTC, so the fallback is the UTC day too
+DATE="${PUBLISHED%%T*}"
+if [ -z "$DATE" ]; then
+    DATE=$(date -u +%F)
+    warn "No release date found for ${BOLD}$VERSION${NC}, falling back to today (UTC)."
+fi
+
+# Recorded before any file lands, versions.mjs refusing a bad version, a bad date or a broken file
+node "$ROOT_DIR/scripts/versions.mjs" "$ROOT_DIR/$PATH_DIR/$NAME/.versions.json" "$VERSION" "$DATE"
+ok "Recorded release date ${BOLD}$DATE${NC}."
+
+# Copy files, an overwritten version being made equal to the release (excluded files included) rather than deleted first
 mkdir -p "$DEST"
 for pat in "${EXCLUDES[@]}"; do
     RSYNC_EXCLUDES+=(--exclude="$pat")
 done
 # Links pointing outside the source tree are dropped, the server would otherwise serve their target
-rsync -a --safe-links "${RSYNC_EXCLUDES[@]}" "$SOURCE/" "$DEST/"
-
-# Fetch release date from the GitHub release, trying the v-prefixed tag too for npm versions
-PUBLISHED=""
-for TAG in "$VERSION" "v$VERSION"; do
-    if command -v gft &>/dev/null; then
-        PUBLISHED=$(gft "$REPO" "$TAG" --json 2>/dev/null | sed -n 's/.*"published_at":"\([^"]*\)".*/\1/p' || true)
-    else
-        PUBLISHED=$(curl -s "https://api.github.com/repos/$REPO/releases/tags/$TAG" | grep -o '"published_at":"[^"]*"' | cut -d'"' -f4 || true)
-    fi
-    [ -n "$PUBLISHED" ] && break
-done
-
-DATE="${PUBLISHED%%T*}"
-if [ -z "$DATE" ]; then
-    DATE=$(date +%F)
-    warn "No release date found for ${BOLD}$VERSION${NC}, falling back to today."
-fi
-
-node "$ROOT_DIR/scripts/versions.mjs" "$ROOT_DIR/$PATH_DIR/$NAME/.versions.json" "$VERSION" "$DATE" "$REPO"
-ok "Recorded release date ${BOLD}$DATE${NC}."
+rsync -a --safe-links --delete --delete-excluded "${RSYNC_EXCLUDES[@]}" "$SOURCE/" "$DEST/"
 
 echo ""
 ok "Fetched ${BOLD}$NAME${NC}@${BOLD}$VERSION${NC} to ${BOLD}$PATH_DIR/$NAME/$VERSION${NC}"
