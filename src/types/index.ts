@@ -178,6 +178,11 @@ export interface EmptyBody {
     kind: 'empty';
 }
 
+export interface ByteRange {
+    start: number;
+    end: number;
+}
+
 export interface FileBody {
     kind: 'file';
     path: string;
@@ -212,6 +217,30 @@ export interface TarEntry {
 }
 
 export type TarRead = (source: string) => Promise<Uint8Array<ArrayBuffer>>;
+
+export type ReadFile = (path: string, range?: ByteRange) => Promise<ReadableStream<Uint8Array<ArrayBuffer>>>;
+
+export interface Validators {
+    etag: string;
+    lastModified: number;
+    size: number;
+}
+
+export interface Conditions {
+    method: string;
+    ifMatch: string | null;
+    ifNoneMatch: string | null;
+    ifModifiedSince: string | null;
+    ifUnmodifiedSince: string | null;
+    ifRange: string | null;
+    range: string | null;
+}
+
+export interface Decision {
+    status: 200 | 206 | 304 | 412 | 416;
+    headers: Record<string, string>;
+    range: ByteRange | null;
+}
 
 export interface Limiter {
     readonly size: number;
@@ -249,4 +278,5 @@ export interface AppDeps {
     packagesDir: string;
     version: string;
     logger: Logger;
+    read?: ReadFile;
 }
