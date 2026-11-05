@@ -4,8 +4,9 @@ import { join, sep } from 'path';
 
 import { parseDay } from './lib/dates.js';
 import { parseDeprecation } from './lib/deprecations.js';
-import { compareVersions, EXCLUDED_DIRS, indexNodes, isVersionName } from './lib/packages.js';
-import { RESERVED } from './lib/router.js';
+import { compareBytes } from './lib/order.js';
+import { isName, isProjectName, isSegment, RESERVED } from './lib/router.js';
+import { compareVersions, isVersion } from './lib/semver.js';
 import type {
     Deprecation,
     ErrorLogger,
@@ -13,11 +14,9 @@ import type {
     IndexDir,
     IndexNode,
     IndexProject,
+    IndexType,
     IndexVersion,
 } from './types/index.js';
-
-// Milliseconds in a day
-const DAY = 86_400_000;
 
 // Names that Express still matches in any case, so a type folder of that name in another case is skipped too
 const LENIENT = ['health', 'manifest'];
@@ -28,38 +27,37 @@ const LENIENT = ['health', 'manifest'];
  *
  * @param projectPath - Project folder, the parent of its version folders
  * @param logger - Receives each failure this function logs through its error() and nothing else
- * @returns The notice, or null when the file is missing, unreadable or refused by parseDeprecation, the last two
+ * @returns The notice, or undefined when the file is missing, unreadable or refused by parseDeprecation, the last two
  * being logged
  */
-function readDeprecation(projectPath: string, logger: ErrorLogger): Deprecation | null {
+function readDeprecation(projectPath: string, logger: ErrorLogger): Deprecation | undefined {
     const file = join(projectPath, '.deprecated.json');
-    if (!fs.existsSync(file)) return null;
+    if (!fs.existsSync(file)) return undefined;
 
     try {
         const notice = parseDeprecation(JSON.parse(fs.readFileSync(file, 'utf-8')));
         if (notice) return notice;
 
-        logger.error(`Invalid deprecation notice in ${file}: expected a date, a message and a successor.`);
+        logger.error(`Invalid deprecation notice in ${file}: expected a YYYY-MM-DD date, a message and a successor.`);
     } catch (error) {
         logger.error(`Error reading ${file}:`, error);
     }
 
-    return null;
+    return undefined;
 }
 
 /**
- * Tells whether a release date can be served: a real YYYY-MM-DD day from 1970 to tomorrow, UTC.
- * Tomorrow is allowed since fetch.sh writes the date of its own time zone when a release has none.
+ * Tells whether a release date can be served: a real YYYY-MM-DD day from 1970 to today, UTC.
+ * fetch.sh writes the UTC day, so no later day is allowed.
  *
  * @param date - Date read from .versions.json
- * @returns False for any other spelling, a day before the epoch (tar cannot carry it) or past tomorrow, which no
+ * @returns False for any other spelling, a day before the epoch (tar cannot carry it) or a day to come, which no
  * Last-Modified header may announce
  */
 function isReleaseDay(date: string): boolean {
     const time = parseDay(date);
-    const tomorrow = (Math.floor(Date.now() / DAY) + 1) * DAY;
 
-    return time !== null && time >= 0 && time <= tomorrow;
+    return time !== null && time >= 0 && time <= Date.now();
 }
 
 /**
@@ -86,7 +84,7 @@ function readDates(projectPath: string, logger: ErrorLogger): Map<string, string
         for (const [version, entry] of Object.entries(entries)) {
             const date = typeof entry === 'object' && entry !== null ? (entry as { date?: unknown }).date : undefined;
             if (typeof date === 'string' && isReleaseDay(date)) dates.set(version, date);
-            else logger.error(`Invalid date of ${version} in ${file}: expected a YYYY-MM-DD day, not after tomorrow.`);
+            else logger.error(`Invalid date of ${version} in ${file}: expected a YYYY-MM-DD day, not after today.`);
         }
     } catch (error) {
         logger.error(`Error reading ${file}:`, error);
@@ -128,19 +126,46 @@ function hashFile(path: string, logger: ErrorLogger): string | null {
  *
  * @param path - Absolute path of the link
  * @param root - Real path of the version folder, which the target must stay in
- * @returns The real target relative to root, '' for root itself, or null when the link dangles, loops or leads out of
- * root
+ * @returns The real target relative to root, its segments joined with '/' on every platform, '' for root itself, or
+ * undefined when the link dangles, loops or leads out of root
  */
-function linkTarget(path: string, root: string): string | null {
+function linkTarget(path: string, root: string): string | undefined {
     try {
         const real = fs.realpathSync(path);
         if (real === root) return '';
 
-        return real.startsWith(root + sep) ? real.slice(root.length + 1) : null;
+        return real.startsWith(root + sep)
+            ? real
+                  .slice(root.length + 1)
+                  .split(sep)
+                  .join('/')
+            : undefined;
     } catch {
         // ENOENT for a dangling link, ELOOP for a loop: neither has a target to serve
-        return null;
+        return undefined;
     }
+}
+
+/**
+ * Lists the subfolders to read at one level of the tree above the files of a version: types, projects and versions.
+ * A hidden entry and a plain file are left out without a word, such as .versions.json or a README next to the projects;
+ * a link, a FIFO or any other entry that is no folder is logged, so that nothing vanishes unseen.
+ *
+ * @param path - Absolute path of the folder to list
+ * @param logger - Receives each entry left out and nothing else through its error()
+ * @returns The folders in UTF-8 byte order, whatever order the platform lists them in; throws when path cannot be listed
+ */
+function listFolders(path: string, logger: ErrorLogger): fs.Dirent[] {
+    return fs
+        .readdirSync(path, { withFileTypes: true })
+        .filter((dirent) => {
+            if (dirent.name.startsWith('.') || dirent.isFile()) return false;
+            if (dirent.isDirectory()) return true;
+
+            logger.error(`Skipping ${join(path, dirent.name)}: not a folder, only folders are read at this level.`);
+            return false;
+        })
+        .sort((a, b) => compareBytes(a.name, b.name));
 }
 
 /**
@@ -150,21 +175,30 @@ function linkTarget(path: string, root: string): string | null {
  * @param dirent - Entry as its folder listing gave it, which tells its kind without following a link
  * @param root - Real path of the version folder, which link targets must stay in
  * @param logger - Receives each failure this function logs through its error() and nothing else
- * @returns The node of the entry, or none for a special file such as a FIFO, a socket or a device, which is logged;
- * throws when the entry cannot be stat'ed
+ * @returns The node of the entry, or none for a name that no route can match, a file that cannot be hashed or a special
+ * file such as a FIFO, a socket or a device, each logged; throws when the entry cannot be stat'ed or listed
  */
 function indexEntry(path: string, dirent: fs.Dirent, root: string, logger: ErrorLogger): IndexNode[] {
-    const stat = fs.lstatSync(path);
     const { name } = dirent;
+    if (!isSegment(name)) {
+        logger.error(`Skipping ${path}: no route can match this name.`);
+        return [];
+    }
 
     if (dirent.isDirectory()) return [walkFolder(path, name, root, logger)];
     if (dirent.isFile()) {
-        const exec = (stat.mode & 0o100) !== 0;
-        return [{ kind: 'file', name, mtime: stat.mtimeMs, size: stat.size, exec, sha256: hashFile(path, logger) }];
+        const stat = fs.lstatSync(path);
+        const sha256 = hashFile(path, logger);
+
+        return sha256 === null
+            ? []
+            : [{ kind: 'file', name, size: stat.size, exec: (stat.mode & 0o100) !== 0, sha256 }];
     }
     if (dirent.isSymbolicLink()) {
         const target = fs.readlinkSync(path);
-        return [{ kind: 'link', name, target, real: linkTarget(path, root) }];
+        const real = linkTarget(path, root);
+
+        return [real === undefined ? { kind: 'link', name, target } : { kind: 'link', name, target, real }];
     }
 
     logger.error(`Skipping ${path}: not a file, a folder or a link.`);
@@ -178,12 +212,14 @@ function indexEntry(path: string, dirent: fs.Dirent, root: string, logger: Error
  * @param name - Folder name, the version name for the version folder itself
  * @param root - Real path of the version folder, which link targets must stay in
  * @param logger - Receives each failure this function logs through its error() and nothing else
- * @returns The folder node, its entries in strcmp order and its size left to measure, or with null entries and size
- * when it cannot be listed, which is logged; an entry that cannot be stat'ed is logged and left out
+ * @returns The folder node, its entries in UTF-8 byte order; an entry or a subfolder that cannot be read is logged and
+ * left out, and throws when path itself cannot be listed
  */
 function walkFolder(path: string, name: string, root: string, logger: ErrorLogger): IndexDir {
-    try {
-        const entries = fs.readdirSync(path, { withFileTypes: true }).flatMap((dirent) => {
+    const entries = fs
+        .readdirSync(path, { withFileTypes: true })
+        .sort((a, b) => compareBytes(a.name, b.name))
+        .flatMap((dirent) => {
             const child = join(path, dirent.name);
             try {
                 return indexEntry(child, dirent, root, logger);
@@ -193,55 +229,21 @@ function walkFolder(path: string, name: string, root: string, logger: ErrorLogge
             }
         });
 
-        return { kind: 'dir', name, size: 0, entries };
-    } catch (error) {
-        logger.error(`Error reading ${path}:`, error);
-        return { kind: 'dir', name, size: null, entries: null };
-    }
+    return { kind: 'dir', name, entries };
 }
 
 /**
- * Sets the size of a folder of a version and of every folder below it.
- * A link to a file counts as its target while the target stays inside the version, a link to a folder counts nothing.
- *
- * @param dir - Folder to measure, its size and the sizes of its subfolders set in place
- * @param nodes - Nodes of the version by real path, which resolve the link targets
- * @returns Total size in bytes of the files below dir, or null when dir or a folder below it could not be listed
- */
-function measure(dir: IndexDir, nodes: Map<string, IndexNode>): number | null {
-    if (dir.entries === null) return null;
-
-    let total = 0;
-    let complete = true;
-    for (const node of dir.entries) {
-        if (node.kind === 'dir') {
-            const size = measure(node, nodes);
-            if (size === null) complete = false;
-            else total += size;
-            continue;
-        }
-
-        const target = node.kind === 'link' && node.real !== null ? nodes.get(node.real) : node;
-        if (target?.kind === 'file') total += target.size;
-    }
-    dir.size = complete ? total : null;
-
-    return dir.size;
-}
-
-/**
- * Indexes a version folder, its files hashed and its folders measured.
+ * Indexes a version folder, its files hashed.
  * A version is indexed whole or not at all: it is left out when anything in it could not be read.
  *
  * @param path - Absolute path of the version folder
  * @param name - Version name, the folder name
- * @param date - Release date recorded in .versions.json, undefined to use the UTC day of the folder mtime
+ * @param date - Release date recorded in .versions.json
  * @param logger - Receives each failure this function logs through its error() and nothing else
  * @returns The version node, or null when a file or folder below it could not be read, or is a special file, which is
- * logged; throws when the version folder cannot be stat'ed
+ * logged; throws when the version folder cannot be resolved
  */
-function scanVersion(path: string, name: string, date: string | undefined, logger: ErrorLogger): IndexVersion | null {
-    const stat = fs.statSync(path);
+function scanVersion(path: string, name: string, date: string, logger: ErrorLogger): IndexVersion | null {
     let failures = 0;
     const counter: ErrorLogger = {
         error: (...args) => {
@@ -250,96 +252,102 @@ function scanVersion(path: string, name: string, date: string | undefined, logge
         },
     };
 
-    const root = walkFolder(path, name, fs.realpathSync(path), counter);
-    if (failures > 0) {
+    let root: IndexDir | undefined;
+    try {
+        root = walkFolder(path, name, fs.realpathSync(path), counter);
+    } catch (error) {
+        counter.error(`Error reading ${path}:`, error);
+    }
+    if (failures > 0 || !root) {
         logger.error(`Skipping version ${path}: it could not be read whole.`);
         return null;
     }
 
-    const nodes = new Map<string, IndexNode>([['', root]]);
-    indexNodes(root, '', nodes);
-    measure(root, nodes);
-
-    // Without a date the folder mtime (fetch or checkout) stands in, never later than now so that it is a real day
-    const day = new Date(Math.max(0, Math.min(stat.mtimeMs, Date.now()))).toISOString().split('T')[0];
-
-    return { name, date: date ?? day, root };
+    return { name, date, root };
 }
 
 /**
- * Indexes a project folder, its versions sorted by compareVersions.
+ * Indexes a project folder, its versions sorted by semver.
+ * A version needs a folder named X.Y.Z or X.Y.Z-tag and a release date in .versions.json, and a project needs a version.
  *
- * @param path - Absolute path of the project folder, whose subfolders are the versions, symlinked ones left out
+ * @param path - Absolute path of the project folder, whose subfolders are the versions
  * @param name - Project name, the folder name
  * @param logger - Receives each failure this function logs through its error() and nothing else
- * @returns The project node, without a folder that isVersionName refuses, nor a version that cannot be indexed, each
- * logged; throws when the folder cannot be listed
+ * @returns The project node, or null when none of its versions could be indexed; a folder that is not a version name,
+ * a version without a date and a version that cannot be read are each logged and left out; throws when the folder
+ * cannot be listed
  */
-function scanProject(path: string, name: string, logger: ErrorLogger): IndexProject {
-    const versions = fs
-        .readdirSync(path, { withFileTypes: true })
-        .filter((dirent) => dirent.isDirectory())
-        .map((dirent) => dirent.name)
-        .filter((version) => {
-            if (isVersionName(version)) return true;
-
-            logger.error(`Skipping ${join(path, version)}: a version is never named latest nor holds an '@'.`);
-            return false;
-        })
-        .sort(compareVersions);
+function scanProject(path: string, name: string, logger: ErrorLogger): IndexProject | null {
     const dates = readDates(path, logger);
     const deprecated = readDeprecation(path, logger);
-    const scanned = versions.flatMap((version) => {
-        const versionPath = join(path, version);
-        try {
-            const indexed = scanVersion(versionPath, version, dates.get(version), logger);
+    const versions = listFolders(path, logger)
+        .map((dirent) => dirent.name)
+        .filter((version) => {
+            if (isVersion(version)) return true;
 
-            return indexed ? [indexed] : [];
-        } catch (error) {
-            logger.error(`Error reading ${versionPath}:`, error);
-            return [];
-        }
-    });
+            logger.error(`Skipping ${join(path, version)}: not a version name, expected X.Y.Z or X.Y.Z-tag.`);
+            return false;
+        })
+        .sort(compareVersions)
+        .flatMap((version) => {
+            const versionPath = join(path, version);
+            const date = dates.get(version);
+            if (date === undefined) {
+                logger.error(`Skipping version ${versionPath}: no release date in ${join(path, '.versions.json')}.`);
+                return [];
+            }
 
-    const undated = scanned.filter((version) => !dates.has(version.name)).map((version) => version.name);
-    if (undated.length > 0) {
-        const shown = undated.slice(0, 3).join(', ') + (undated.length > 3 ? ', ...' : '');
-        logger.error(
-            `No release date in ${join(path, '.versions.json')} for ${shown}, using the date of the version folder.`,
-        );
+            try {
+                const indexed = scanVersion(versionPath, version, date, logger);
+
+                return indexed ? [indexed] : [];
+            } catch (error) {
+                logger.error(`Error reading ${versionPath}:`, error);
+                return [];
+            }
+        });
+
+    if (versions.length === 0) {
+        logger.error(`Skipping project ${path}: none of its versions could be indexed.`);
+        return null;
     }
 
-    return { name, deprecated, versions: scanned };
+    return deprecated ? { name, deprecated, versions } : { name, versions };
 }
 
 /**
  * Indexes the projects of a package type.
  *
- * @param typePath - Absolute path of the type folder, whose subfolders other than 'list' are the projects
+ * @param typePath - Absolute path of the type folder, whose subfolders are the projects
  * @param logger - Receives each failure this function logs through its error() and nothing else
- * @returns Projects in strcmp order, empty when the type folder cannot be listed and without a project that cannot be
- * read, both logged
+ * @returns Projects in UTF-8 byte order, empty when the type folder cannot be listed and without a project that cannot
+ * be read, whose name isProjectName refuses or that has no version, each logged
  */
 function scanProjects(typePath: string, logger: ErrorLogger): IndexProject[] {
-    let dirents: fs.Dirent[];
+    let folders: fs.Dirent[];
     try {
-        dirents = fs.readdirSync(typePath, { withFileTypes: true });
+        folders = listFolders(typePath, logger);
     } catch (error) {
         logger.error(`Error reading ${typePath}:`, error);
         return [];
     }
 
-    return dirents
-        .filter((dirent) => dirent.isDirectory() && dirent.name !== 'list')
-        .flatMap((dirent) => {
-            const path = join(typePath, dirent.name);
-            try {
-                return [scanProject(path, dirent.name, logger)];
-            } catch (error) {
-                logger.error(`Error reading ${path}:`, error);
-                return [];
-            }
-        });
+    return folders.flatMap(({ name }) => {
+        const path = join(typePath, name);
+        if (!isProjectName(name)) {
+            logger.error(`Skipping ${path}: not a project name, expected letters, digits, '.', '_' and '-', not list.`);
+            return [];
+        }
+
+        try {
+            const project = scanProject(path, name, logger);
+
+            return project ? [project] : [];
+        } catch (error) {
+            logger.error(`Error reading ${path}:`, error);
+            return [];
+        }
+    });
 }
 
 /**
@@ -361,40 +369,48 @@ function isReserved(name: string, assets: string[]): boolean {
 }
 
 /**
- * Indexes a packages tree once, its files hashed and its folders measured, so the routes answer without the disk.
- * Arrays keep the readdir (strcmp) order, mtimes keep their fraction, and links keep their raw target next to their
- * real one; what cannot be read is logged and kept with null entries, size or hash, or left out.
+ * Indexes a packages tree once, its files hashed, so the routes answer without the disk.
+ * Every list is in UTF-8 byte order but the versions, which are in semver order; links keep their raw target next to
+ * their real one. What cannot be read, or that no route could serve, is logged and left out, and so is whatever then
+ * holds nothing: a version needs a date, a project a version and a type a project.
  *
- * @param root - Packages root, laid out as root/type/project/version, hidden, excluded and reserved type names skipped
- * @param logger - Receives each failure and each skipped reserved type through its error() and nothing else, console by
- * default
+ * @param root - Packages root, laid out as root/type/project/version, hidden and reserved type names skipped
+ * @param logger - Receives each failure and each skipped entry through its error() and nothing else, console by default
  * @param reserved - First path segments of the assets, which no type may take besides the names of the server routes,
  * none by default
- * @returns An index of format 1 that survives a JSON round trip, with no types when root is missing, not a folder or
+ * @returns An index of format 2 that survives a JSON round trip, with no types when root is missing, not a folder or
  * not readable, which is logged; throws when root cannot be listed for any other reason
  */
 export function scan(root: string, logger: ErrorLogger = console, reserved: string[] = []): Index {
-    let dirents: fs.Dirent[];
+    let folders: fs.Dirent[];
     try {
-        dirents = fs.readdirSync(root, { withFileTypes: true });
+        folders = listFolders(root, logger);
     } catch (error) {
         const { code } = error as NodeJS.ErrnoException;
         if (code !== 'ENOENT' && code !== 'ENOTDIR' && code !== 'EACCES') throw error;
 
         logger.error(`No packages folder at ${root}, serving an empty index.`);
-        return { format: 1, types: [] };
+        return { format: 2, types: [] };
     }
 
-    const types = dirents
-        .filter((dirent) => dirent.isDirectory() && !dirent.name.startsWith('.'))
-        .filter(({ name }) => !EXCLUDED_DIRS.includes(name))
-        .filter(({ name }) => {
-            if (!isReserved(name, reserved)) return true;
-
+    const types = folders.flatMap(({ name }): IndexType[] => {
+        if (isReserved(name, reserved)) {
             logger.error(`Skipping type '${name}': reserved name.`);
-            return false;
-        })
-        .map(({ name }) => ({ name, projects: scanProjects(join(root, name), logger) }));
+            return [];
+        }
+        if (!isName(name)) {
+            logger.error(`Skipping type '${name}': not a type name, expected letters, digits, '.', '_' and '-'.`);
+            return [];
+        }
 
-    return { format: 1, types };
+        const projects = scanProjects(join(root, name), logger);
+        if (projects.length === 0) {
+            logger.error(`Skipping type '${name}': none of its projects could be indexed.`);
+            return [];
+        }
+
+        return [{ name, projects }];
+    });
+
+    return { format: 2, types };
 }
