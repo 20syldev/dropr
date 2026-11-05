@@ -13,6 +13,7 @@ import { archiveEntries } from './archive.js';
 import { checksums } from './checksum.js';
 import { deprecationHeaders } from './deprecations.js';
 import { errorBody } from './errors.js';
+import { conditionsOf, decide } from './http.js';
 import { contentType } from './mime.js';
 import { getProject, resolveVersion, searchPackages } from './packages.js';
 import { followLink, resolvePath } from './paths.js';
@@ -30,6 +31,8 @@ interface Found {
     pinned: boolean;
 }
 
+const encoder = new TextEncoder();
+
 // Message of every 500, which never names a server path
 export const INTERNAL = 'An unexpected error occurred.';
 
@@ -42,10 +45,13 @@ export const INTERNAL = 'An unexpected error occurred.';
  * @returns The response, its Content-Type JSON in UTF-8, replacing any Content-Type of headers in place
  */
 export function json(status: number, data: unknown, headers: Record<string, string> = {}): RouteResponse {
+    const text = JSON.stringify(data, null, 2);
+    const length = String(encoder.encode(text).length);
+
     return {
         status,
-        headers: { ...headers, 'Content-Type': 'application/json; charset=utf-8' },
-        body: { kind: 'json', text: JSON.stringify(data, null, 2) },
+        headers: { ...headers, 'Content-Type': 'application/json; charset=utf-8', 'Content-Length': length },
+        body: { kind: 'json', text },
     };
 }
 
@@ -287,14 +293,16 @@ function versionsRoute(scope: Scope, type: string, project: CatalogProject): Rou
  * Answers /{type}/{project}@{version}/{file} with a file or the listing of a folder of the version.
  * Links are resolved inside the version only, so a link out of it reads as a missing file.
  *
- * @param scope - Request state, its If-None-Match compared with the file ETag
+ * @param scope - Request state: its headers, whose conditional and range fields decide() reads for a file
  * @param project - Project found by the path
  * @param found - Version that the path asks for, and whether it is pinned
  * @param file - Decoded path under the version, its segments joined with '/' and none of them empty
  * @param slash - True when the path ended with '/', which only a folder answers and which a missing file echoes
- * @returns 200 with a listing or a file body, 304 when the ETag matches, or 404 when the file is missing, is a file
- * reached with a trailing slash or is past MAX_LINKS link crossings, whatever If-None-Match says; a file has the quoted
- * SHA-256 of its bytes as its ETag and the release day of its version as its Last-Modified, on its 304 too
+ * @returns 200 with a listing, 200 or 206 with a file body (the whole file or its range, and the 404 to send in its
+ * place), 304 with no body, 412, 416 with the size in its Content-Range, or 404 when the file is missing, is a file
+ * reached with a trailing slash or is past MAX_LINKS link crossings, whatever the conditional headers say; a folder
+ * ignores them; a file has the quoted SHA-256 of its bytes as its ETag and the release day of its version as its
+ * Last-Modified, on its 304 too
  */
 function fileRoute(scope: Scope, project: CatalogProject, found: Found, file: string, slash: boolean): RouteResponse {
     const { version, pinned } = found;
@@ -315,29 +323,27 @@ function fileRoute(scope: Scope, project: CatalogProject, found: Found, file: st
 
     // Only an exact version is immutable: latest and partial versions move to the next release
     const cache = pinned ? 'public, max-age=31536000, immutable' : 'public, max-age=300';
-    const etag = `"${node.sha256}"`;
-    const headers: Record<string, string> = { ...scope.headers, 'Cache-Control': cache, ETag: etag };
+    const decision = decide(conditionsOf(scope.request), {
+        etag: `"${node.sha256}"`,
+        lastModified: version.released,
+        size: node.size,
+    });
+    if (decision.status === 412) return failure(412, `Precondition failed for file '${file}'.`, scope.headers);
+    if (decision.status === 416) {
+        return failure(416, `Range not satisfiable for file '${file}'.`, { ...scope.headers, ...decision.headers });
+    }
 
-    // Every file of a version shares the release day, 00:00:00 GMT
-    headers['Last-Modified'] = new Date(version.released).toUTCString();
-
-    if (scope.request.headers.get('if-none-match') === etag) return { status: 304, headers, body: { kind: 'empty' } };
+    const headers: Record<string, string> = { ...scope.headers, 'Cache-Control': cache, ...decision.headers };
+    if (decision.status === 304) return { status: 304, headers, body: { kind: 'empty' } };
 
     headers['Content-Type'] = contentType(file);
     headers['X-Content-Type-Options'] = 'nosniff';
 
-    return {
-        status: 200,
-        headers,
-        body: {
-            kind: 'file',
-            path: `${version.type}/${version.project}/${version.name}/${resolved.path}`,
-            size: node.size,
-            missing,
-            precondition: `Precondition failed for file '${file}'.`,
-            range: `Range not satisfiable for file '${file}'.`,
-        },
-    };
+    const path = `${version.type}/${version.project}/${version.name}/${resolved.path}`;
+
+    const gone = failure(404, missing, scope.headers);
+
+    return { status: decision.status, headers, body: { kind: 'file', path, range: decision.range, missing: gone } };
 }
 
 /**
