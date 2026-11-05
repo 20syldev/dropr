@@ -2,29 +2,29 @@ import fs from 'fs';
 import os from 'os';
 import { dirname, join } from 'path';
 
-// Date given to every entry (2025-01-01T12:00:00Z), so Last-Modified and the changelog mtime fallback never change
-const TIME = 1735732800;
-
 // Files of the generated tree, by path under the fixture root; secret.txt sits outside packages/ on purpose
 const FILES = {
     'secret.txt': 'outside the packages tree\n',
     'packages/.hidden/tool/1.0.0/a.txt': 'hidden folder, not a type\n',
-    'packages/bash/gft/.versions.json': '{ "1.0.0": { "date": "2025-03-01" }, "1.1.0": { "date": "2025-04-15" } }\n',
+    'packages/bash/gft/.versions.json':
+        '{ "1.0.0": { "date": "2025-03-01" }, "1.1.0": { "date": "2025-04-15" }, "1.2.0": { "date": "2025-01-01" } }\n',
     'packages/bash/gft/1.0.0/gft': '#!/bin/bash\necho "gft 1.0.0"\n',
     'packages/bash/gft/1.1.0/gft': '#!/bin/bash\necho "gft 1.1.0"\n',
     'packages/bash/gft/1.2.0/README.md': '# gft\n',
     'packages/bash/gft/1.2.0/gft': '#!/bin/bash\necho "gft 1.2.0"\n',
+    'packages/config/styles/.versions.json': '{ "1.0.0": { "date": "2025-01-01" } }\n',
     'packages/config/styles/1.0.0/data.json': '{ "b": 1, "a": 2 }\n',
     'packages/config/styles/1.0.0/logo.svg': '<svg xmlns="http://www.w3.org/2000/svg"/>\n',
     'packages/config/styles/1.0.0/theme.css': ':root { color: red; }\n',
     'packages/download/tool/1.0.0/a.txt': 'reserved name, not a type\n',
-    'packages/node_modules/tool/1.0.0/a.txt': 'excluded name, not a type\n',
     'packages/npm/README.md': 'a file next to the projects\n',
+    'packages/npm/bash-utils/.versions.json': '{ "1.0.0": { "date": "2025-01-01" } }\n',
     'packages/npm/bash-utils/1.0.0/index.js': 'export default "bash-utils";\n',
+    'packages/npm/broken/.versions.json': '{ "1.0.0": { "date": "2025-01-01" } }\n',
     'packages/npm/broken/1.0.0/index.js': 'export default "broken";\n',
     'packages/npm/broken/1.0.0/locked.bin': 'unreadable once locked\n',
     'packages/npm/lib/.versions.json':
-        '{ "1.0.0": { "date": "2025-02-01" }, "1.2.0": { "date": "2025-05-01" }, "2.0.0-pre": { "date": "2025-09-01" } }\n',
+        '{ "1.0.0": { "date": "2025-02-01" }, "1.2.0": { "date": "2025-05-01" }, "1.10.0": { "date": "2025-01-01" }, "2.0.0-pre": { "date": "2025-09-01" } }\n',
     'packages/npm/lib/1.0.0/dist/v3.js': 'export default "v3";\n',
     'packages/npm/lib/1.0.0/dist/v3/a.js': 'export default "a";\n',
     'packages/npm/lib/1.0.0/index.js': 'export default "1.0.0";\n',
@@ -37,14 +37,19 @@ const FILES = {
     'packages/npm/lib/1.2.0/package.json': '{ "name": "lib", "version": "1.2.0" }\n',
     'packages/npm/lib/1.10.0/index.js': 'export default "1.10.0";\n',
     'packages/npm/lib/2.0.0-pre/index.js': 'export default "2.0.0-pre";\n',
+    'packages/npm/links/.versions.json': '{ "1.0.0": { "date": "2025-01-01" } }\n',
     'packages/npm/links/1.0.0/dist/file.js': 'export default "file";\n',
     'packages/npm/links/1.0.0/index.js': 'export default "links";\n',
     'packages/npm/list/1.0.0/index.js': 'reserved name, not a project\n',
+    'packages/npm/next/.versions.json':
+        '{ "0.1.0-beta.2": { "date": "2025-01-01" }, "0.1.0-beta.10": { "date": "2025-01-01" } }\n',
     'packages/npm/next/0.1.0-beta.2/index.js': 'export default "0.1.0-beta.2";\n',
     'packages/npm/next/0.1.0-beta.10/index.js': 'export default "0.1.0-beta.10";\n',
     'packages/npm/old/.deprecated.json':
         '{ "date": "2025-06-01", "message": "Renamed to lib.", "successor": "https://dropr.sylvain.sh/npm/lib" }\n',
+    'packages/npm/old/.versions.json': '{ "1.0.0": { "date": "2025-01-01" } }\n',
     'packages/npm/old/1.0.0/index.js': 'export default "old";\n',
+    'packages/npm/sealed/.versions.json': '{ "1.0.0": { "date": "2025-01-01" } }\n',
     'packages/npm/sealed/1.0.0/index.js': 'export default "sealed";\n',
     'packages/npm/sealed/1.0.0/vault/key.txt': 'unreadable from startup\n',
 };
@@ -62,14 +67,11 @@ const LINKS = {
 // Scripts given the owner execute bit, which their archive entries keep as mode 0755
 const EXECUTABLES = ['packages/bash/gft/1.0.0/gft', 'packages/bash/gft/1.1.0/gft', 'packages/bash/gft/1.2.0/gft'];
 
-// File made unreadable, so that tar fails on it
+// File made unreadable, so that the scan leaves its whole version out
 const LOCKED = 'packages/npm/broken/1.0.0/locked.bin';
 
-// Folder made unreadable before the server starts, so that its listing fails while the rest of its version serves
+// Folder made unreadable before the scan, so that the scan leaves its whole version out
 const VAULT = 'packages/npm/sealed/1.0.0/vault';
-
-// File dated a fraction of a millisecond before 12:00:01, which the index keeps and Last-Modified rounds up
-const FRACTIONAL = { path: 'packages/npm/lib/1.0.0/index.js', time: 1735732800.999614 };
 
 /**
  * Tells whether the current user can read a path, which a mode of 000 does not prevent for root.
@@ -115,7 +117,6 @@ function removeEntries(created) {
 
 /**
  * Writes the generated packages tree into a new temporary folder.
- * Dates are set once the whole tree is written, since each write moves the mtime of its folder.
  *
  * @returns The fixture root, its packages folder, locked set to false when LOCKED or VAULT stays readable (as for
  * root), and remove() which gives VAULT its mode back, then deletes exactly the entries written here
@@ -136,8 +137,6 @@ export function createFixture() {
         fs.symlinkSync(target, link);
         created.push(link);
     }
-    for (const path of created) fs.lutimesSync(path, TIME, TIME);
-    fs.utimesSync(join(root, FRACTIONAL.path), FRACTIONAL.time, FRACTIONAL.time);
     for (const path of EXECUTABLES) fs.chmodSync(join(root, path), 0o755);
 
     const vault = join(root, VAULT);
