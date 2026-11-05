@@ -1,7 +1,21 @@
-import type { CatalogVersion, IndexDir, IndexFile, Resolved } from '../types/index.js';
+import type { CatalogDir, CatalogVersion, IndexFile, IndexLink, Resolved } from '../types/index.js';
 
-// Link crossings a path may take, the kernel's own limit past which it fails with ELOOP
+// Link crossings a path may take, which bounds the work of one request: the length of the URL alone allows thousands
 export const MAX_LINKS = 40;
+
+/**
+ * Follows a link of a version to what it leads to.
+ * A link keeps its real path only while its target is a file or a folder inside the version, which loadIndex checked.
+ *
+ * @param version - Version holding the link, whose nodes are looked up by real path
+ * @param link - Link node of that version
+ * @returns The folder or file the link leads to, or undefined for a link that dangles, loops or leaves the version
+ */
+export function followLink(version: CatalogVersion, link: IndexLink): CatalogDir | IndexFile | undefined {
+    if (link.real === undefined) return undefined;
+
+    return version.nodes.get(link.real) as CatalogDir | IndexFile;
+}
 
 /**
  * Walks a path through the index of a version, following links only while their target stays inside the version.
@@ -9,17 +23,17 @@ export const MAX_LINKS = 40;
  *
  * @param version - Version whose nodes are walked, the link targets looked up by their real path
  * @param path - Decoded path relative to the version folder, its segments joined with '/', '' for the folder itself
- * @returns The folder or file reached, its real path relative to the version folder and how many links were crossed,
- * or null when a segment is missing, sits below a file or a folder that could not be read, or crosses a link that
- * dangles, escapes or loops
+ * @returns The folder or file reached and its real path relative to the version folder, or null when a segment is
+ * missing, sits below a file, or crosses a link that dangles, escapes or loops, or when the path crosses more than
+ * MAX_LINKS links
  */
 export function resolvePath(version: CatalogVersion, path: string): Resolved | null {
-    let node: IndexDir | IndexFile = version.root;
+    let node: CatalogDir | IndexFile = version.root;
     let real = '';
     let hops = 0;
 
     for (const name of path === '' ? [] : path.split('/')) {
-        if (node.kind !== 'dir' || node.entries === null) return null;
+        if (node.kind !== 'dir') return null;
 
         const childPath = real === '' ? name : `${real}/${name}`;
         const child = version.nodes.get(childPath);
@@ -29,15 +43,13 @@ export function resolvePath(version: CatalogVersion, path: string): Resolved | n
             real = childPath;
             continue;
         }
-        if (child.real === null) return null;
 
-        const target = version.nodes.get(child.real);
-        if (!target || target.kind === 'link') return null;
+        const target = followLink(version, child);
+        if (!target || ++hops > MAX_LINKS) return null;
 
         node = target;
-        real = child.real;
-        hops++;
+        real = child.real as string;
     }
 
-    return { node, path: real, hops };
+    return { node, path: real };
 }

@@ -1,4 +1,4 @@
-import type { CatalogVersion, IndexDir, TarEntry, TarRead } from '../types/index.js';
+import type { CatalogDir, CatalogVersion, TarEntry, TarRead } from '../types/index.js';
 
 const BLOCK = 512;
 
@@ -13,7 +13,7 @@ const TYPEFLAGS: Record<TarEntry['kind'], string> = { dir: '5', file: '0', link:
 const encoder = new TextEncoder();
 
 /**
- * Adds the entries below a folder of a version to an archive list, in pre-order and strcmp order.
+ * Adds the entries below a folder of a version to an archive list, in pre-order and byte order.
  * Links are kept as links, whatever they point to, so nothing is written below a link to a folder.
  *
  * @param version - Version holding the folder, whose type and project start the file sources
@@ -21,16 +21,13 @@ const encoder = new TextEncoder();
  * @param path - Archive path of dir, the version name first and without a trailing slash
  * @param mtime - Modification time given to every entry, in whole seconds since the epoch
  * @param entries - List filled in place
- * @returns False when a folder below could not be listed at scan, leaving entries partial
  */
-function addEntries(version: CatalogVersion, dir: IndexDir, path: string, mtime: number, entries: TarEntry[]): boolean {
-    if (dir.entries === null) return false;
-
+function addEntries(version: CatalogVersion, dir: CatalogDir, path: string, mtime: number, entries: TarEntry[]): void {
     for (const node of dir.entries) {
         const child = `${path}/${node.name}`;
         if (node.kind === 'dir') {
             entries.push({ kind: 'dir', path: `${child}/`, mode: 0o755, mtime, size: 0, target: null, source: null });
-            if (!addEntries(version, node, child, mtime, entries)) return false;
+            addEntries(version, node, child, mtime, entries);
         } else if (node.kind === 'file') {
             const mode = node.exec ? 0o755 : 0o644;
             const source = `${version.type}/${version.project}/${child}`;
@@ -39,8 +36,6 @@ function addEntries(version: CatalogVersion, dir: IndexDir, path: string, mtime:
             entries.push({ kind: 'link', path: child, mode: 0o777, mtime, size: 0, target: node.target, source: null });
         }
     }
-
-    return true;
 }
 
 /**
@@ -48,19 +43,18 @@ function addEntries(version: CatalogVersion, dir: IndexDir, path: string, mtime:
  * Every entry carries the release date of the version rather than its file date, so a version gives the same tar
  * bytes on every deploy, whatever date the checkout gave the files.
  *
- * @param version - Version to archive, its date a YYYY-MM-DD day; a date that does not parse, or one before 1970,
- * gives the epoch
- * @returns Entries in archive order, file sources relative to the packages root, or null when a folder of the version
- * could not be listed at scan
+ * @param version - Version to archive, whose release day is the time of every entry
+ * @returns Entries in archive order, file sources relative to the packages root
  */
-export function archiveEntries(version: CatalogVersion): TarEntry[] | null {
-    const seconds = Math.floor(Date.parse(version.date) / 1000);
-    const mtime = Number.isNaN(seconds) ? 0 : Math.max(0, seconds);
+export function archiveEntries(version: CatalogVersion): TarEntry[] {
+    const mtime = version.released / 1000;
     const entries: TarEntry[] = [
         { kind: 'dir', path: `${version.name}/`, mode: 0o755, mtime, size: 0, target: null, source: null },
     ];
 
-    return addEntries(version, version.root, version.name, mtime, entries) ? entries : null;
+    addEntries(version, version.root, version.name, mtime, entries);
+
+    return entries;
 }
 
 /**
@@ -259,21 +253,18 @@ async function fileData(entry: TarEntry, read: TarRead): Promise<Uint8Array<Arra
  * Streams a gzipped tar archive of the given entries, one entry per pull, so at most one file is held in memory.
  * The tar bytes depend only on the entries and the file contents: no clock, owner, umask or disk order goes in.
  *
- * @param entries - Entries in archive order, written as given; null, for a version that cannot be archived, errors the
- * stream on its first pull
+ * @param entries - Entries in archive order, written as given
  * @param read - Returns the whole content of a file entry source; a rejection, or a length other than the entry size,
  * errors the stream
  * @returns Gzip bytes of an archive ended by two zero blocks and padded to a multiple of 10240 bytes; an error midway
  * leaves it truncated, which the caller must report as a failed download
  */
-export function archiveStream(entries: TarEntry[] | null, read: TarRead): ReadableStream<Uint8Array<ArrayBuffer>> {
+export function archiveStream(entries: TarEntry[], read: TarRead): ReadableStream<Uint8Array<ArrayBuffer>> {
     let next = 0;
     let written = 0;
 
     const tar = new ReadableStream<Uint8Array<ArrayBuffer>>({
         async pull(controller) {
-            if (!entries) throw new Error('The version is unknown or has a folder that could not be read');
-
             if (next === entries.length) {
                 controller.enqueue(new Uint8Array(Math.ceil((written + 2 * BLOCK) / RECORD) * RECORD - written));
                 controller.close();
