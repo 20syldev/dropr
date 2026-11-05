@@ -67,6 +67,15 @@ PATH_DIR="$2"
 VERSION="${3:-}"
 NAME="${4:-${REPO##*/}}"
 
+# The name rule of the server (isName in src/lib/router.ts), matched in the C locale like the version below
+PACKAGE_NAME='^[A-Za-z0-9_][A-Za-z0-9._-]*$'
+for PART in "${PATH_DIR##*/}" "$NAME"; do
+    if [ "$PART" = list ] || ! (LC_ALL=C; [[ "$PART" =~ $PACKAGE_NAME ]]); then
+        err "${BOLD}$PART${NC} is not a name the server indexes (letters, digits, '.', '_' and '-', not list)."
+        exit 1
+    fi
+done
+
 # Deprecated projects are frozen, new versions go to their successor
 DEPRECATED="$ROOT_DIR/$PATH_DIR/$NAME/.deprecated.json"
 if [ -f "$DEPRECATED" ]; then
