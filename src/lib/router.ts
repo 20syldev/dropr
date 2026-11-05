@@ -4,6 +4,41 @@ import type { Match } from '../types/index.js';
 export const RESERVED = ['download', 'health', 'manifest', 'search'];
 
 /**
+ * Tells whether a name can be one segment of a path that the router matches.
+ * A name that is empty, is a dot segment, or holds a '/', a '\\' or a control character never reaches a route, since the
+ * router refuses the decoded segment, so a file or a folder of that name could be listed and archived but not served.
+ *
+ * @param name - Decoded name, such as a folder or a file name
+ * @returns True when the router can match the name as one segment
+ */
+export function isSegment(name: string): boolean {
+    return name !== '' && name !== '.' && name !== '..' && !/[\\/]|\p{Cc}/u.test(name);
+}
+
+/**
+ * Tells whether a folder name can be a package type or a project.
+ * The name ends up in a URL, in the file name of an archive and in a header, so it is kept to letters, digits, '.', '_'
+ * and '-' and does not start with a dot (which also keeps hidden folders out); the router cuts a project segment at its
+ * last '@', and the listing of a type holds a 'list' key next to its projects.
+ *
+ * @param name - Folder name at the top of the packages tree or inside a type folder
+ * @returns True for an ASCII name that does not start with a dot or a dash
+ */
+export function isName(name: string): boolean {
+    return /^[A-Za-z0-9_][A-Za-z0-9._-]*$/.test(name);
+}
+
+/**
+ * Tells whether a name can be a project.
+ *
+ * @param name - Folder name inside a type folder
+ * @returns True for a name that isName accepts, which is not 'list'
+ */
+export function isProjectName(name: string): boolean {
+    return isName(name) && name !== 'list';
+}
+
+/**
  * Splits a project segment into its name and its version at the last '@'.
  * An '@' in first or last place is no separator, so such a segment stays a name that no project holds.
  *
@@ -39,7 +74,7 @@ export function matchPath(pathname: string): Match {
             return { id: 'encoding' };
         }
     }
-    if (segments.some((segment) => segment === '' || /[\\/]|\p{Cc}/u.test(segment))) return { id: 'unknown' };
+    if (!segments.every(isSegment)) return { id: 'unknown' };
 
     const [first, second, third] = segments;
     const { length } = segments;
