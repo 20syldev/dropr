@@ -59,13 +59,14 @@ export async function listen(app) {
  *
  * @param packagesDir - Packages tree, the repository's packages/ by default
  * @param change - Config keys that replace the ones of the repository config
+ * @param deps - Dependencies of createApp that replace the default ones, such as a read port
  * @returns The port, stop(), and what the app logged in requests and errors, the scan messages included
  */
-export async function startServer(packagesDir = config.packagesDir, change = {}) {
+export async function startServer(packagesDir = config.packagesDir, change = {}, deps = {}) {
     const logs = { requests: [], errors: [] };
     const logger = { request: (entry) => logs.requests.push(entry), error: (...args) => logs.errors.push(args) };
     const index = scan(packagesDir, logger);
-    const app = createApp({ ...config, ...change }, { index, packagesDir, version, logger });
+    const app = createApp({ ...config, ...change }, { index, packagesDir, version, logger, ...deps });
 
     return { ...(await listen(app)), logs };
 }
