@@ -186,10 +186,8 @@ export interface ByteRange {
 export interface FileBody {
     kind: 'file';
     path: string;
-    size: number;
-    missing: string;
-    precondition: string;
-    range: string;
+    range: ByteRange | null;
+    missing: RouteResponse;
 }
 
 export interface ArchiveBody {
@@ -215,8 +213,6 @@ export interface TarEntry {
     target: string | null;
     source: string | null;
 }
-
-export type TarRead = (source: string) => Promise<Uint8Array<ArrayBuffer>>;
 
 export type ReadFile = (path: string, range?: ByteRange) => Promise<ReadableStream<Uint8Array<ArrayBuffer>>>;
 
