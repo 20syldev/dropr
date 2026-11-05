@@ -19,7 +19,7 @@ exports[`routes > GET / 1`] = `
 {
   "status": 200,
   "headers": {
-    "content-length": "2209",
+    "content-length": "1947",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
@@ -61,12 +61,6 @@ exports[`routes > GET / 1`] = `
             "1.0.0": "/npm/bash-utils@1.0.0"
           }
         },
-        "broken": {
-          "list": "/npm/broken",
-          "versions": {
-            "latest": "/npm/broken@latest"
-          }
-        },
         "lib": {
           "list": "/npm/lib",
           "versions": {
@@ -103,12 +97,6 @@ exports[`routes > GET / 1`] = `
             "message": "Renamed to lib.",
             "successor": "https://dropr.sylvain.sh/npm/lib"
           }
-        },
-        "sealed": {
-          "list": "/npm/sealed",
-          "versions": {
-            "latest": "/npm/sealed@latest"
-          }
         }
       }
     }
@@ -120,7 +108,7 @@ exports[`routes > GET /%64ownload/npm 1`] = `
 {
   "status": 200,
   "headers": {
-    "content-length": "1286",
+    "content-length": "1118",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
@@ -132,10 +120,6 @@ exports[`routes > GET /%64ownload/npm 1`] = `
         "versions": {
           "1.0.0": "/download/npm/bash-utils@1.0.0"
         }
-      },
-      "broken": {
-        "latest": "/download/npm/broken",
-        "versions": {}
       },
       "lib": {
         "latest": "/download/npm/lib",
@@ -169,10 +153,6 @@ exports[`routes > GET /%64ownload/npm 1`] = `
         "versions": {
           "1.0.0": "/download/npm/old@1.0.0"
         }
-      },
-      "sealed": {
-        "latest": "/download/npm/sealed",
-        "versions": {}
       }
     }
   }
@@ -520,7 +500,7 @@ exports[`routes > GET /download 1`] = `
 {
   "status": 200,
   "headers": {
-    "content-length": "1838",
+    "content-length": "1654",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
@@ -551,10 +531,6 @@ exports[`routes > GET /download 1`] = `
           "versions": {
             "1.0.0": "/download/npm/bash-utils@1.0.0"
           }
-        },
-        "broken": {
-          "latest": "/download/npm/broken",
-          "versions": {}
         },
         "lib": {
           "latest": "/download/npm/lib",
@@ -588,10 +564,6 @@ exports[`routes > GET /download 1`] = `
           "versions": {
             "1.0.0": "/download/npm/old@1.0.0"
           }
-        },
-        "sealed": {
-          "latest": "/download/npm/sealed",
-          "versions": {}
         }
       }
     }
@@ -635,7 +607,7 @@ exports[`routes > GET /download/npm 1`] = `
 {
   "status": 200,
   "headers": {
-    "content-length": "1286",
+    "content-length": "1118",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
@@ -647,10 +619,6 @@ exports[`routes > GET /download/npm 1`] = `
         "versions": {
           "1.0.0": "/download/npm/bash-utils@1.0.0"
         }
-      },
-      "broken": {
-        "latest": "/download/npm/broken",
-        "versions": {}
       },
       "lib": {
         "latest": "/download/npm/lib",
@@ -684,10 +652,6 @@ exports[`routes > GET /download/npm 1`] = `
         "versions": {
           "1.0.0": "/download/npm/old@1.0.0"
         }
-      },
-      "sealed": {
-        "latest": "/download/npm/sealed",
-        "versions": {}
       }
     }
   }
@@ -698,7 +662,7 @@ exports[`routes > GET /download/npm/ 1`] = `
 {
   "status": 200,
   "headers": {
-    "content-length": "1286",
+    "content-length": "1118",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
@@ -710,10 +674,6 @@ exports[`routes > GET /download/npm/ 1`] = `
         "versions": {
           "1.0.0": "/download/npm/bash-utils@1.0.0"
         }
-      },
-      "broken": {
-        "latest": "/download/npm/broken",
-        "versions": {}
       },
       "lib": {
         "latest": "/download/npm/lib",
@@ -747,10 +707,6 @@ exports[`routes > GET /download/npm/ 1`] = `
         "versions": {
           "1.0.0": "/download/npm/old@1.0.0"
         }
-      },
-      "sealed": {
-        "latest": "/download/npm/sealed",
-        "versions": {}
       }
     }
   }
@@ -1005,7 +961,7 @@ exports[`routes > GET /health 1`] = `
     "status": "ok",
     "version": "<version>",
     "uptime": "<uptime>",
-    "packages": 9,
+    "packages": 7,
     "memory": "<memory>"
   }
 }
@@ -1402,7 +1358,7 @@ exports[`routes > GET /npm 1`] = `
 {
   "status": 200,
   "headers": {
-    "content-length": "1411",
+    "content-length": "1173",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
@@ -1415,12 +1371,6 @@ exports[`routes > GET /npm 1`] = `
         "versions": {
           "latest": "/npm/bash-utils@latest",
           "1.0.0": "/npm/bash-utils@1.0.0"
-        }
-      },
-      "broken": {
-        "list": "/npm/broken",
-        "versions": {
-          "latest": "/npm/broken@latest"
         }
       },
       "lib": {
@@ -1458,12 +1408,6 @@ exports[`routes > GET /npm 1`] = `
           "date": "2025-06-01",
           "message": "Renamed to lib.",
           "successor": "https://dropr.sylvain.sh/npm/lib"
-        }
-      },
-      "sealed": {
-        "list": "/npm/sealed",
-        "versions": {
-          "latest": "/npm/sealed@latest"
         }
       }
     }
@@ -1475,7 +1419,7 @@ exports[`routes > GET /npm/ 1`] = `
 {
   "status": 200,
   "headers": {
-    "content-length": "1411",
+    "content-length": "1173",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
@@ -1488,12 +1432,6 @@ exports[`routes > GET /npm/ 1`] = `
         "versions": {
           "latest": "/npm/bash-utils@latest",
           "1.0.0": "/npm/bash-utils@1.0.0"
-        }
-      },
-      "broken": {
-        "list": "/npm/broken",
-        "versions": {
-          "latest": "/npm/broken@latest"
         }
       },
       "lib": {
@@ -1531,12 +1469,6 @@ exports[`routes > GET /npm/ 1`] = `
           "date": "2025-06-01",
           "message": "Renamed to lib.",
           "successor": "https://dropr.sylvain.sh/npm/lib"
-        }
-      },
-      "sealed": {
-        "list": "/npm/sealed",
-        "versions": {
-          "latest": "/npm/sealed@latest"
         }
       }
     }
@@ -1646,14 +1578,14 @@ exports[`routes > GET /npm/broken@1.0.0/locked.bin 1`] = `
 {
   "status": 404,
   "headers": {
-    "content-length": "113",
+    "content-length": "100",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
   "body": {
     "status": 404,
     "error": "Not Found",
-    "message": "Version 1.0.0 does not exist in the 'broken' project."
+    "message": "Project 'broken' does not exist in /npm."
   }
 }
 `;
@@ -1662,14 +1594,14 @@ exports[`routes > GET /npm/broken@1.0.0?checksums 1`] = `
 {
   "status": 404,
   "headers": {
-    "content-length": "113",
+    "content-length": "100",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
   "body": {
     "status": 404,
     "error": "Not Found",
-    "message": "Version 1.0.0 does not exist in the 'broken' project."
+    "message": "Project 'broken' does not exist in /npm."
   }
 }
 `;
@@ -1678,14 +1610,14 @@ exports[`routes > GET /npm/broken@1.0.0?download 1`] = `
 {
   "status": 404,
   "headers": {
-    "content-length": "113",
+    "content-length": "100",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
   "body": {
     "status": 404,
     "error": "Not Found",
-    "message": "Version 1.0.0 does not exist in the 'broken' project."
+    "message": "Project 'broken' does not exist in /npm."
   }
 }
 `;
@@ -3084,7 +3016,7 @@ exports[`routes > GET /npm/links@1.0.0 1`] = `
 {
   "status": 200,
   "headers": {
-    "content-length": "410",
+    "content-length": "408",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
@@ -3100,7 +3032,7 @@ exports[`routes > GET /npm/links@1.0.0 1`] = `
       },
       {
         "name": "folder/",
-        "size": null,
+        "size": 23,
         "directory": true
       },
       {
@@ -3138,7 +3070,7 @@ exports[`routes > GET /npm/links@1.0.0/dist 1`] = `
 {
   "status": 200,
   "headers": {
-    "content-length": "239",
+    "content-length": "237",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
@@ -3154,7 +3086,7 @@ exports[`routes > GET /npm/links@1.0.0/dist 1`] = `
       },
       {
         "name": "loop/",
-        "size": null,
+        "size": 71,
         "directory": true
       }
     ]
@@ -3166,7 +3098,7 @@ exports[`routes > GET /npm/links@1.0.0/dist/loop 1`] = `
 {
   "status": 200,
   "headers": {
-    "content-length": "407",
+    "content-length": "403",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
@@ -3177,12 +3109,12 @@ exports[`routes > GET /npm/links@1.0.0/dist/loop 1`] = `
     "files": [
       {
         "name": "dist/",
-        "size": null,
+        "size": 23,
         "directory": true
       },
       {
         "name": "folder/",
-        "size": null,
+        "size": 23,
         "directory": true
       },
       {
@@ -3222,8 +3154,7 @@ exports[`routes > GET /npm/links@1.0.0/dist/loop/... (index.js after 40 and 41 l
   "headers": {
     "content-length": "545",
     "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>",
-    "x-content-type-options": "nosniff"
+    "etag": "W/<weak>"
   },
   "body": {
     "status": 404,
@@ -3235,16 +3166,16 @@ exports[`routes > GET /npm/links@1.0.0/dist/loop/... (index.js after 40 and 41 l
 
 exports[`routes > GET /npm/links@1.0.0/dist/loop/... (index.js after 40 and 41 link crossings, dist after 41) 3`] = `
 {
-  "status": 500,
+  "status": 404,
   "headers": {
-    "content-length": "101",
+    "content-length": "541",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
   "body": {
-    "status": 500,
-    "error": "Internal Server Error",
-    "message": "An unexpected error occurred."
+    "status": 404,
+    "error": "Not Found",
+    "message": "File 'dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist/loop/dist' does not exist in the 1.0.0 version of the 'links' project."
   }
 }
 `;
@@ -3269,7 +3200,7 @@ exports[`routes > GET /npm/links@1.0.0/folder 1`] = `
 {
   "status": 200,
   "headers": {
-    "content-length": "241",
+    "content-length": "239",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
@@ -3285,7 +3216,7 @@ exports[`routes > GET /npm/links@1.0.0/folder 1`] = `
       },
       {
         "name": "loop/",
-        "size": null,
+        "size": 71,
         "directory": true
       }
     ]
@@ -3687,14 +3618,14 @@ exports[`routes > GET /npm/sealed@1.0.0 1`] = `
 {
   "status": 404,
   "headers": {
-    "content-length": "113",
+    "content-length": "100",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
   "body": {
     "status": 404,
     "error": "Not Found",
-    "message": "Version 1.0.0 does not exist in the 'sealed' project."
+    "message": "Project 'sealed' does not exist in /npm."
   }
 }
 `;
@@ -3703,14 +3634,14 @@ exports[`routes > GET /npm/sealed@1.0.0/index.js 1`] = `
 {
   "status": 404,
   "headers": {
-    "content-length": "113",
+    "content-length": "100",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
   "body": {
     "status": 404,
     "error": "Not Found",
-    "message": "Version 1.0.0 does not exist in the 'sealed' project."
+    "message": "Project 'sealed' does not exist in /npm."
   }
 }
 `;
@@ -3719,14 +3650,14 @@ exports[`routes > GET /npm/sealed@1.0.0/vault 1`] = `
 {
   "status": 404,
   "headers": {
-    "content-length": "113",
+    "content-length": "100",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
   "body": {
     "status": 404,
     "error": "Not Found",
-    "message": "Version 1.0.0 does not exist in the 'sealed' project."
+    "message": "Project 'sealed' does not exist in /npm."
   }
 }
 `;
@@ -3735,14 +3666,14 @@ exports[`routes > GET /npm/sealed@1.0.0/vault/key.txt 1`] = `
 {
   "status": 404,
   "headers": {
-    "content-length": "113",
+    "content-length": "100",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
   "body": {
     "status": 404,
     "error": "Not Found",
-    "message": "Version 1.0.0 does not exist in the 'sealed' project."
+    "message": "Project 'sealed' does not exist in /npm."
   }
 }
 `;
@@ -3751,14 +3682,14 @@ exports[`routes > GET /npm/sealed@1.0.0?checksums 1`] = `
 {
   "status": 404,
   "headers": {
-    "content-length": "113",
+    "content-length": "100",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
   "body": {
     "status": 404,
     "error": "Not Found",
-    "message": "Version 1.0.0 does not exist in the 'sealed' project."
+    "message": "Project 'sealed' does not exist in /npm."
   }
 }
 `;
@@ -3767,14 +3698,14 @@ exports[`routes > GET /npm/sealed@1.0.0?download 1`] = `
 {
   "status": 404,
   "headers": {
-    "content-length": "113",
+    "content-length": "100",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
   "body": {
     "status": 404,
     "error": "Not Found",
-    "message": "Version 1.0.0 does not exist in the 'sealed' project."
+    "message": "Project 'sealed' does not exist in /npm."
   }
 }
 `;
@@ -3981,13 +3912,13 @@ exports[`routes > GET /search?q=e 1`] = `
 {
   "status": 200,
   "headers": {
-    "content-length": "643",
+    "content-length": "381",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
   "body": {
     "query": "e",
-    "count": 4,
+    "count": 2,
     "results": [
       {
         "type": "config",
@@ -4000,14 +3931,6 @@ exports[`routes > GET /search?q=e 1`] = `
       },
       {
         "type": "npm",
-        "name": "broken",
-        "versions": [
-          "latest"
-        ],
-        "url": "/npm/broken"
-      },
-      {
-        "type": "npm",
         "name": "next",
         "versions": [
           "latest",
@@ -4015,14 +3938,6 @@ exports[`routes > GET /search?q=e 1`] = `
           "0.1.0-beta.10"
         ],
         "url": "/npm/next"
-      },
-      {
-        "type": "npm",
-        "name": "sealed",
-        "versions": [
-          "latest"
-        ],
-        "url": "/npm/sealed"
       }
     ]
   }
@@ -4062,13 +3977,13 @@ exports[`routes > GET /search?q=npm 1`] = `
 {
   "status": 200,
   "headers": {
-    "content-length": "1288",
+    "content-length": "1026",
     "content-type": "application/json; charset=utf-8",
     "etag": "W/<weak>"
   },
   "body": {
     "query": "npm",
-    "count": 7,
+    "count": 5,
     "results": [
       {
         "type": "npm",
@@ -4078,14 +3993,6 @@ exports[`routes > GET /search?q=npm 1`] = `
           "1.0.0"
         ],
         "url": "/npm/bash-utils"
-      },
-      {
-        "type": "npm",
-        "name": "broken",
-        "versions": [
-          "latest"
-        ],
-        "url": "/npm/broken"
       },
       {
         "type": "npm",
@@ -4131,14 +4038,6 @@ exports[`routes > GET /search?q=npm 1`] = `
           "message": "Renamed to lib.",
           "successor": "https://dropr.sylvain.sh/npm/lib"
         }
-      },
-      {
-        "type": "npm",
-        "name": "sealed",
-        "versions": [
-          "latest"
-        ],
-        "url": "/npm/sealed"
       }
     ]
   }
