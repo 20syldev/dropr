@@ -1,5 +1,4 @@
 import assert from 'assert/strict';
-import crypto from 'crypto';
 
 import { sha256 } from './server.mjs';
 import { readArchive } from './tar.mjs';
@@ -210,18 +209,6 @@ function isServerJson({ status, headers }) {
 }
 
 /**
- * Computes the weak ETag that Express gives a body it sends.
- *
- * @param body - Bytes of a non-empty body, as received
- * @returns W/ followed by the quoted length in hex, a dash and the first 27 characters of the base64 SHA-1
- */
-function weakEtag(body) {
-    const hash = crypto.createHash('sha1').update(body).digest('base64').slice(0, 27);
-
-    return `W/"${body.length.toString(16)}-${hash}"`;
-}
-
-/**
  * Decodes a response body according to its content type.
  * Server JSON must be exactly its 2-space indented form, then is parsed, so layout, key order and item order all stay
  * pinned; a package .json file is recorded as text.
@@ -249,8 +236,7 @@ export function readBody(response) {
 
 /**
  * Turns a response into its snapshot.
- * A weak ETag is recorded without its value: Express derives it from the JSON body, recorded in full, and
- * express.static from the date of the file in the clone. The ETag of server JSON is checked against its body first.
+ * A weak ETag is recorded without its value: express.static derives it from the date of the file in the clone.
  *
  * @param response - Response from request()
  * @param options - cors also records the Access-Control-* headers, which every response carries; checkout hides the
@@ -258,10 +244,6 @@ export function readBody(response) {
  * @returns Status, recorded headers, and the decoded body, or aborted when the server cut the body short
  */
 export function capture(response, { cors = false, checkout = false } = {}) {
-    if (!response.aborted && response.body.length > 0 && isServerJson(response)) {
-        assert.equal(response.headers.etag, weakEtag(response.body), 'server JSON has the weak ETag of its body');
-    }
-
     const names = Object.keys(response.headers).filter(
         (name) => HEADERS.includes(name) || (cors && name.startsWith('access-control-')),
     );

@@ -66,13 +66,13 @@ describe('ETag of a file', () => {
         assert.equal(await etagOf('/npm/links@1.0.0/folder/file.js'), await etagOf('/npm/links@1.0.0/dist/file.js'));
     });
 
-    test('is the same on HEAD, while a listing keeps its weak tag', async () => {
+    test('is the same on HEAD, while a listing has no tag', async () => {
         const path = '/npm/lib@1.2.0/index.js';
         const head = await request(server.port, 'HEAD', path);
 
         assert.equal(head.status, 200);
         assert.equal(head.headers.etag, await etagOf(path));
-        assert.match((await request(server.port, 'GET', '/npm/lib@1.2.0/dist')).headers.etag, /^W\//);
+        assert.equal((await request(server.port, 'GET', '/npm/lib@1.2.0/dist')).headers.etag, undefined);
     });
 
     test('answers 304 to its own tag, a list or a weak copy, and 200 to another tag', async () => {

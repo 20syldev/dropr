@@ -9,6 +9,7 @@ import zlib from 'zlib';
 import { archiveEntries, archiveStream } from '../dist/lib/archive.js';
 import { loadIndex } from '../dist/lib/packages.js';
 
+import { memoryPort } from './port.mjs';
 import { sha256 } from './server.mjs';
 import { collect, readArchive } from './tar.mjs';
 
@@ -116,14 +117,13 @@ function release(date) {
 }
 
 /**
- * Reads a file of the archived version, as the adapter reads one from the packages folder.
+ * Reads a file of the archived version through a read port in memory.
  *
  * @param source - Path under the packages root, npm/tool/1.0.0/ followed by the path under the version folder
- * @returns The content given by contentOf
+ * @param range - Bytes asked, the whole file when absent
+ * @returns A stream of the content given by contentOf
  */
-async function read(source) {
-    return contentOf(source.slice('npm/tool/1.0.0/'.length));
-}
+const read = memoryPort((source) => contentOf(source.slice('npm/tool/1.0.0/'.length)));
 
 /**
  * Reads a NUL-terminated field of a tar header as raw bytes.
@@ -362,12 +362,14 @@ describe('archiveStream', () => {
 
     test('a read that fails, falls short or runs long errors the stream', async () => {
         const failing = () => Promise.reject(new Error('EACCES: permission denied'));
-        const short = async (source) => (await read(source)).subarray(1);
-        const long = async (source) => Buffer.concat([await read(source), Buffer.from('+')]);
+        const short = memoryPort((source) => contentOf(source.slice('npm/tool/1.0.0/'.length)).subarray(1));
+        const long = memoryPort((source) =>
+            Buffer.concat([contentOf(source.slice('npm/tool/1.0.0/'.length)), Buffer.from('+')]),
+        );
 
         await assert.rejects(collect(archiveStream(entries, failing)), /EACCES/);
-        await assert.rejects(collect(archiveStream(entries, short)), /has 93 bytes, the index has 94$/);
-        await assert.rejects(collect(archiveStream(entries, long)), /has 95 bytes, the index has 94$/);
+        await assert.rejects(collect(archiveStream(entries, short)), /ended 1 bytes before the expected 94$/);
+        await assert.rejects(collect(archiveStream(entries, long)), /more than the expected 94 bytes$/);
     });
 
     test('a file of 8 GiB or more errors the stream before it is read', async () => {

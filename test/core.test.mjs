@@ -7,18 +7,14 @@ import { archiveEntries, archiveStream } from '../dist/lib/archive.js';
 import { loadIndex } from '../dist/lib/packages.js';
 import { createLimiter } from '../dist/lib/ratelimit.js';
 import { route } from '../dist/lib/route.js';
+import { exact } from '../dist/lib/stream.js';
 import { scan } from '../dist/scan.js';
 
 import { caseName, CASES, HEADERS, readBody } from './cases.mjs';
 import { createFixture } from './fixture.mjs';
+import { memoryPort } from './port.mjs';
 import { rootDir } from './server.mjs';
 import { collect } from './tar.mjs';
-
-// Snapshot headers written by Express or send, which the core leaves to the adapter
-const ADAPTER_HEADERS = ['accept-ranges', 'content-length', 'content-range'];
-
-// Request headers that send or the freshness check of Express answer, so their cases depend on the adapter
-const CONDITIONALS = ['if-match', 'if-modified-since', 'if-none-match', 'if-range', 'if-unmodified-since', 'range'];
 
 // SHA-256 of an empty file, the hash of every synthetic file
 const EMPTY_SHA256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
@@ -65,29 +61,30 @@ function toRequest({ path: target, method = 'GET', headers = {} }) {
  * Tells whether the core alone decides the answer to a case, so that it can be replayed without the adapter.
  *
  * @param entry - Case from CASES
- * @returns False for a static file, OPTIONS, a locked case, and a conditional or range request
+ * @returns False for a static file, OPTIONS and a locked case
  */
-function isCoreCase({ method, headers = {}, locked, checkout }) {
-    if (checkout || locked || method === 'OPTIONS') return false;
-
-    return !Object.keys(headers).some((name) => CONDITIONALS.includes(name));
+function isCoreCase({ method, locked, checkout }) {
+    return !checkout && !locked && method !== 'OPTIONS';
 }
 
 /**
  * Produces the bytes that the adapter sends for a body of the core.
  *
- * @param body - Body from route()
+ * @param response - Response from route(), whose Content-Length a file body must fill exactly
  * @param packagesDir - Packages folder that file paths and archive sources are relative to
  * @returns The JSON text, the file read from disk, nothing for an empty body, or the archive from the tar writer;
  * null when the archive stream errors, which the adapter turns into a reset
  */
-async function sentBytes(body, packagesDir) {
+async function sentBytes({ body, headers }, packagesDir) {
     if (body.kind === 'json') return Buffer.from(body.text);
-    if (body.kind === 'file') return fs.readFileSync(join(packagesDir, body.path));
     if (body.kind === 'empty') return Buffer.alloc(0);
 
+    const port = memoryPort((path) => fs.readFileSync(join(packagesDir, path)));
+    if (body.kind === 'file')
+        return collect(exact(await port(body.path, body.range ?? undefined), Number(headers['Content-Length'])));
+
     try {
-        return await collect(archiveStream(body.entries, (source) => fs.promises.readFile(join(packagesDir, source))));
+        return await collect(archiveStream(body.entries, port));
     } catch {
         return null;
     }
@@ -108,7 +105,7 @@ async function respond(entry) {
     );
 
     // HEAD ends after the headers, so neither the file nor the archive is read
-    const bytes = entry.method === 'HEAD' ? Buffer.alloc(0) : await sentBytes(response.body, fixture.packagesDir);
+    const bytes = entry.method === 'HEAD' ? Buffer.alloc(0) : await sentBytes(response, fixture.packagesDir);
     if (bytes === null) return { status, headers, aborted: true };
 
     return { status, headers, body: readBody({ status, headers, body: bytes }) };
@@ -118,16 +115,13 @@ async function respond(entry) {
  * Reads a snapshot entry of the route tests, reduced to what the core decides.
  *
  * @param key - Snapshot key, the suite and test names followed by the entry number
- * @returns Status, the recorded headers other than the adapter ones and the weak ETag, and the body or aborted;
- * throws when the snapshot has no such entry
+ * @returns Status, the recorded headers and the body or aborted; throws when the snapshot has no such entry
  */
 function recorded(key) {
     assert.ok(snapshot.has(key), `the snapshot has no entry ${key}`);
 
     const { headers, ...rest } = snapshot.get(key);
-    const owned = Object.entries(headers).filter(
-        ([name, value]) => HEADERS.includes(name) && !ADAPTER_HEADERS.includes(name) && value !== 'W/<weak>',
-    );
+    const owned = Object.entries(headers).filter(([name]) => HEADERS.includes(name));
 
     return { ...rest, headers: Object.fromEntries(owned) };
 }
@@ -398,7 +392,7 @@ describe('route() on synthetic indexes', () => {
             const past = get(`/npm/p@1.0.0/${target}`, loops);
 
             assert.equal(past.status, 404, target);
-            assert.deepEqual(past.headers, { 'Content-Type': 'application/json; charset=utf-8' }, target);
+            assert.deepEqual(Object.keys(past.headers), ['Content-Type', 'Content-Length'], target);
         }
 
         const tag = get(`/npm/p@1.0.0/${loop.repeat(40)}index.js`, loops).headers.ETag;
@@ -459,7 +453,7 @@ describe('route() on synthetic indexes', () => {
             const { status, headers, body } = get(target, old);
             assert.equal(status, 400, target);
             assert.equal(body.message, 'The path holds an invalid percent-encoding.', target);
-            assert.deepEqual(Object.keys(headers), ['Content-Type'], target);
+            assert.deepEqual(Object.keys(headers), ['Content-Type', 'Content-Length'], target);
         }
     });
 
