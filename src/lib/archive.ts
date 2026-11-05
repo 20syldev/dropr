@@ -1,4 +1,6 @@
-import type { CatalogDir, CatalogVersion, TarEntry, TarRead } from '../types/index.js';
+import type { CatalogDir, CatalogVersion, ReadFile, TarEntry } from '../types/index.js';
+
+import { exact } from './stream.js';
 
 const BLOCK = 512;
 
@@ -232,58 +234,82 @@ function entryHeader(entry: TarEntry): Uint8Array<ArrayBuffer> {
 }
 
 /**
- * Reads the content of a file entry and checks it against the size its header announces.
+ * Opens the content of a file entry, which must hold the size its header announces.
  *
  * @param entry - File entry whose source is read
  * @param read - Reader given to archiveStream, called even for an empty file so that an unreadable one still fails
- * @returns The file bytes; rejects when the entry has no source, the read fails or the length differs from the size
+ * @returns The file bytes; rejects when the entry has no source or the read fails to start, and the stream errors when
+ * the length differs from the size
  */
-async function fileData(entry: TarEntry, read: TarRead): Promise<Uint8Array<ArrayBuffer>> {
+async function fileData(entry: TarEntry, read: ReadFile): Promise<ReadableStream<Uint8Array<ArrayBuffer>>> {
     if (entry.source === null) throw new Error(`${entry.path} has no source to read`);
 
-    const data = await read(entry.source);
-    if (data.length !== entry.size) {
-        throw new Error(`${entry.source} has ${data.length} bytes, the index has ${entry.size}`);
-    }
-
-    return data;
+    return exact(await read(entry.source), entry.size);
 }
 
 /**
- * Streams a gzipped tar archive of the given entries, one entry per pull, so at most one file is held in memory.
+ * Streams a gzipped tar archive of the given entries, one chunk of a file per pull, so memory does not grow with the
+ * size of a file, however large.
  * The tar bytes depend only on the entries and the file contents: no clock, owner, umask or disk order goes in.
  *
  * @param entries - Entries in archive order, written as given
- * @param read - Returns the whole content of a file entry source; a rejection, or a length other than the entry size,
- * errors the stream
+ * @param read - Opens the whole content of a file entry source as a stream; a rejection, a stream that fails, or one
+ * whose length is not the entry size, errors the archive
  * @returns Gzip bytes of an archive ended by two zero blocks and padded to a multiple of 10240 bytes; an error midway
- * leaves it truncated, which the caller must report as a failed download
+ * leaves it truncated, which the caller must report as a failed download; cancelling it cancels the file being read,
+ * or the one being opened as soon as it is open
  */
-export function archiveStream(entries: TarEntry[], read: TarRead): ReadableStream<Uint8Array<ArrayBuffer>> {
+export function archiveStream(entries: TarEntry[], read: ReadFile): ReadableStream<Uint8Array<ArrayBuffer>> {
     let next = 0;
     let written = 0;
+    let file: ReadableStreamDefaultReader<Uint8Array<ArrayBuffer>> | null = null;
+    let size = 0;
+    let cancelled = false;
 
-    const tar = new ReadableStream<Uint8Array<ArrayBuffer>>({
-        async pull(controller) {
-            if (next === entries.length) {
-                controller.enqueue(new Uint8Array(Math.ceil((written + 2 * BLOCK) / RECORD) * RECORD - written));
-                controller.close();
-                return;
-            }
+    const tar = new ReadableStream<Uint8Array<ArrayBuffer>>(
+        {
+            async pull(controller) {
+                // A pull must enqueue or close, so it goes on until a block holds bytes
+                let sent = false;
+                const send = (block: Uint8Array<ArrayBuffer>) => {
+                    if (block.length > 0) controller.enqueue(block);
+                    written += block.length;
+                    sent ||= block.length > 0;
+                };
 
-            const entry = entries[next++];
-            const blocks = [entryHeader(entry)];
-            if (entry.kind === 'file') {
-                const data = await fileData(entry, read);
-                blocks.push(data, new Uint8Array(padding(data.length)));
-            }
+                while (!sent) {
+                    if (file) {
+                        const { done, value } = await file.read();
+                        if (value) send(value);
+                        if (done) {
+                            file = null;
+                            send(new Uint8Array(padding(size)));
+                        }
+                    } else if (next === entries.length) {
+                        send(new Uint8Array(Math.ceil((written + 2 * BLOCK) / RECORD) * RECORD - written));
 
-            for (const block of blocks) {
-                if (block.length > 0) controller.enqueue(block);
-                written += block.length;
-            }
+                        return controller.close();
+                    } else {
+                        const entry = entries[next++];
+                        send(entryHeader(entry));
+                        if (entry.kind === 'file') {
+                            const opened = (await fileData(entry, read)).getReader();
+                            if (cancelled) return void (await opened.cancel().catch(() => undefined));
+
+                            file = opened;
+                            size = entry.size;
+                        }
+                    }
+                }
+            },
+            cancel: (reason) => {
+                cancelled = true;
+
+                return file?.cancel(reason);
+            },
         },
-    });
+        { highWaterMark: 0 },
+    );
 
     return tar.pipeThrough(new CompressionStream('gzip'));
 }
