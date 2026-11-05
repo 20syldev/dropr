@@ -116,7 +116,7 @@ afterEach(() => {
 });
 
 describe('release dates', () => {
-    test('a real YYYY-MM-DD day up to today is kept, any other entry costs the version [change: dates]', () => {
+    test('a real YYYY-MM-DD day up to today is kept, any other entry costs the version', () => {
         const days = (n) => new Date(Date.now() + n * 86_400_000).toISOString().split('T')[0];
         const entries = {
             '1.0.0': { date: '2025-05-01', repo: 'a/b' },
@@ -208,7 +208,7 @@ describe('release dates', () => {
 });
 
 describe('versions', () => {
-    test('only X.Y.Z and X.Y.Z-tag name a version, whatever else is a folder is logged and left out [change: semver]', () => {
+    test('only X.Y.Z and X.Y.Z-tag name a version, whatever else is a folder is logged and left out', () => {
         const kept = ['1.0.0', '2.0.0-pre.1', '0.1.0-beta.10', '10.20.30', '1.0.0-0.3.7', '1.0.0-alpha-a.b-c'];
         const left = [
             '1.0.0@beta',
@@ -306,7 +306,7 @@ describe('folders of the tree', () => {
         );
     });
 
-    test('a project named list, or with other than letters, digits, dot, underscore and dash, is logged and left out [change: names]', () => {
+    test('a project named list, or with other than letters, digits, dot, underscore and dash, is logged and left out', () => {
         const names = ['list', 'a@b', 'a\\b', 'a\nb', '@scoped', 'my pkg', 'q"x', 'caf\u00e9', '\u65e5\u672c', '-dash'];
         const ok = { 'npm/fine/.versions.json': '{ "1.0.0": { "date": "2025-05-01" } }', 'npm/fine/1.0.0/a.txt': 'x' };
         write(ok);
@@ -331,7 +331,7 @@ describe('folders of the tree', () => {
         );
     });
 
-    test('a type is any folder with a plain name but the names of the routes, so src, lib and dist are types [change: types]', () => {
+    test('a type is any folder with a plain name but the names of the routes, so src, lib and dist are types', () => {
         const files = { 'npm/p/1.0.0/a.txt': 'x', 'npm/p/.versions.json': '{ "1.0.0": { "date": "2025-05-01" } }' };
         for (const type of ['src', 'lib', 'dist', 'node_modules', 'download', 'Download', 'my type', 'caf\u00e9']) {
             write(Object.fromEntries(Object.entries(files).map(([path, text]) => [path.replace('npm', type), text])));
@@ -350,7 +350,7 @@ describe('folders of the tree', () => {
         ]);
     });
 
-    test('a project without a version, or a type without a project, is logged and not indexed [change: empty]', () => {
+    test('a project without a version, or a type without a project, is logged and not indexed', () => {
         write({
             'npm/ok/1.0.0/a.txt': 'x',
             'npm/ok/.versions.json': '{ "1.0.0": { "date": "2025-05-01" } }',
@@ -385,7 +385,7 @@ describe('folders of the tree', () => {
         assert.equal(get(index, '/download/npm/novers').status, 404);
     });
 
-    test('a name that no route can match, inside a version, leaves the whole version out [change: names]', () => {
+    test('a name that no route can match, inside a version, leaves the whole version out', () => {
         write({
             'npm/p/1.0.0/a.txt': 'x',
             'npm/p/2.0.0/we\\ird.txt': 'x',

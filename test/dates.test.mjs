@@ -46,7 +46,7 @@ describe('parseDeprecation', () => {
         assert.ok(parseDeprecation({ ...notice, date: '2999-01-01' }), 'a deprecation may announce a future date');
     });
 
-    test('refuses what would break a header or a shape, a date that is no real day included [change: deprecation]', () => {
+    test('refuses what would break a header or a shape, a date that is no real day included', () => {
         const refused = [
             null,
             [],

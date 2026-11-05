@@ -320,7 +320,7 @@ describe('route() against routes.test.mjs.snapshot', () => {
 });
 
 describe('route() on synthetic indexes', () => {
-    test('names 10, 9, __proto__ and constructor are served, JSON objects order them, lists keep byte order [change: proto]', () => {
+    test('names 10, 9, __proto__ and constructor are served, JSON objects order them, lists keep byte order', () => {
         const root = NAMES.map((name) => file(name));
         const projects = NAMES.map((name) => ({ name, versions: [version('1.0.0', root)] }));
         const odd = loadIndex({ format: 2, types: NAMES.map((name) => ({ name, projects })) });
@@ -387,7 +387,7 @@ describe('route() on synthetic indexes', () => {
         );
     });
 
-    test('a path may cross 40 links: past them a file or a folder gives a plain 404, even with the tag [change: cap]', () => {
+    test('a path may cross 40 links: past them a file or a folder gives a plain 404, even with the tag', () => {
         const loops = catalogOf([['p', [folder('dist', [link('loop', '..', '')]), file('index.js')]]]);
         const loop = 'dist/loop/';
 
@@ -424,7 +424,7 @@ describe('route() on synthetic indexes', () => {
         );
     });
 
-    test('a folder shows its size whether it is reached through a link or not [change: size]', () => {
+    test('a folder shows its size whether it is reached through a link or not', () => {
         const key = { ...file('key.txt'), size: 7 };
         const tree = catalogOf([
             ['p', [link('door', 'vault', 'vault'), { ...file('index.js'), size: 3 }, folder('vault', [key])]],

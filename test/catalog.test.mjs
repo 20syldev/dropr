@@ -227,7 +227,7 @@ describe('resolveVersion', () => {
         assert.equal(pick('9'), undefined);
     });
 
-    test('takes a major or a major and a minor and no other spelling [change: partial]', () => {
+    test('takes a major or a major and a minor and no other spelling', () => {
         for (const asked of [
             '1.',
             '1.2.',
