@@ -1,6 +1,4 @@
-import fs from 'fs';
 import { STATUS_CODES } from 'http';
-import { join } from 'path';
 import { Readable } from 'stream';
 import type { ReadableStream as NodeReadableStream } from 'stream/web';
 
@@ -8,16 +6,27 @@ import cors from 'cors';
 import express from 'express';
 import type { Express, NextFunction, Request, Response } from 'express';
 
+import { createReader } from './disk.js';
 import { archiveStream } from './lib/archive.js';
 import { errorBody } from './lib/errors.js';
 import { countPackages, loadIndex } from './lib/packages.js';
 import { createLimiter } from './lib/ratelimit.js';
 import { failure, INTERNAL, json, route } from './lib/route.js';
+import { exact } from './lib/stream.js';
 import { buildManifest } from './manifest.js';
-import type { AppDeps, ArchiveBody, Config, FileBody, Logger, RouteInput, RouteResponse } from './types/index.js';
+import type {
+    AppDeps,
+    ArchiveBody,
+    Config,
+    FileBody,
+    Logger,
+    ReadFile,
+    RouteInput,
+    RouteResponse,
+} from './types/index.js';
 
 interface Context {
-    packagesDir: string;
+    read: ReadFile;
     logger: Logger;
 }
 
@@ -66,88 +75,109 @@ function requestOf(req: Request): RouteInput {
 }
 
 /**
- * Sends a package file through send, which adds the Range, conditional and HEAD handling of 3.3.1.
- * The path is the real one from the index, so send never resolves a link again.
+ * Writes the status and the headers of a response, after the ones already on it, such as CORS.
  *
- * @param res - Response holding the headers of the file route, its ETag and Last-Modified kept by send, which adds
- * no Last-Modified of its own from the date of the file
- * @param body - File body, its path relative to packagesDir and its messages used when sending fails
- * @param context - Folder the file is read from, and the logger of the reply
+ * @param res - Response whose headers are not sent yet
+ * @param response - Status and headers from route(), json() or failure()
  */
-function sendPackageFile(res: Response, body: FileBody, context: Context): void {
-    res.sendFile(body.path, { root: context.packagesDir, dotfiles: 'allow', lastModified: false }, (error) => {
-        if (!error) return;
-        if (res.headersSent) return void res.destroy();
-
-        // Only a failed stat of send (an fs code, no Accept-Ranges yet) means the file is gone or sealed since startup
-        if (!res.hasHeader('Accept-Ranges') && (error as NodeJS.ErrnoException).code) {
-            res.removeHeader('X-Content-Type-Options');
-        }
-        res.removeHeader('ETag');
-        res.removeHeader('Cache-Control');
-        res.removeHeader('Last-Modified');
-
-        // A range or precondition the file cannot satisfy keeps its status, anything else reads as a missing file
-        const { status } = error as Error & { status?: number };
-        if (status === 412) return reply(res, failure(412, body.precondition), context);
-        if (status === 416) return reply(res, failure(416, body.range), context);
-        res.removeHeader('Content-Range');
-        reply(res, failure(404, body.missing), context);
-    });
+function start(res: Response, { status, headers }: RouteResponse): void {
+    res.statusCode = status;
+    for (const [name, value] of Object.entries(headers)) res.setHeader(name, value);
 }
 
 /**
- * Streams the archive of a version from the tar writer, once its 200 headers are sent.
- * Any failure after them resets the connection, so a client never takes a cut archive for a whole one.
- * Each file is read whole, so a file of 2 GiB or more fails to read and resets its archive.
+ * Sends the bytes of a stream as the body of a response, which has its headers sent.
+ * The stream is read as fast as the client takes it, one chunk at a time, and cancelled when the client goes away. A
+ * failure resets the connection, so a client never takes a body that was cut for a whole one.
  *
- * @param res - Response holding the archive headers, flushed before any file is read; a HEAD request ends there
- * @param body - Archive body, its key naming the version in the log of a failure
- * @param context - Folder the files are read from, and the logger of a failure
+ * @param res - Response to end with the stream
+ * @param source - Body bytes, which the response must not outlive
+ * @param fail - Reports the error of the stream, which is not the client leaving
  */
-function streamArchive(res: Response, body: ArchiveBody, context: Context): void {
-    res.flushHeaders();
-    if (res.req.method === 'HEAD') return void res.end();
-
-    const abort = new AbortController();
-    const read = (source: string) => fs.promises.readFile(join(context.packagesDir, source), { signal: abort.signal });
-
+function pump(res: Response, source: ReadableStream<Uint8Array<ArrayBuffer>>, fail: (error: Error) => void): void {
     // The DOM ReadableStream of the main tsconfig and the one of stream/web differ only in their BYOB reader types
-    const stream = Readable.fromWeb(archiveStream(body.entries, read) as NodeReadableStream<Uint8Array>);
+    const stream = Readable.fromWeb(source as NodeReadableStream<Uint8Array>);
 
     stream.on('error', (error) => {
-        context.logger.error(`Archive error on ${body.key}:`, error.message);
+        fail(error);
 
         // A reset, unlike a plain close, still reads as a failure when the connection end frames the body (HTTP/1.0)
         if (res.socket) res.socket.resetAndDestroy();
         else res.destroy();
     });
-
-    // A client gone mid-download leaves a whole-file read pending, aborted so its buffer is freed at once
-    res.on('close', () => {
-        stream.destroy();
-        abort.abort();
-    });
+    res.on('close', () => stream.destroy());
     stream.pipe(res);
 }
 
 /**
- * Writes a response of the core through Express, which adds Content-Length, the weak JSON ETag, its 304 and HEAD.
- * Headers are set one by one in their order, so the ones already on the response, such as CORS, stay.
+ * Streams a package file, or a range of it, from the read port.
+ * The file is opened before any header is written, so a file that vanished or got sealed since startup answers the 404
+ * of a missing file, with the headers of the project and none of the file. A failure after the headers resets the
+ * connection.
+ *
+ * @param res - Response whose headers are not sent yet
+ * @param response - The 200 or 206 of the core, its Content-Length the length of the range
+ * @param body - File body: its path relative to the packages root, its range (null for an empty file, which is opened
+ * all the same and answered empty), and the 404 to send in its place
+ * @param context - Read port and logger of a failure
+ */
+async function streamFile(res: Response, response: RouteResponse, body: FileBody, context: Context): Promise<void> {
+    const length = body.range ? body.range.end - body.range.start + 1 : 0;
+    const fail = (error: Error) => context.logger.error(`File error on ${body.path}:`, error.message);
+
+    let source;
+    try {
+        source = await context.read(body.path, body.range ?? undefined);
+    } catch (error) {
+        fail(error as Error);
+
+        return reply(res, body.missing, context);
+    }
+    if (res.destroyed) return void source.cancel().catch(() => undefined);
+
+    start(res, response);
+    if (length > 0) return pump(res, exact(source, length), fail);
+
+    // The file was empty at startup, so nothing of what it holds now is sent
+    void source.cancel().catch(() => undefined);
+    res.end();
+}
+
+/**
+ * Streams the archive of a version from the tar writer, once its 200 headers are sent.
+ * Any failure after them resets the connection, so a client never takes a cut archive for a whole one.
+ *
+ * @param res - Response holding the archive headers, flushed before any file is read
+ * @param body - Archive body, its key naming the version in the log of a failure
+ * @param context - Read port the files are read from, and the logger of a failure
+ */
+function streamArchive(res: Response, body: ArchiveBody, context: Context): void {
+    res.flushHeaders();
+
+    pump(res, archiveStream(body.entries, context.read), (error) => {
+        context.logger.error(`Archive error on ${body.key}:`, error.message);
+    });
+}
+
+/**
+ * Writes a response of the core, whose headers hold every validator, length and range of it: Express adds none.
+ * Headers are set one by one in their order, so the ones already on the response, such as CORS, stay. A HEAD request
+ * gets the headers of the GET answer and no body, so no file is read for it.
  *
  * @param res - Response whose headers are not sent yet
  * @param response - Status, headers and body from route(), json() or failure()
- * @param context - Folder the package files are read from, and the logger of a failure
+ * @param context - Read port the package files are read from, and the logger of a failure
  */
 function reply(res: Response, response: RouteResponse, context: Context): void {
-    res.status(response.status);
-    for (const [name, value] of Object.entries(response.headers)) res.setHeader(name, value);
-
     const { body } = response;
-    if (body.kind === 'json') res.send(body.text);
-    else if (body.kind === 'empty') res.end();
-    else if (body.kind === 'file') sendPackageFile(res, body, context);
-    else streamArchive(res, body, context);
+    const head = res.req.method === 'HEAD';
+
+    if (body.kind === 'file' && !head) return void streamFile(res, response, body, context);
+
+    start(res, response);
+    if (head || body.kind === 'empty') return void res.end();
+    if (body.kind === 'json') return void res.end(body.text);
+    if (body.kind === 'archive') streamArchive(res, body, context);
 }
 
 /**
@@ -161,7 +191,7 @@ function reply(res: Response, response: RouteResponse, context: Context): void {
  */
 export function createApp(config: Config, deps: AppDeps): Express {
     const { index, packagesDir, version, logger } = deps;
-    const context: Context = { packagesDir, logger };
+    const context: Context = { read: deps.read ?? createReader(packagesDir), logger };
     const app = express();
     const startTime = Date.now();
     const limiter = createLimiter(startTime);
