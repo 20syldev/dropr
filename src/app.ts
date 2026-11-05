@@ -102,8 +102,7 @@ function sendPackageFile(res: Response, body: FileBody, context: Context): void 
  * Each file is read whole, so a file of 2 GiB or more fails to read and resets its archive.
  *
  * @param res - Response holding the archive headers, flushed before any file is read; a HEAD request ends there
- * @param body - Archive body, its key naming the version in the log of a failure, its entries null for a version that
- * cannot be archived, which resets at once
+ * @param body - Archive body, its key naming the version in the log of a failure
  * @param context - Folder the files are read from, and the logger of a failure
  */
 function streamArchive(res: Response, body: ArchiveBody, context: Context): void {
@@ -213,7 +212,7 @@ export function createApp(config: Config, deps: AppDeps): Express {
                 status: 'ok',
                 version,
                 uptime: `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m ${Math.floor(uptime % 60)}s`,
-                packages: countPackages(catalog.packages),
+                packages: countPackages(catalog),
                 memory: {
                     rss: `${(mem.rss / 1024 / 1024).toFixed(2)} MB`,
                     heapUsed: `${(mem.heapUsed / 1024 / 1024).toFixed(2)} MB`,
