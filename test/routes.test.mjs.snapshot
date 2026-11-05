@@ -4,8 +4,7 @@ exports[`routes > DELETE /npm/lib@1.2.0/index.js 1`] = `
   "headers": {
     "allow": "GET, HEAD, OPTIONS",
     "content-length": "117",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 405,
@@ -20,8 +19,7 @@ exports[`routes > GET / 1`] = `
   "status": 200,
   "headers": {
     "content-length": "1947",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "message": "Use the following routes to access the projects and their versions.",
@@ -109,8 +107,7 @@ exports[`routes > GET /%64ownload/npm 1`] = `
   "status": 200,
   "headers": {
     "content-length": "1118",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "message": "Downloadable npm packages (.tar.gz).",
@@ -164,8 +161,7 @@ exports[`routes > GET /%73earch?q=lib 1`] = `
   "status": 200,
   "headers": {
     "content-length": "251",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "query": "lib",
@@ -193,8 +189,7 @@ exports[`routes > GET /%E0%A4%A 1`] = `
   "status": 400,
   "headers": {
     "content-length": "105",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 400,
@@ -209,8 +204,7 @@ exports[`routes > GET /.hidden 1`] = `
   "status": 404,
   "headers": {
     "content-length": "98",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -225,8 +219,7 @@ exports[`routes > GET //npm/lib 1`] = `
   "status": 404,
   "headers": {
     "content-length": "93",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -241,8 +234,7 @@ exports[`routes > GET /DOWNLOAD 1`] = `
   "status": 404,
   "headers": {
     "content-length": "99",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -257,8 +249,7 @@ exports[`routes > GET /Download/npm 1`] = `
   "status": 404,
   "headers": {
     "content-length": "99",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -273,8 +264,7 @@ exports[`routes > GET /NPM 1`] = `
   "status": 404,
   "headers": {
     "content-length": "94",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -289,8 +279,7 @@ exports[`routes > GET /Search?q=lib 1`] = `
   "status": 404,
   "headers": {
     "content-length": "97",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -305,8 +294,7 @@ exports[`routes > GET /__proto__ 1`] = `
   "status": 404,
   "headers": {
     "content-length": "100",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -321,8 +309,7 @@ exports[`routes > GET /bash 1`] = `
   "status": 200,
   "headers": {
     "content-length": "294",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "message": "Bash projects.",
@@ -348,8 +335,7 @@ exports[`routes > GET /bash/gft/changelog 1`] = `
   "headers": {
     "cache-control": "public, max-age=300",
     "content-length": "369",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "name": "gft",
@@ -413,8 +399,7 @@ exports[`routes > GET /config 1`] = `
   "status": 200,
   "headers": {
     "content-length": "244",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "message": "Config projects.",
@@ -485,8 +470,7 @@ exports[`routes > GET /constructor 1`] = `
   "status": 404,
   "headers": {
     "content-length": "102",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -501,8 +485,7 @@ exports[`routes > GET /download 1`] = `
   "status": 200,
   "headers": {
     "content-length": "1654",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "message": "Available packages for download (.tar.gz).",
@@ -576,8 +559,7 @@ exports[`routes > GET /download/a/b/c 1`] = `
   "status": 404,
   "headers": {
     "content-length": "99",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -592,8 +574,7 @@ exports[`routes > GET /download/nope 1`] = `
   "status": 404,
   "headers": {
     "content-length": "95",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -608,8 +589,7 @@ exports[`routes > GET /download/npm 1`] = `
   "status": 200,
   "headers": {
     "content-length": "1118",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "message": "Downloadable npm packages (.tar.gz).",
@@ -663,8 +643,7 @@ exports[`routes > GET /download/npm/ 1`] = `
   "status": 200,
   "headers": {
     "content-length": "1118",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "message": "Downloadable npm packages (.tar.gz).",
@@ -740,8 +719,7 @@ exports[`routes > GET /download/npm/lib/ 1`] = `
   "status": 404,
   "headers": {
     "content-length": "102",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -756,8 +734,7 @@ exports[`routes > GET /download/npm/lib/x 1`] = `
   "status": 404,
   "headers": {
     "content-length": "103",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -772,8 +749,7 @@ exports[`routes > GET /download/npm/lib@ 1`] = `
   "status": 404,
   "headers": {
     "content-length": "98",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -848,8 +824,7 @@ exports[`routes > GET /download/npm/lib@9 1`] = `
   "status": 404,
   "headers": {
     "content-length": "106",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -864,8 +839,7 @@ exports[`routes > GET /download/npm/nope 1`] = `
   "status": 404,
   "headers": {
     "content-length": "98",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -937,8 +911,7 @@ exports[`routes > GET /health (101st request of a client within 10 seconds) 1`] 
   "status": 429,
   "headers": {
     "content-length": "127",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 429,
@@ -953,8 +926,7 @@ exports[`routes > GET /health 1`] = `
   "status": 200,
   "headers": {
     "content-length": "<length>",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "name": "dropr",
@@ -973,8 +945,7 @@ exports[`routes > GET /manifest 1`] = `
   "headers": {
     "cache-control": "public, max-age=300",
     "content-length": "<length>",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "name": "dropr",
@@ -1295,8 +1266,7 @@ exports[`routes > GET /node_modules 1`] = `
   "status": 404,
   "headers": {
     "content-length": "103",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -1311,8 +1281,7 @@ exports[`routes > GET /nope 1`] = `
   "status": 404,
   "headers": {
     "content-length": "95",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -1327,8 +1296,7 @@ exports[`routes > GET /nope/%E0 1`] = `
   "status": 400,
   "headers": {
     "content-length": "105",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 400,
@@ -1343,8 +1311,7 @@ exports[`routes > GET /nope/a/b/c 1`] = `
   "status": 404,
   "headers": {
     "content-length": "95",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -1359,8 +1326,7 @@ exports[`routes > GET /npm 1`] = `
   "status": 200,
   "headers": {
     "content-length": "1173",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "message": "Npm projects.",
@@ -1420,8 +1386,7 @@ exports[`routes > GET /npm/ 1`] = `
   "status": 200,
   "headers": {
     "content-length": "1173",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "message": "Npm projects.",
@@ -1481,8 +1446,7 @@ exports[`routes > GET /npm//lib?x=1 1`] = `
   "status": 404,
   "headers": {
     "content-length": "93",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -1497,8 +1461,7 @@ exports[`routes > GET /npm/@1.0.0 1`] = `
   "status": 404,
   "headers": {
     "content-length": "100",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -1513,8 +1476,7 @@ exports[`routes > GET /npm/__proto__ 1`] = `
   "status": 404,
   "headers": {
     "content-length": "103",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -1529,8 +1491,7 @@ exports[`routes > GET /npm/bash-utils@1.0.0 (version folder made unreadable afte
   "status": 200,
   "headers": {
     "content-length": "180",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "name": "bash-utils",
@@ -1563,8 +1524,7 @@ exports[`routes > GET /npm/bash-utils@1.0.0 (version folder made unreadable afte
   "status": 404,
   "headers": {
     "content-length": "140",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -1579,8 +1539,7 @@ exports[`routes > GET /npm/broken@1.0.0/locked.bin 1`] = `
   "status": 404,
   "headers": {
     "content-length": "100",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -1595,8 +1554,7 @@ exports[`routes > GET /npm/broken@1.0.0?checksums 1`] = `
   "status": 404,
   "headers": {
     "content-length": "100",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -1611,8 +1569,7 @@ exports[`routes > GET /npm/broken@1.0.0?download 1`] = `
   "status": 404,
   "headers": {
     "content-length": "100",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -1624,11 +1581,21 @@ exports[`routes > GET /npm/broken@1.0.0?download 1`] = `
 
 exports[`routes > GET /npm/lib (if-none-match: *) 1`] = `
 {
-  "status": 304,
+  "status": 200,
   "headers": {
-    "etag": "W/<weak>"
+    "content-length": "247",
+    "content-type": "application/json; charset=utf-8"
   },
-  "body": ""
+  "body": {
+    "message": "Available versions for the 'lib' project.",
+    "versions": {
+      "latest": "/npm/lib@latest",
+      "1.0.0": "/npm/lib@1.0.0",
+      "1.2.0": "/npm/lib@1.2.0",
+      "1.10.0": "/npm/lib@1.10.0",
+      "2.0.0-pre": "/npm/lib@2.0.0-pre"
+    }
+  }
 }
 `;
 
@@ -1637,8 +1604,7 @@ exports[`routes > GET /npm/lib 1`] = `
   "status": 200,
   "headers": {
     "content-length": "247",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "message": "Available versions for the 'lib' project.",
@@ -1658,8 +1624,7 @@ exports[`routes > GET /npm/lib/ 1`] = `
   "status": 200,
   "headers": {
     "content-length": "247",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "message": "Available versions for the 'lib' project.",
@@ -1679,8 +1644,7 @@ exports[`routes > GET /npm/lib/CHANGELOG 1`] = `
   "status": 404,
   "headers": {
     "content-length": "102",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -1695,8 +1659,7 @@ exports[`routes > GET /npm/lib/anything/at/all 1`] = `
   "status": 404,
   "headers": {
     "content-length": "108",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -1712,8 +1675,7 @@ exports[`routes > GET /npm/lib/chang%65log 1`] = `
   "headers": {
     "cache-control": "public, max-age=300",
     "content-length": "472",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "name": "lib",
@@ -1751,8 +1713,7 @@ exports[`routes > GET /npm/lib/changelog 1`] = `
   "headers": {
     "cache-control": "public, max-age=300",
     "content-length": "472",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "name": "lib",
@@ -1789,8 +1750,7 @@ exports[`routes > GET /npm/lib/changelog/ 1`] = `
   "status": 404,
   "headers": {
     "content-length": "103",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -1805,8 +1765,7 @@ exports[`routes > GET /npm/lib@ 1`] = `
   "status": 404,
   "headers": {
     "content-length": "98",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -1821,8 +1780,7 @@ exports[`routes > GET /npm/lib@1 1`] = `
   "status": 200,
   "headers": {
     "content-length": "168",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "name": "lib",
@@ -1844,8 +1802,7 @@ exports[`routes > GET /npm/lib@1.0.0/changelog 1`] = `
   "status": 404,
   "headers": {
     "content-length": "134",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -1892,8 +1849,7 @@ exports[`routes > GET /npm/lib@1.0.0?checksums 1`] = `
   "status": 200,
   "headers": {
     "content-length": "433",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "name": "lib",
@@ -1914,8 +1870,7 @@ exports[`routes > GET /npm/lib@1.0.0@junk 1`] = `
   "status": 404,
   "headers": {
     "content-length": "103",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -1930,8 +1885,7 @@ exports[`routes > GET /npm/lib@1.1 1`] = `
   "status": 404,
   "headers": {
     "content-length": "108",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -1946,8 +1900,7 @@ exports[`routes > GET /npm/lib@1.2 1`] = `
   "status": 200,
   "headers": {
     "content-length": "414",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "name": "lib",
@@ -1984,8 +1937,7 @@ exports[`routes > GET /npm/lib@1.2.0 1`] = `
   "status": 200,
   "headers": {
     "content-length": "414",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "name": "lib",
@@ -2022,8 +1974,7 @@ exports[`routes > GET /npm/lib@1.2.0/ 1`] = `
   "status": 200,
   "headers": {
     "content-length": "414",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "name": "lib",
@@ -2060,8 +2011,7 @@ exports[`routes > GET /npm/lib@1.2.0/%2e 1`] = `
   "status": 200,
   "headers": {
     "content-length": "414",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "name": "lib",
@@ -2098,8 +2048,7 @@ exports[`routes > GET /npm/lib@1.2.0/%2e%2e%2f 1`] = `
   "status": 404,
   "headers": {
     "content-length": "108",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -2114,8 +2063,7 @@ exports[`routes > GET /npm/lib@1.2.0/%2e%2e/%2e%2e/old/1.0.0/index.js 1`] = `
   "status": 404,
   "headers": {
     "content-length": "94",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -2130,8 +2078,7 @@ exports[`routes > GET /npm/lib@1.2.0/%E0%A4%A 1`] = `
   "status": 400,
   "headers": {
     "content-length": "105",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 400,
@@ -2146,8 +2093,7 @@ exports[`routes > GET /npm/lib@1.2.0/. 1`] = `
   "status": 200,
   "headers": {
     "content-length": "414",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "name": "lib",
@@ -2184,8 +2130,7 @@ exports[`routes > GET /npm/lib@1.2.0/..%2F..%2F..%2F..%2Fsecret.txt 1`] = `
   "status": 404,
   "headers": {
     "content-length": "129",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -2200,8 +2145,7 @@ exports[`routes > GET /npm/lib@1.2.0/../1.0.0/index.js 1`] = `
   "status": 404,
   "headers": {
     "content-length": "99",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -2216,8 +2160,7 @@ exports[`routes > GET /npm/lib@1.2.0/../1.2.0/index.js 1`] = `
   "status": 404,
   "headers": {
     "content-length": "99",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -2248,8 +2191,7 @@ exports[`routes > GET /npm/lib@1.2.0/dist 1`] = `
   "status": 200,
   "headers": {
     "content-length": "323",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "name": "lib",
@@ -2281,8 +2223,7 @@ exports[`routes > GET /npm/lib@1.2.0/dist%2Findex.mjs 1`] = `
   "status": 404,
   "headers": {
     "content-length": "115",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -2297,8 +2238,7 @@ exports[`routes > GET /npm/lib@1.2.0/dist%5Cindex.mjs 1`] = `
   "status": 404,
   "headers": {
     "content-length": "115",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -2313,8 +2253,7 @@ exports[`routes > GET /npm/lib@1.2.0/dist/ 1`] = `
   "status": 200,
   "headers": {
     "content-length": "323",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "name": "lib",
@@ -2346,8 +2285,7 @@ exports[`routes > GET /npm/lib@1.2.0/dist/.. 1`] = `
   "status": 200,
   "headers": {
     "content-length": "414",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "name": "lib",
@@ -2384,8 +2322,7 @@ exports[`routes > GET /npm/lib@1.2.0/dist// 1`] = `
   "status": 404,
   "headers": {
     "content-length": "105",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -2463,11 +2400,8 @@ exports[`routes > GET /npm/lib@1.2.0/index.js (if-match: \"nope\") 1`] = `
 {
   "status": 412,
   "headers": {
-    "accept-ranges": "bytes",
     "content-length": "110",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>",
-    "x-content-type-options": "nosniff"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 412,
@@ -2497,11 +2431,9 @@ exports[`routes > GET /npm/lib@1.2.0/index.js (if-none-match: *) 1`] = `
 {
   "status": 304,
   "headers": {
-    "accept-ranges": "bytes",
     "cache-control": "public, max-age=31536000, immutable",
     "etag": "\\"8ce693b8335934d70db4f1cd8d6f8a7e21d924234f9b20657d4100bbd605f1c2\\"",
-    "last-modified": "Thu, 01 May 2025 00:00:00 GMT",
-    "x-content-type-options": "nosniff"
+    "last-modified": "Thu, 01 May 2025 00:00:00 GMT"
   },
   "body": ""
 }
@@ -2591,12 +2523,9 @@ exports[`routes > GET /npm/lib@1.2.0/index.js (range: bytes=999-) 1`] = `
 {
   "status": 416,
   "headers": {
-    "accept-ranges": "bytes",
     "content-length": "114",
     "content-range": "bytes */24",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>",
-    "x-content-type-options": "nosniff"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 416,
@@ -2627,8 +2556,7 @@ exports[`routes > GET /npm/lib@1.2.0/index.js%00.txt 1`] = `
   "status": 404,
   "headers": {
     "content-length": "114",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -2643,8 +2571,7 @@ exports[`routes > GET /npm/lib@1.2.0/index.js/x 1`] = `
   "status": 404,
   "headers": {
     "content-length": "135",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -2659,8 +2586,7 @@ exports[`routes > GET /npm/lib@1.2.0/missing.js 1`] = `
   "status": 404,
   "headers": {
     "content-length": "135",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -2675,8 +2601,7 @@ exports[`routes > GET /npm/lib@1.2.0/missing.js/ 1`] = `
   "status": 404,
   "headers": {
     "content-length": "136",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -2691,8 +2616,7 @@ exports[`routes > GET /npm/lib@1.2.0/package.json/ 1`] = `
   "status": 404,
   "headers": {
     "content-length": "138",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -2707,8 +2631,7 @@ exports[`routes > GET /npm/lib@1.2.0??checksums 1`] = `
   "status": 200,
   "headers": {
     "content-length": "414",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "name": "lib",
@@ -2745,8 +2668,7 @@ exports[`routes > GET /npm/lib@1.2.0?checksums 1`] = `
   "status": 200,
   "headers": {
     "content-length": "622",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "name": "lib",
@@ -2769,8 +2691,7 @@ exports[`routes > GET /npm/lib@1.2.0?checksums&download 1`] = `
   "status": 200,
   "headers": {
     "content-length": "622",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "name": "lib",
@@ -2869,8 +2790,7 @@ exports[`routes > GET /npm/lib@1/package.json 1`] = `
   "status": 404,
   "headers": {
     "content-length": "138",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -2885,8 +2805,7 @@ exports[`routes > GET /npm/lib@2 1`] = `
   "status": 200,
   "headers": {
     "content-length": "174",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "name": "lib",
@@ -2908,8 +2827,7 @@ exports[`routes > GET /npm/lib@2.0.0 1`] = `
   "status": 404,
   "headers": {
     "content-length": "110",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -2924,8 +2842,7 @@ exports[`routes > GET /npm/lib@999/changelog 1`] = `
   "status": 404,
   "headers": {
     "content-length": "108",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -2940,8 +2857,7 @@ exports[`routes > GET /npm/lib@@1.0.0 1`] = `
   "status": 404,
   "headers": {
     "content-length": "98",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -2956,8 +2872,7 @@ exports[`routes > GET /npm/lib@latest 1`] = `
   "status": 200,
   "headers": {
     "content-length": "168",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "name": "lib",
@@ -3017,8 +2932,7 @@ exports[`routes > GET /npm/links@1.0.0 1`] = `
   "status": 200,
   "headers": {
     "content-length": "408",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "name": "links",
@@ -3055,8 +2969,7 @@ exports[`routes > GET /npm/links@1.0.0/dangling 1`] = `
   "status": 404,
   "headers": {
     "content-length": "135",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -3071,8 +2984,7 @@ exports[`routes > GET /npm/links@1.0.0/dist 1`] = `
   "status": 200,
   "headers": {
     "content-length": "237",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "name": "links",
@@ -3099,8 +3011,7 @@ exports[`routes > GET /npm/links@1.0.0/dist/loop 1`] = `
   "status": 200,
   "headers": {
     "content-length": "403",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "name": "links",
@@ -3153,8 +3064,7 @@ exports[`routes > GET /npm/links@1.0.0/dist/loop/... (index.js after 40 and 41 l
   "status": 404,
   "headers": {
     "content-length": "545",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -3169,8 +3079,7 @@ exports[`routes > GET /npm/links@1.0.0/dist/loop/... (index.js after 40 and 41 l
   "status": 404,
   "headers": {
     "content-length": "541",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -3201,8 +3110,7 @@ exports[`routes > GET /npm/links@1.0.0/folder 1`] = `
   "status": 200,
   "headers": {
     "content-length": "239",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "name": "links",
@@ -3261,8 +3169,7 @@ exports[`routes > GET /npm/links@1.0.0/outside 1`] = `
   "status": 404,
   "headers": {
     "content-length": "134",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -3277,8 +3184,7 @@ exports[`routes > GET /npm/links@1.0.0/sibling 1`] = `
   "status": 404,
   "headers": {
     "content-length": "134",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -3293,8 +3199,7 @@ exports[`routes > GET /npm/links@1.0.0?checksums 1`] = `
   "status": 200,
   "headers": {
     "content-length": "343",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "name": "links",
@@ -3376,8 +3281,7 @@ exports[`routes > GET /npm/list 1`] = `
   "status": 404,
   "headers": {
     "content-length": "98",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -3392,8 +3296,7 @@ exports[`routes > GET /npm/next@latest 1`] = `
   "status": 200,
   "headers": {
     "content-length": "184",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "name": "next",
@@ -3415,8 +3318,7 @@ exports[`routes > GET /npm/nope 1`] = `
   "status": 404,
   "headers": {
     "content-length": "98",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -3431,8 +3333,7 @@ exports[`routes > GET /npm/nope/a/b 1`] = `
   "status": 404,
   "headers": {
     "content-length": "98",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -3447,8 +3348,7 @@ exports[`routes > GET /npm/nope/changelog 1`] = `
   "status": 404,
   "headers": {
     "content-length": "98",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -3465,7 +3365,6 @@ exports[`routes > GET /npm/old 1`] = `
     "content-length": "279",
     "content-type": "application/json; charset=utf-8",
     "deprecation": "@1748736000",
-    "etag": "W/<weak>",
     "link": "<https://dropr.sylvain.sh/npm/lib>; rel=\\"successor-version\\""
   },
   "body": {
@@ -3490,7 +3389,6 @@ exports[`routes > GET /npm/old/anything 1`] = `
     "content-length": "101",
     "content-type": "application/json; charset=utf-8",
     "deprecation": "@1748736000",
-    "etag": "W/<weak>",
     "link": "<https://dropr.sylvain.sh/npm/lib>; rel=\\"successor-version\\""
   },
   "body": {
@@ -3509,7 +3407,6 @@ exports[`routes > GET /npm/old/changelog 1`] = `
     "content-length": "306",
     "content-type": "application/json; charset=utf-8",
     "deprecation": "@1748736000",
-    "etag": "W/<weak>",
     "link": "<https://dropr.sylvain.sh/npm/lib>; rel=\\"successor-version\\""
   },
   "body": {
@@ -3537,8 +3434,7 @@ exports[`routes > GET /npm/old@1.0.0/%E0%A4%A 1`] = `
   "status": 400,
   "headers": {
     "content-length": "105",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 400,
@@ -3573,7 +3469,6 @@ exports[`routes > GET /npm/old@9 1`] = `
     "content-length": "106",
     "content-type": "application/json; charset=utf-8",
     "deprecation": "@1748736000",
-    "etag": "W/<weak>",
     "link": "<https://dropr.sylvain.sh/npm/lib>; rel=\\"successor-version\\""
   },
   "body": {
@@ -3591,7 +3486,6 @@ exports[`routes > GET /npm/old@latest 1`] = `
     "content-length": "301",
     "content-type": "application/json; charset=utf-8",
     "deprecation": "@1748736000",
-    "etag": "W/<weak>",
     "link": "<https://dropr.sylvain.sh/npm/lib>; rel=\\"successor-version\\""
   },
   "body": {
@@ -3619,8 +3513,7 @@ exports[`routes > GET /npm/sealed@1.0.0 1`] = `
   "status": 404,
   "headers": {
     "content-length": "100",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -3635,8 +3528,7 @@ exports[`routes > GET /npm/sealed@1.0.0/index.js 1`] = `
   "status": 404,
   "headers": {
     "content-length": "100",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -3651,8 +3543,7 @@ exports[`routes > GET /npm/sealed@1.0.0/vault 1`] = `
   "status": 404,
   "headers": {
     "content-length": "100",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -3667,8 +3558,7 @@ exports[`routes > GET /npm/sealed@1.0.0/vault/key.txt 1`] = `
   "status": 404,
   "headers": {
     "content-length": "100",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -3683,8 +3573,7 @@ exports[`routes > GET /npm/sealed@1.0.0?checksums 1`] = `
   "status": 404,
   "headers": {
     "content-length": "100",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -3699,8 +3588,7 @@ exports[`routes > GET /npm/sealed@1.0.0?download 1`] = `
   "status": 404,
   "headers": {
     "content-length": "100",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -3715,8 +3603,7 @@ exports[`routes > GET /npm\\lib 1`] = `
   "status": 200,
   "headers": {
     "content-length": "247",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "message": "Available versions for the 'lib' project.",
@@ -3751,8 +3638,7 @@ exports[`routes > GET /search 1`] = `
   "status": 400,
   "headers": {
     "content-length": "97",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 400,
@@ -3767,8 +3653,7 @@ exports[`routes > GET /search/ 1`] = `
   "status": 404,
   "headers": {
     "content-length": "92",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -3783,8 +3668,7 @@ exports[`routes > GET /search/x 1`] = `
   "status": 404,
   "headers": {
     "content-length": "93",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 404,
@@ -3799,8 +3683,7 @@ exports[`routes > GET /search??q=lib 1`] = `
   "status": 400,
   "headers": {
     "content-length": "97",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 400,
@@ -3815,8 +3698,7 @@ exports[`routes > GET /search?q=%20%20 1`] = `
   "status": 400,
   "headers": {
     "content-length": "97",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 400,
@@ -3831,8 +3713,7 @@ exports[`routes > GET /search?q=LIB 1`] = `
   "status": 200,
   "headers": {
     "content-length": "251",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "query": "LIB",
@@ -3860,8 +3741,7 @@ exports[`routes > GET /search?q=a&q=b 1`] = `
   "status": 400,
   "headers": {
     "content-length": "97",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 400,
@@ -3876,8 +3756,7 @@ exports[`routes > GET /search?q=bash 1`] = `
   "status": 200,
   "headers": {
     "content-length": "388",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "query": "bash",
@@ -3913,8 +3792,7 @@ exports[`routes > GET /search?q=e 1`] = `
   "status": 200,
   "headers": {
     "content-length": "381",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "query": "e",
@@ -3949,8 +3827,7 @@ exports[`routes > GET /search?q=lib 1`] = `
   "status": 200,
   "headers": {
     "content-length": "251",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "query": "lib",
@@ -3978,8 +3855,7 @@ exports[`routes > GET /search?q=npm 1`] = `
   "status": 200,
   "headers": {
     "content-length": "1026",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "query": "npm",
@@ -4049,8 +3925,7 @@ exports[`routes > GET /search?q=zzz 1`] = `
   "status": 200,
   "headers": {
     "content-length": "51",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "query": "zzz",
@@ -4106,8 +3981,7 @@ exports[`routes > POST /health 1`] = `
   "headers": {
     "allow": "GET, HEAD, OPTIONS",
     "content-length": "115",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 405,
@@ -4123,8 +3997,7 @@ exports[`routes > POST /npm/lib 1`] = `
   "headers": {
     "allow": "GET, HEAD, OPTIONS",
     "content-length": "115",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 405,
@@ -4140,8 +4013,7 @@ exports[`routes > PUT / 1`] = `
   "headers": {
     "allow": "GET, HEAD, OPTIONS",
     "content-length": "114",
-    "content-type": "application/json; charset=utf-8",
-    "etag": "W/<weak>"
+    "content-type": "application/json; charset=utf-8"
   },
   "body": {
     "status": 405,
