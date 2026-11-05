@@ -4,22 +4,9 @@ export interface Deprecation {
     successor: string;
 }
 
-export interface PackageProject {
-    list: string;
-    versions: Record<string, string>;
-    deprecated?: Deprecation;
-}
-
-export interface PackageType {
-    list: string;
-    [project: string]: PackageProject | string;
-}
-
-export type Packages = Record<string, PackageType>;
-
 export interface FileEntry {
     name: string;
-    size: number | null;
+    size: number;
     directory: boolean;
 }
 
@@ -30,8 +17,6 @@ export interface SearchResult {
     url: string;
     deprecated?: Deprecation;
 }
-
-export type ChecksumMap = Record<string, string>;
 
 export interface ErrorBody {
     status: number;
@@ -83,7 +68,7 @@ export interface Manifest {
 }
 
 export interface Index {
-    format: 1;
+    format: 2;
     types: IndexType[];
 }
 
@@ -94,7 +79,7 @@ export interface IndexType {
 
 export interface IndexProject {
     name: string;
-    deprecated: Deprecation | null;
+    deprecated?: Deprecation;
     versions: IndexVersion[];
 }
 
@@ -109,44 +94,62 @@ export type IndexNode = IndexDir | IndexFile | IndexLink;
 export interface IndexDir {
     kind: 'dir';
     name: string;
-    size: number | null;
-    entries: IndexNode[] | null;
+    entries: IndexNode[];
 }
 
 export interface IndexFile {
     kind: 'file';
     name: string;
-    mtime: number;
     size: number;
     exec: boolean;
-    sha256: string | null;
+    sha256: string;
 }
 
 export interface IndexLink {
     kind: 'link';
     name: string;
     target: string;
-    real: string | null;
+    real?: string;
 }
+
+export interface CatalogDir {
+    kind: 'dir';
+    name: string;
+    size: number;
+    entries: CatalogNode[];
+}
+
+export type CatalogNode = CatalogDir | IndexFile | IndexLink;
 
 export interface CatalogVersion {
     type: string;
     project: string;
     name: string;
     date: string;
-    root: IndexDir;
-    nodes: Map<string, IndexNode>;
+    released: number;
+    root: CatalogDir;
+    nodes: Map<string, CatalogNode>;
+}
+
+export interface CatalogProject {
+    name: string;
+    deprecated?: Deprecation;
+    versions: Map<string, CatalogVersion>;
+    latest: CatalogVersion;
+}
+
+export interface CatalogType {
+    name: string;
+    projects: Map<string, CatalogProject>;
 }
 
 export interface Catalog {
-    packages: Packages;
-    versions: Map<string, CatalogVersion>;
+    types: Map<string, CatalogType>;
 }
 
 export interface Resolved {
-    node: IndexDir | IndexFile;
+    node: CatalogDir | IndexFile;
     path: string;
-    hops: number;
 }
 
 export type RouteInput = Pick<Request, 'method' | 'url' | 'headers'>;
@@ -179,7 +182,6 @@ export interface FileBody {
     kind: 'file';
     path: string;
     size: number;
-    mtime: number;
     missing: string;
     precondition: string;
     range: string;
@@ -188,7 +190,7 @@ export interface FileBody {
 export interface ArchiveBody {
     kind: 'archive';
     key: string;
-    entries: TarEntry[] | null;
+    entries: TarEntry[];
 }
 
 export type RouteBody = JsonBody | EmptyBody | FileBody | ArchiveBody;
