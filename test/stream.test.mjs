@@ -279,7 +279,7 @@ describe('archiveStream through a read port', () => {
         assert.ok(await eventually(() => log.cancelled), 'the file opened after the cancel was left open');
     });
 
-    test('streams a file of more than 2 GiB a chunk at a time [change: limit]', async () => {
+    test('streams a file of more than 2 GiB a chunk at a time', async () => {
         const big = { ...entries[0], kind: 'file', path: 'big', size: 3 * 1024 ** 3, source: 'big' };
         // Random bytes, which gzip cannot shrink, so that it emits as the file comes
         const noise = crypto.randomBytes(65_536);

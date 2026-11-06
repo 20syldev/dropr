@@ -111,7 +111,7 @@ describe('parseHttpDate', () => {
         assert.equal([years('70', Date.UTC(1995, 0, 1)), years('45', Date.UTC(1995, 0, 1))].join(), '1970,2045');
     });
 
-    test('refuses a day that does not exist, a time out of range and any other spelling [change: dates]', () => {
+    test('refuses a day that does not exist, a time out of range and any other spelling', () => {
         for (const text of [
             'Thu, 30 Feb 2025 00:00:00 GMT',
             'Thu, 29 Feb 2025 00:00:00 GMT',
@@ -181,7 +181,7 @@ describe('decide: RFC 9110 section 13.2.2', () => {
         assert.equal(decision({ range: 'bytes=0-' }, 0).headers['Content-Range'], 'bytes */0');
     });
 
-    test('If-Match is evaluated first, with a strong comparison, and its failure is a 412 whatever else is sent [change: match]', () => {
+    test('If-Match is evaluated first, with a strong comparison, and its failure is a 412 whatever else is sent', () => {
         const stale = { 'if-none-match': TAG, 'if-modified-since': imf(LAST_MODIFIED), range: 'bytes=0-1' };
 
         assert.equal(decision({ 'if-match': TAG, ...stale }).status, 304);
@@ -253,7 +253,7 @@ describe('decide: ranges of RFC 9110 section 14', () => {
         assert.equal(headers.ETag, TAG);
     });
 
-    test('open, suffix and overlong ranges are cut to the file [change: suffix]', () => {
+    test('open, suffix and overlong ranges are cut to the file', () => {
         assert.deepEqual(summary(range('bytes=20-')), { status: 206, range: [20, 23] });
         assert.deepEqual(summary(range('bytes=0-999')), { status: 206, range: [0, 23] });
         assert.deepEqual(summary(range('bytes=-4')), { status: 206, range: [20, 23] });
@@ -282,7 +282,7 @@ describe('decide: ranges of RFC 9110 section 14', () => {
         assert.deepEqual(summary(range('bytes=0-5,10-12')), { status: 200, range: [0, 23] });
     });
 
-    test('a Range that cannot be read is ignored, so are other units and a last position before the first [change: syntax]', () => {
+    test('a Range that cannot be read is ignored, so are other units and a last position before the first', () => {
         const whole = { status: 200, range: [0, 23] };
         for (const value of [
             'items=0-5',
@@ -344,7 +344,7 @@ describe('decide: ranges of RFC 9110 section 14', () => {
         assert.deepEqual(summary(range('bytes=0-5 , 3-8')), { status: 206, range: [0, 8] });
     });
 
-    test('If-Range keeps the range for the strong tag and the exact date, and drops it for anything else [change: ifrange]', () => {
+    test('If-Range keeps the range for the strong tag and the exact date, and drops it for anything else', () => {
         const partial = { status: 206, range: [0, 5] };
         const whole = { status: 200, range: [0, 23] };
 
@@ -379,7 +379,7 @@ describe('decide: ranges of RFC 9110 section 14', () => {
 });
 
 describe('decide: HEAD', () => {
-    test('answers as GET would without Range and If-Range, conditions included [change: head]', () => {
+    test('answers as GET would without Range and If-Range, conditions included', () => {
         for (const headers of [
             {},
             { range: 'bytes=0-5' },

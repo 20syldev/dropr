@@ -177,7 +177,7 @@ describe('files over HTTP', () => {
         assert.equal((await send({ range: 'bytes=99-', 'if-range': '"other"' })).status, 200);
     });
 
-    test('every 304 has one shape: the validators and the cache lifetime, no body, no type, no length [change: shapes]', async () => {
+    test('every 304 has one shape: the validators and the cache lifetime, no body, no type, no length', async () => {
         const date = 'Thu, 01 May 2025 00:00:00 GMT';
         const asks = [
             { 'if-none-match': etag },
@@ -199,7 +199,7 @@ describe('files over HTTP', () => {
         }
     });
 
-    test('If-Match is read first: a wrong tag is a 412 even with a matching If-None-Match [change: order]', async () => {
+    test('If-Match is read first: a wrong tag is a 412 even with a matching If-None-Match', async () => {
         const response = await send({ 'if-match': '"other"', 'if-none-match': etag });
 
         assert.equal(response.status, 412);
@@ -210,7 +210,7 @@ describe('files over HTTP', () => {
         assert.equal((await send({ 'if-unmodified-since': 'Wed, 30 Apr 2025 23:59:59 GMT' })).status, 412);
     });
 
-    test('a request Cache-Control does not change a conditional answer [change: nocache]', async () => {
+    test('a request Cache-Control does not change a conditional answer', async () => {
         assert.equal((await send({ 'if-none-match': etag, 'cache-control': 'no-cache' })).status, 304);
     });
 
@@ -246,7 +246,7 @@ describe('files over HTTP', () => {
         }
     });
 
-    test('a JSON answer has a length and no validator, and ignores every conditional header [change: etag]', async () => {
+    test('a JSON answer has a length and no validator, and ignores every conditional header', async () => {
         for (const path of [
             '/',
             '/npm/lib',
@@ -303,7 +303,7 @@ describe('a file that is not what the index says', () => {
         fixture?.remove();
     });
 
-    test('a file removed after startup is the 404 of a missing file, without a header of the file, and is logged [change: vanished]', async () => {
+    test('a file removed after startup is the 404 of a missing file, without a header of the file, and is logged', async () => {
         fs.unlinkSync(target(fixture));
         try {
             const response = await request(server.port, 'GET', '/npm/lib@1.0.0/package.json', { range: 'bytes=0-5' });
@@ -478,7 +478,7 @@ describe('the read port of a file response', () => {
         }
     });
 
-    test('that fails midway cuts the connection after the headers, and is logged [change: midway]', async () => {
+    test('that fails midway cuts the connection after the headers, and is logged', async () => {
         let sent = false;
         const read = async () =>
             new ReadableStream({
