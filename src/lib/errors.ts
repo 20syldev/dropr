@@ -1,6 +1,6 @@
 import type { ErrorBody } from '../types/index.js';
 
-// Reason phrases of the error statuses the server answers itself; the adapter passes its own for any other
+// Reason phrases of the error statuses the server answers itself
 const REASONS: Record<number, string> = {
     400: 'Bad Request',
     404: 'Not Found',
@@ -16,9 +16,8 @@ const REASONS: Record<number, string> = {
  *
  * @param status - HTTP error status, from 400 to 599, kept numeric in the body
  * @param message - Human readable explanation of the error
- * @param reason - Reason phrase of a status missing from the table, such as an error of the HTTP framework
  * @returns The error body, with the reason phrase of the status as error, 'Error' when none is known
  */
-export function errorBody(status: number, message: string, reason = REASONS[status] ?? 'Error'): ErrorBody {
-    return { status, error: reason, message };
+export function errorBody(status: number, message: string): ErrorBody {
+    return { status, error: REASONS[status] ?? 'Error', message };
 }
