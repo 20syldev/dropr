@@ -12,14 +12,14 @@
 #                     <user/repo> is only used for the release date
 #
 # Arguments:
-#   <user/repo>  GitHub repository (e.g. moxondev/api)
+#   <user/repo>  GitHub repository (e.g. my-org/my-tool)
 #   <path>       dropr subdirectory (e.g. packages/npm, packages/bash)
 #   [version]    Version to fetch (default: latest GitHub release, or npm view <package> version with --npm)
-#   [name]       Override package name (default: repo name; pass moxon for moxondev/api)
+#   [name]       Override package name (default: repo name)
 #
 # Examples:
-#   ./scripts/fetch.sh 20syldev/gft packages/bash
-#   ./scripts/fetch.sh --npm @moxon/api moxondev/api packages/npm 6.1.0 moxon
+#   ./scripts/fetch.sh my-org/my-tool packages/bash
+#   ./scripts/fetch.sh --npm @scope/lib my-org/lib packages/npm 2.0.0 lib
 
 set -euo pipefail
 
@@ -105,7 +105,7 @@ elif command -v gft &>/dev/null; then
     fi
 else
     warn "gft is not installed, falling back to GitHub API (rate-limited)"
-    info "Install it: ${DIM}curl -fsSL https://dropr.sylvain.sh/bash/gft@latest/install.sh | sh${NC}"
+    info "Install it: ${DIM}https://github.com/20syldev/gft${NC}"
     if [ -n "$VERSION" ]; then
         RESOLVED="$VERSION"
     else
