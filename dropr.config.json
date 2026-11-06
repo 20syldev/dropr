@@ -3,8 +3,7 @@
     "port": 4000,
     "packagesDir": "packages",
     "clientIp": {
-        "header": "cf-connecting-ip",
-        "trustProxy": true
+        "header": "cf-connecting-ip"
     },
     "manifest": {
         "baseUrl": "https://dropr.sylvain.sh"
