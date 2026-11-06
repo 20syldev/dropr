@@ -1,140 +1,236 @@
 # dropr
 
-Personal CDN that stores, versions and serves bash scripts, npm packages and shared configurations, at [dropr.sylvain.sh](https://dropr.sylvain.sh). Every published version is frozen and served as is, with its SHA-256 checksums and a `.tar.gz` archive.
+A small server for a versioned CDN: it serves bash scripts, npm packages and shared configurations from a folder of
+frozen versions, with their SHA-256 checksums and a `.tar.gz` archive of each one. It reads the folder once at startup
+and needs no database.
 
 ## Features
 
-- Versioned URLs, `/<type>/<project>@<version>/<file>`: `@latest` and partial versions (`@6`, `@6.1`) resolve to the newest stable release; a pre-release is only picked when no stable one matches, or by its exact number (`@6.0.0-pre`).
-- Files served with their real content type (`application/json`, `text/javascript`...) and `X-Content-Type-Options: nosniff`; extensionless scripts and unknown extensions as UTF-8 plain text, so they display in a browser.
-- Files of an exact version cached for a year as immutable, those reached through `@latest` or a partial version for 5 minutes, since they move with the next release; every file has an `ETag`, the SHA-256 of its bytes in quotes, and answers `304` to `If-None-Match`.
-- Files answer the conditional headers, `Range` with `If-Range` and `HEAD` as RFC 9110 says.
-- JSON listings of every type, project, version and folder, with file sizes; SHA-256 checksums of a version (`?checksums`) and its `.tar.gz` archive (`?download` or `/download/...`).
-- Changelog of a project with release dates, search by name or type, route manifest (`/manifest`) and health check (`/health`).
-- Deprecated projects stay reachable at their old address, frozen at their last version: JSON responses carry a `deprecated` field (date, message, successor), and every response under the project a `Deprecation` header and a `Link` to the successor.
-- An asset is matched by its exact path and answered like a package file: strong `ETag`, `Last-Modified`, ranges and conditional requests. Its size, date and hash are read at startup, so a changed file needs a restart, and a folder is not an asset.
-- One error body for every status: `{ "status": 404, "error": "Not Found", "message": "..." }`; a method other than `GET` or `HEAD` gets a `405`.
-- Files served from inside their version folder only: `..` is resolved by the URL before routing, never by the file system, and a symlink is followed only when its target stays inside; listings, sizes and checksums follow the same rule.
-- Rate limit of 100 requests per 10 seconds per client and 1000 per 10 seconds overall, answered with a `429`; CORS open to every origin, with the validators, range, `Link` and `Deprecation` headers exposed; a preflight allows `GET`, `HEAD` and the conditional and range headers.
+- Versioned URLs, `/<type>/<project>@<version>/<file>`: `@latest` and partial versions (`@6`, `@6.1`) resolve to the
+  newest stable release, a pre-release only when no stable one matches or by its exact number (`@6.0.0-pre`).
+- Real content types and `nosniff`; a strong `ETag` (the SHA-256 of the bytes), conditional requests, `Range` and `HEAD`
+  as RFC 9110 says; the files of an exact version are cached for a year (`immutable`), those reached through `@latest`
+  or a partial version for 5 minutes.
+- JSON listings, SHA-256 checksums (`?checksums`), a reproducible `.tar.gz` archive (`?download`), a changelog with
+  release dates, a search, a route manifest (`/manifest`) and a health check (`/health`).
+- Deprecated projects (a `.deprecated.json` next to their versions) stay reachable, and every answer of the project
+  carries a `Deprecation` header and a `Link` to the successor.
+- Files are served from inside their version folder only: a symlink is followed only when its target stays inside.
+- A rate limit per client and overall (`429` with `Retry-After`; preflights and configured assets are not counted), CORS
+  open to every origin with the useful response headers exposed, and one JSON error body (`status`, `error`, `message`)
+  for every error the server answers itself.
+- A core that uses no Node API (`src/lib/`, checked by `tsc -p tsconfig.core.json`): only the scan, the file reader and
+  the command line depend on Node.
 
-## Usage
+## Installation
 
 ```bash
-curl -O https://dropr.sylvain.sh/bash/gft@latest/gft              # a file
-curl https://dropr.sylvain.sh/bash/gft@1.0.6                      # the files of a version, with their size
-curl "https://dropr.sylvain.sh/bash/gft@1.0.6?checksums"          # their SHA-256
-curl -OJ https://dropr.sylvain.sh/download/bash/gft@1.0.6         # the whole version, as gft-1.0.6.tar.gz
+npm install dropr
 ```
+
+Needs Node.js 24 or later.
+
+## Quick start
+
+Lay the versions out as `packages/<type>/<project>/<version>/` and give each project a `.versions.json` with the release
+date of every version:
+
+```
+packages/bash/hello/.versions.json  { "1.0.6": { "date": "2025-09-12" } }
+packages/bash/hello/1.0.6/hello
+```
+
+```bash
+npx dropr check     # reports what the server would skip, without listening
+npx dropr serve     # indexes the packages and listens on port 4000
+```
+
+```bash
+curl -O http://localhost:4000/bash/hello@latest/hello     # a file
+curl http://localhost:4000/bash/hello@1.0.6               # the files of a version, with their size
+curl "http://localhost:4000/bash/hello@1.0.6?checksums"   # their SHA-256
+curl -OJ http://localhost:4000/download/bash/hello@1.0.6  # the whole version, as hello-1.0.6.tar.gz
+```
+
+## Command line
+
+```bash
+dropr serve [config] [--port 4000] [--packages ./packages]   # index the packages and listen
+dropr check [config] [--packages ./packages]                 # check the config and the packages
+```
+
+- The config is the file named, else `dropr.config.json` of the working folder, else the defaults. A named file must
+  exist.
+- `--port` wins over `$PORT`, which wins over `port` in the config; `--packages` wins over `packagesDir`.
+- `-h`, `--help` shows the usage and `-v`, `--version` the version; both exit with `0`.
+- Exit codes: `0` on success, `1` for an invalid config, an invalid `--port`, `PORT` or `--packages`, or a port that
+  cannot be taken, `2` for a command line that is not understood. `check` also exits with `1` when the packages folder
+  is not a folder or cannot be read, while `serve` only logs `No packages folder at ...` and starts with an empty index;
+  entries `check` skips are only reported.
+
+## Configuration
+
+```json
+{
+    "name": "dropr",
+    "port": 4000,
+    "packagesDir": "packages",
+    "clientIp": { "header": "x-real-ip" },
+    "rateLimit": { "window": 10, "client": 100, "global": 1000 },
+    "manifest": { "baseUrl": "https://dropr.example.com" },
+    "assets": { "/favicon.ico": "public/favicon.ico" }
+}
+```
+
+| Key                | Default      | Description                                                                                                           |
+| ------------------ | ------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `name`             | `"dropr"`    | Shown by `/health`, `/manifest` and the startup banner                                                                |
+| `port`             | `4000`       | Port to listen on, from 0 (a free port) to 65535; `--port` and `PORT` take 1 to 65535                                 |
+| `packagesDir`      | `"packages"` | Folder of the packages, resolved against the folder of the config file                                                |
+| `clientIp.header`  | `null`       | Header that names the client; set it only behind a proxy that rewrites it                                             |
+| `rateLimit.window` | `10`         | Window in seconds                                                                                                     |
+| `rateLimit.client` | `100`        | Requests per client over a sliding window                                                                             |
+| `rateLimit.global` | `1000`       | Requests over a fixed window, `null` for no cap                                                                       |
+| `manifest.baseUrl` | required     | Base URL of the instance, `http` or `https`, with no trailing slash; without a config file, `http://localhost:<port>` |
+| `manifest.params`  | `{}`         | Overrides of the texts of `/manifest` (`manifest.routes` does the same per route)                                     |
+| `assets`           | `{}`         | A URL path mapped to the file served there, read at startup                                                           |
+
+Unknown keys are refused. Without `clientIp.header` the client is the socket address, and `X-Forwarded-For` is never
+read. A refused request does not count against the limit, and a `429` tells in `Retry-After` how many seconds to wait.
+Assets and `OPTIONS` preflights are answered before the limit and never count against it.
+
+## Packages folder
+
+- A version folder is named `X.Y.Z` or `X.Y.Z-tag` as semver.org writes them (no leading `v`, no leading zero, no
+  `+build`). A type or project is named with letters, digits, `.`, `_` and `-`, starting with a letter, a digit or `_`;
+  a type may not be `download`, `health`, `manifest` or `search` (nor the first segment of a configured asset), and a
+  project may not be `list`. Any other folder is logged and left out.
+- Every version needs a day in the `.versions.json` of its project: `{ "1.0.6": { "date": "YYYY-MM-DD" } }`. The day
+  must be a real one between 1970-01-01 and today (UTC); a version with a missing, malformed or future day is logged and
+  left out. The day becomes the `Last-Modified` of its files and the date of its archive entries.
+- A project is deprecated with a `.deprecated.json`:
+  `{ "date": "YYYY-MM-DD", "message": "...", "successor": "/npm/other" }`. All three fields are required, the successor
+  being a URL reference with no space, `<`, `>`, `"` or non-ASCII character; a notice that fails is logged and the
+  project is served without it.
+- The folder is read once at startup: a version, a file, a `.versions.json` or a `.deprecated.json` changed later needs
+  a restart. What the scan leaves out is logged, mostly with a line that starts with `Skipping`, and never stops the
+  server. `dropr check` runs the same scan and reports every logged line as a problem, then prints
+  `N problems reported above`; it still exits with `0`.
 
 ## Routes
 
-| Route                                         | Description                                                       |
-| --------------------------------------------- | ----------------------------------------------------------------- |
-| `/`                                           | Every type, project and version                                   |
-| `/<type>`                                     | Projects of a type                                                |
-| `/<type>/<project>`                           | Versions of a project, `latest` included                          |
-| `/<type>/<project>@<version>`                 | Files of a version, with their size                               |
-| `/<type>/<project>@<version>/<path>`          | A file, or the listing of a folder                                |
-| `/<type>/<project>@<version>?checksums`       | SHA-256 of every file of a version                                |
-| `/<type>/<project>@<version>?download`        | The version as `.tar.gz`                                          |
-| `/<type>/<project>/changelog`                 | Versions with their release date                                  |
-| `/download`, `/download/<type>`               | Archive links (latest and every version), of every type or of one |
-| `/download/<type>/<project>@<version>`        | The version as `.tar.gz`, the latest one if omitted               |
-| `/search?q=<term>`                            | Projects whose name contains the term, or every project of a type |
-| `/manifest`                                   | Description of every route                                        |
-| `/health`                                     | Name, status, version, uptime, package count and memory           |
-| `/favicon.svg`, `/favicon.ico`, `/robots.txt` | The dropr mark and the crawler rules                              |
+| Route                                   | Description                                                       |
+| --------------------------------------- | ----------------------------------------------------------------- |
+| `/`                                     | Every type, project and version                                   |
+| `/<type>`                               | Projects of a type                                                |
+| `/<type>/<project>`                     | Versions of a project, `latest` included                          |
+| `/<type>/<project>@<version>`           | Files of a version, with their size                               |
+| `/<type>/<project>@<version>/<path>`    | A file, or the listing of a folder                                |
+| `/<type>/<project>@<version>?checksums` | SHA-256 of every file of a version                                |
+| `/<type>/<project>@<version>?download`  | The version as `.tar.gz`                                          |
+| `/<type>/<project>/changelog`           | Versions with their release date                                  |
+| `/download`, `/download/<type>`         | Archive links (latest and every version), of every type or of one |
+| `/download/<type>/<project>@<version>`  | The version as `.tar.gz`, the latest one if omitted               |
+| `/search?q=<term>`                      | Projects whose name contains the term, or every project of a type |
+| `/manifest`                             | Description of every route                                        |
+| `/health`                               | Name, status, version, uptime, package count and memory           |
+| Any path listed in `assets`             | The configured file (`GET` and `HEAD`), served before the routes  |
+
+## Use as a library
+
+```js
+import http from 'node:http';
+import { createApp, loadConfig, scan, scanAssets } from 'dropr';
+
+const config = loadConfig('dropr.config.json');
+const logger = { request: () => {}, error: console.error };
+
+const app = createApp(config, {
+    index: scan(config.packagesDir, logger),
+    packagesDir: config.packagesDir,
+    assets: scanAssets(config.assets, logger),
+    version: '1.0.0',
+    logger,
+});
+
+http.createServer(app).listen(config.port);
+```
+
+The config needs `manifest.baseUrl`. `dropr serve` also keeps a type folder out of the names of the assets (the third
+argument of `scan`, the first segment of each asset URL), so do not name a type like an asset.
+
+`createHandler` answers a `fetch` `Request` with a `Response`, so the same core can serve a worker or a test:
+
+```js
+import { buildManifest, createHandler, createReader, loadIndex, parseConfig, scan } from 'dropr';
+
+const config = parseConfig({ manifest: { baseUrl: 'https://cdn.example.com' } });
+const logger = { error: console.error };
+
+const handler = createHandler({
+    catalog: loadIndex(scan('packages', logger)),
+    name: config.name,
+    version: '1.0.0',
+    manifest: buildManifest(config.manifest, config.name, '1.0.0'),
+    read: createReader('packages'),
+    assets: {},
+    clientHeader: null,
+    rateLimit: config.rateLimit,
+    logger,
+});
+
+const response = await handler(new Request('http://localhost/health'), '127.0.0.1');
+```
+
+The second argument is the address of the client. `loadIndex` takes the index that `scan` builds or one read from a JSON
+file, and `read(path, range?)` is any function that returns a stream of the file; `createReader` is the one over a
+folder. `createResponder` takes the same options and returns the status, headers and body without building a `Response`.
+`parseConfig` and the types of the API are exported too.
 
 ## Publishing a version
 
 ```bash
 # From a GitHub release: clones the tag, builds it when it has a build script, copies it
-npm run fetch -- 20syldev/gft packages/bash 1.0.7
+npm run fetch -- my-org/my-tool packages/bash 1.0.7
 
 # From the published npm tarball, the method used for the npm packages
-npm run fetch -- --npm @moxon/api moxondev/api packages/npm 6.2.0 moxon
+npm run fetch -- --npm @scope/lib my-org/lib packages/npm 2.0.0 lib
 ```
 
-`fetch.sh [options] <user/repo> <path> [version] [name]`: the version defaults to the latest GitHub release (the npm `latest` tag with `--npm`), the name to the repository's. `--force` replaces an existing version once the new one is fetched (a failed fetch keeps the old one), `--no-build` skips the build and `--exclude <pattern>` leaves files out. Needs git, rsync and npm, and uses gft when installed.
-
-The version names the folder and must be `X.Y.Z` or `X.Y.Z-tag` as semver.org writes them: a leading `v` of the tag is dropped (`v1.0.7` is stored as `1.0.7`), and anything else (`1.0`, `01.0.0`, `1.0.0+build`) stops the script before it creates anything, since the server would leave that folder out. The same goes for a type or a project name that is not letters, digits, `.`, `_` and `-` (or that is `list`).
-
-The release date comes from the GitHub release, or is today's UTC day when there is none, and is recorded in the project's `.versions.json` before any file is copied; `versions.mjs` refuses a version or a day the server would not read and leaves the file alone. The date is the `Last-Modified` of the files of that version. A deprecated project refuses new versions and names its successor. The server reads `packages/` once at startup: commit the new version, then redeploy (or restart) for it to be served.
+`fetch.sh [options] <user/repo> <path> [version] [name]`: `<path>` is the folder to publish into and `[name]` the
+project name (the repository's by default). The version defaults to the latest GitHub release, or to the npm `latest`
+with `--npm <package>`, which packs the published tarball instead of cloning. `--force` replaces an existing version
+once the new one is fetched, `--no-build` skips the build and `--exclude <pattern>` leaves files out. It needs Node.js
+and rsync, plus git for a GitHub source and npm for `--npm` or a build; `gft` is used when installed, `curl` and the
+GitHub API otherwise. The release date comes from the GitHub release, or is today's UTC day, and is recorded in
+`.versions.json` before any file is copied.
 
 ## Stack
 
-Node.js, strict TypeScript (ESM), @20syldev/logger.ts
+Node.js, strict TypeScript (ESM), [@moxon/limiter](https://github.com/moxondev/limiter),
+[@20syldev/logger.ts](https://github.com/20syldev/logger.ts)
 
 ## Scripts
 
-| Script                  | Description                                                                                                      |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `npm run dev`           | Dev server on the port of the config file (4000), reloaded on change (tsx watch)                                 |
-| `npm run build`         | Compile TypeScript to `dist/`                                                                                    |
-| `npm start`             | Production server (`dist/serve.js`) on the port of the config file, or `$PORT`                                   |
-| `npm run fetch`         | Publish a version into `packages/` (`scripts/fetch.sh`)                                                          |
-| `npm run check`         | Type checks, the Node-free core included, ESLint, Prettier (`src/`, `scripts/`, `test/` and `dropr.config.json`) |
-| `npm test`              | Route snapshots, `createApp`, config, router, core, HTTP rules, streams, files, tar, entry point, `packages/`    |
-| `npm run test:update`   | Record the snapshots again after an intended change                                                              |
-| `npm run format`        | Prettier + ESLint (write)                                                                                        |
-| `npm run upgrade:minor` | Update the dependencies within their ranges                                                                      |
-| `npm run upgrade:major` | Move every dependency to its latest major (npm-check-updates)                                                    |
+| Script                | Description                                                                                   |
+| --------------------- | --------------------------------------------------------------------------------------------- |
+| `npm run dev`         | Dev server, reloaded on change (tsx watch)                                                    |
+| `npm run build`       | Compile TypeScript to `dist/`                                                                 |
+| `npm start`           | Production server (`dropr serve`, after `npm run build`) on the port of the config or `$PORT` |
+| `npm run fetch`       | Publish a version into `packages/` (`scripts/fetch.sh`)                                       |
+| `npm run check`       | Type checks (Node-free core included), ESLint, Prettier                                       |
+| `npm test`            | Route snapshots, config, router, core, HTTP rules, CLI, package                               |
+| `npm run test:update` | Record the snapshots again after an intended change                                           |
+| `npm run format`      | Prettier and ESLint fixes on `src/`, `scripts/` and `test/`                                   |
 
 ## Structure
 
 ```
-.github/          CI: checks and tests on every push to master and every pull request
-packages/         Published versions, as packages/<type>/<project>/<version>/
-public/           Favicon: the dropr mark, a vermilion box falling into its tray (SVG and ICO)
-scripts/          fetch.sh (version publishing), versions.mjs (release dates)
-src/app.ts        createApp(config, deps): the node:http listener, which gives each request to the core and writes its answer; reads no env and listens nowhere
-src/assets.ts     scanAssets(): size, date and SHA-256 of the configured assets, read once at startup
-src/disk.ts       createReader(): the read port over the packages folder, files opened before their headers and read in 64 KiB chunks
-src/serve.ts      Entry point: reads the config file and the env, indexes packages/, builds the app and listens
-src/config.ts     loadConfig(): reads the config file and resolves its paths against the folder of the file
-src/scan.ts       Startup index of packages/: folders, files, links, sizes, release dates, deprecations and SHA-256
-src/manifest.ts   Routes and English texts of /manifest, built by buildManifest() with the overrides of the config
-src/lib/          Node-free core: route(), path router, index loading, semver and byte order, version resolution, paths, checksums, conditions and ranges of HTTP, tar writer, byte stream guard, MIME types, errors, deprecations, rate limiter, CORS, responder (rate limit, assets, routes; also a fetch handler), config parser
-src/types/        Shared types: the index and its catalog, route input, match and response, tar entries, read port, conditions, config and logger
-test/             Route snapshots on a generated tree, createApp and the entry point, config, path router, route(), the responder and the limiter in process, HTTP rules against a model of RFC 9110, streams, files over HTTP, tar writer, the ledger of the decided changes of a release, sweep of packages/
-dropr.config.json Config of the instance: name, port, packages folder, client IP header, base URL and assets
-robots.txt        Crawler rules, served on /robots.txt
+packages/       Published versions, as packages/<type>/<project>/<version>/
+public/         Favicon: the dropr mark (SVG and ICO)
+scripts/        fetch.sh (version publishing), versions.mjs (release dates)
+src/lib/        Node-free core: router, routes, packages, semver, checksums, HTTP rules, CORS, tar archive, responder
+src/            Command line and Node adapter: bin, cli, serve, check, startup, app, scan, assets, config, disk, index
+src/manifest.ts Route texts of /manifest, also Node-free
+test/           Snapshots on a generated tree, unit and HTTP tests, the ledger of decided changes of a release
 ```
-
-## Notes
-
-- A full version must exist as is: `@6.0.0` answers 404 while only `6.0.0-pre` is published, whereas `@6.0` resolves to it. A partial version is a major (`@6`) or a major and a minor (`@6.1`) and nothing else: `@6.`, `@06` or a prefix of a pre-release answer 404.
-- The server reads `packages/` once at startup into an index (`src/scan.ts`): listings, sizes, checksums, release dates and file ETags come from it, so a folder made unreadable after startup keeps being listed, a file added after startup only shows after a restart, and one edited in place keeps its startup ETag and checksum until then. What the scan refuses is logged and never stops the server (see the scan policy below).
-- A missing `packages/` folder is logged and serves an empty index instead of stopping the server; `/health` then counts 0 packages.
-- The index is a JSON document of format 2 with no null in it: types, projects, versions and entries in UTF-8 byte order (versions in semver order), a file with its size, execute flag and SHA-256, a link with its target and, when it leads to a node of the version, its real path. `loadIndex()` checks the whole document and derives what the routes read (folder sizes, the latest version of each project, the release time of each version), so an index built elsewhere is served exactly like the one `scan()` builds: a fault throws `Invalid packages index: <place> <fault>.` and another format `Unsupported packages index format: <n>`. The index is never written to disk, so the format has no migration.
-- `src/lib/` and `src/manifest.ts` use no Node API (no built-in module, `process`, `Buffer`, timer or `console`), so the core can move to another JavaScript runtime; ESLint and `tsc -p tsconfig.core.json` check it.
-- Archives are named `<project>-<version>.tar.gz` and unpack into a `<version>/` folder. They are written in JS (ustar, pax for long names): entries in strcmp order, mode `0755` for folders and executables, `0644` for other files and `0777` for links, owner `0/0`, and every entry dated the release date of the version, so a version gives the same tar bytes on every deploy. When a file cannot be read midway, or no longer has its startup size, the connection is reset instead of ending, so `curl -f` fails rather than keeping a partial archive. Files stream in chunks, so only a file of 8 GiB or more, past the size field of ustar, resets the download.
-- `.versions.json` (release dates) and `.deprecated.json` (deprecation notice) sit next to the version folders of a project, so they never show up in listings, archives or checksums. `.versions.json` maps a version to `{ "date": "YYYY-MM-DD" }` (other keys are ignored), and `.deprecated.json` is `{ "date": "YYYY-MM-DD", "message": "...", "successor": "/npm/other" }`, the date being a real day and the successor a URL made of printable ASCII without a space, `<`, `>` or `"`.
-- In production: `npm install && npm run build`, then `npm start`; the committed lockfile pins what gets installed.
-- `dropr.config.json` at the repository root holds everything specific to an instance, and is required: a file that is missing, is not JSON or is refused prints `Invalid config: ...` and exits with 1 without listening. The path of another file is the first argument, `node dist/serve.js path/to/config.json`. Unknown keys are refused, and a relative path is resolved against the folder of the file.
-- Keys and defaults: `name` (`"dropr"`, used by `/health`, `/manifest` and the startup banner), `port` (`4000`), `packagesDir` (`"packages"`), `clientIp.header` (`null`, the header that names the client for the rate limit), `manifest.baseUrl` (required: an http or https URL without a trailing slash, space or control character), `manifest.params` and `manifest.routes` (`{}`, overrides of the manifest texts, below) and `assets` (`{}`, a URL path mapped to the file served there).
-- `PORT` and `PACKAGES_DIR` win over `port` and `packagesDir`; `PACKAGES_DIR` serves another tree than `packages/`, as the tests do with a tree they generate in the system temp folder.
-- The client for the rate limit is the value of `clientIp.header` when the request carries one, so set it only behind a proxy that rewrites that header; otherwise it is the socket address; `X-Forwarded-For` is never read.
-- The manifest has English texts built into `src/manifest.ts`; an instance overrides them in its config, per field and only where it wants to: `manifest.params.<type|project|version|file|q>` takes `name` (path params only), `description` and `example`, and `manifest.routes.<id>` takes `title`, `summary`, `example` and `notes`, with the ids and params listed on `/manifest`. A field left out keeps its default, `notes` replaces the whole list, and a renamed path param is renamed in the paths and in every note, the notes of the config included, so write `{name}` for the new name of a path param there.
-- `createApp(config, { index, packagesDir, version, logger, read?, assets? })` reads no env, argument or file at creation, and neither scans, listens nor prints: `src/serve.ts` does, so importing `dist/app.js` has no side effect and every app has its own rate limiter. It takes a config that went through `parseConfig`.
-- Files and archives come from a read port, `deps.read(path, range?)`; a file is opened before its headers, so one removed or cut since startup answers a logged `404`, and one that grew is sent up to its startup size.
-- The tests start the app in process on a loopback port, with a logger that records what the app reports, and run `dist/serve.js` in a child process for its arguments, env and exit code only.
-- The tests need Node 24, GNU tar (to check the archives), bash, rsync (for the fetch.sh tests that copy files, skipped without it) and a regular user: root can read a file of mode `000`, so the cases that rely on one are skipped, and `npm run test:update` would then drop their snapshots. With `CI` set, these cases fail instead of being skipped.
-- The CI runs `npm run check` and `npm test` on Node 24 for every push to `master` and every pull request.
-- An error answers JSON with `status` (a number), `error` (the HTTP reason phrase) and `message` (the detail).
-- A request is read as a WHATWG URL, then every path segment is percent-decoded once before routing, so `/%73earch` and `/npm/lib/chang%65log` route like `/search` and `/npm/lib/changelog`. The URL resolves `.` and `..` first, in every spelling (`%2e`, `.%2E`...), and a `..` above the root stays at the root, so `.../lib@1.2.0/..` is the listing of the type and `.../lib@1.2.0/../1.2.0/index.js` names the project `1.2.0`. A backslash reads as a slash and a fragment is cut, as browsers and curl send them. The path alone is routed: `Host` and `X-Forwarded-Host` are never read, and an absolute-form target (`GET http://host/npm/lib`) is routed on its path and query, whatever its authority. `route()` itself answers `400` with `The request URL is not valid.` to a URL that does not parse or whose scheme is not `http` or `https`, which the adapter never builds.
-- A segment that does not percent-decode answers `400` with `The path holds an invalid percent-encoding.`, before any `404`, with no `Deprecation` or `Link` header and no echo of the input. A segment that decodes to nothing, to a `/` or a `\`, or to a control character (NUL, a newline, DEL, C1) matches no route, so `%2F`, `%5C` and `%00` are never separators and one file has one URL; an empty segment (`//`) is a missing route too, and only `/` is the root.
-- A path that matches no route answers `404` with `Route '<encoded path>' does not exist.`, which never echoes the query. Below a project without a version, only `<project>/changelog` is a route: any other deeper path (`/npm/lib/anything`) is that `404` once its type and project are checked, with the `Deprecation` and `Link` headers of a deprecated project, and a missing type or project keeps its own message. Under `/download`, a path that is not `/download`, `/download/<type>` or `/download/<type>/<project>[@<version>]` is that `404` too, and so is any path below `/search`.
-- Route names (`download`, `search`, `changelog`) are matched in lower case only: `/Download/npm` is the package type `Download` and `/npm/lib/CHANGELOG` is a missing route. After a version, `changelog` is a file name, so `lib@1.0.0/changelog` serves that file or answers a missing file, and `lib@999/changelog` a missing version.
-- A trailing slash marks a folder. It is accepted on `/`, `/download`, `/download/<type>`, `/<type>`, `/<type>/<project>`, `/<type>/<project>@<version>` and the folders of a version. On a file it answers a missing file, like any missing path, whose message echoes the slash, and on `/search`, an archive (`/download/<type>/<project>`) or the changelog it answers `Route '...' does not exist.`
-- A project is split from its version at the last `@`, and an `@` in first or last place is no separator: `lib@` and `@1.0.0` name no project, `lib@@1.0.0` names the project `lib@`, and `lib@1.0.0@junk` names the project `lib@1.0.0`. Scoped names such as `@moxon/api` are not routed.
-- The query is read with `URLSearchParams`: `q` must appear exactly once and not be blank, `checksums` and `download` count by their presence, and the number of keys is not limited. `Q=lib` is not `q`, and `+` in `q` is a space.
-- A top-level folder of `packages/` named `download`, `search`, `health`, `manifest` or like the first segment of a configured asset (`favicon.ico`, `robots.txt`) is not a package type: the scan skips the whole folder and logs `Skipping type '<name>': reserved name.` Names are compared exactly, so a `Download` or `Health` folder is a type.
-- The `ETag` of a file is its checksum, `"<64 hex digits>"`, the value `?checksums` gives for it: it follows the bytes, so two files with the same content share a tag whatever their name, version or date, and a link has the tag of its target. Files are hashed in 1 MiB reads, so no size limit applies, and an index must carry the checksum of every file (`loadIndex()` refuses one without). The tag is strong, so `If-Match` and `If-Range` accept it; `If-None-Match` also takes a list, a weak copy (`W/"..."`) or `*`. Listings and the other JSON answers have no `ETag`.
-- `Last-Modified` is the release date of the version at 00:00:00 GMT, the same for every file of it and for its 200, 206, 304 and HEAD answers, and the date written in its archive entries; it does not follow the date of the file or of the checkout. A request that carries the tag of a file reached through more than 40 links answers `404` like the same request without it.
-- Scan policy. The scan never stops the server for what a tree holds: it logs one line and leaves out the smallest thing that is wrong, and only a packages folder that cannot be listed for another reason than missing, not a folder or denied stops it. The lines start with `Skipping <path>:`, `Error reading <path>:`, `Invalid ...` or `No packages folder ...`, so a check can count them; a clean tree logs nothing, as `packages/` does.
-- A version is indexed whole or not at all: when a file or folder in it cannot be read, is a FIFO, a socket or a device, or has a name that no route can match (an empty name, `.`, `..`, or one holding a `/`, a `\` or a control character), the version is left out (`Skipping version <path>: it could not be read whole.`, after the line of the entry), so `@latest` stays on the release before it instead of serving a version with holes. A project left without a version (`Skipping project <path>: none of its versions could be indexed.`) and a type left without a project (`Skipping type '<name>': none of its projects could be indexed.`) are not served, so every project that is listed has a latest version.
-- A folder in a project is a version only when it is named `X.Y.Z` or `X.Y.Z-tag` as semver.org writes them: numbers and numeric tag identifiers without a leading zero, no build metadata, ASCII only. Any other folder (`v1.0.0`, `1.0`, `latest`, `1.0.0@beta`, `.git`) is logged with `Skipping <path>: not a version name, expected X.Y.Z or X.Y.Z-tag.` and left out. Versions are listed in semver order, so `1.10.0` follows `1.9.0` and `6.0.0-pre` precedes `6.0.0`; the newest release is `latest`, or the newest pre-release in a project that has no release. A project folder is named with letters, digits, `.`, `_` and `-` and does not start with a dot or a dash, and is not called `list` (the listing of a type holds a `list` key); any other, `my pkg`, `a@b`, an accented name or one with a quote included, is logged with `Skipping <path>: not a project name, expected letters, digits, '.', '_' and '-', not list.` and left out, since such a name would break the `Content-Disposition` of its archive or could not be addressed.
-- A release date is a real `YYYY-MM-DD` day from 1970 to today (UTC), and a version needs one in `.versions.json`. Every entry is read on its own: one that is not an object with such a date logs `Invalid date of <version> in <file>: expected a YYYY-MM-DD day, not after today.`, and a version without a usable date is left out with `Skipping version <path>: no release date in <file>.` A file that is not a JSON object logs `Invalid <file>: expected an object of versions.` and leaves out every version of the project. The date of the version folder is never used, since it moves with the checkout. A version in `.versions.json` that has no folder is ignored.
-- A `.deprecated.json` whose successor is empty or cannot go in a `Link` header (a control character, a space, a character past ASCII, `<`, `>` or `"`) or whose date is not a real `YYYY-MM-DD` day is refused with `Invalid deprecation notice in <file>: expected a YYYY-MM-DD date, a message and a successor.`: the project is served without a notice.
-- Type folders: every folder of `packages/` is a type when it is named like a project (the rule above, `list` apart) except the names that a route or an asset answers (`download`, `search`, `health`, `manifest`, the first segment of every configured asset), which are logged with `Skipping type '<name>': reserved name.`; any other name is logged with `Skipping type '<name>': not a type name, expected letters, digits, '.', '_' and '-'.` A type may be called `src`, `lib` or `node_modules`.
-- Not checked by the scan: the case of names (`Lib` and `lib` are two projects on a case-sensitive disk), hidden folders above the versions (left out without a word, while a dotfile inside a version is served like any file) and links that loop or leave their version (they have no target and answer `404` where a path crosses them; `MAX_LINKS` bounds every path). A link in the tree above the versions, a FIFO or a socket there is logged with `Skipping <path>: not a folder, only folders are read at this level.`
