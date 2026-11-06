@@ -19,12 +19,11 @@ const LAST_MODIFIED = Date.UTC(2025, 4, 1);
  * Lists the response headers of the core, leaving out the ones Node and CORS add to every answer.
  *
  * @param response - Response from request()
- * @returns The header names in alphabetical order, without date, connection, keep-alive, access-control-* and
- * x-powered-by
+ * @returns The header names in alphabetical order, without date, connection, keep-alive and access-control-*
  */
 function names({ headers }) {
     return Object.keys(headers)
-        .filter((name) => !['date', 'connection', 'keep-alive', 'x-powered-by'].includes(name))
+        .filter((name) => !['date', 'connection', 'keep-alive'].includes(name))
         .filter((name) => !name.startsWith('access-control-'))
         .sort();
 }

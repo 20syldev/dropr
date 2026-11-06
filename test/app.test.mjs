@@ -283,6 +283,40 @@ describe('createApp', () => {
         }
     });
 
+    test('sends no X-Powered-By on a route, an asset, a preflight or an error [change: powered]', async () => {
+        const server = await start({ assets: { '/robots.txt': join(rootDir, 'robots.txt') } });
+        try {
+            for (const [method, path] of [
+                ['GET', '/health'],
+                ['GET', '/robots.txt'],
+                ['OPTIONS', '/'],
+                ['GET', '/nope'],
+            ]) {
+                const { headers } = await request(server.port, method, path);
+
+                assert.equal(headers['x-powered-by'], undefined, `${method} ${path}`);
+            }
+        } finally {
+            await server.stop();
+        }
+    });
+
+    test('logs an asset and a preflight like every other request [change: logged]', async () => {
+        const server = await start({ assets: { '/robots.txt': join(rootDir, 'robots.txt') } });
+        try {
+            await request(server.port, 'GET', '/robots.txt');
+            await request(server.port, 'OPTIONS', '/npm');
+            await request(server.port, 'GET', '/health');
+
+            assert.deepEqual(
+                server.logs.requests.map(({ method, url, status }) => `${method} ${url} ${status}`),
+                ['GET /robots.txt 200', 'OPTIONS /npm 204', 'GET /health 200'],
+            );
+        } finally {
+            await server.stop();
+        }
+    });
+
     test('the logger gets every request, and the scan messages of startServer', async () => {
         const server = await startServer(join(fixture.root, 'missing'));
         try {
@@ -406,6 +440,25 @@ describe('dist/serve.js', () => {
             assert.equal(probed.kept.status, 200);
         } finally {
             tree.remove();
+        }
+    });
+
+    test('fails without the banner when the port is taken', async () => {
+        const taken = net.createServer();
+        await new Promise((resolve) => taken.listen(0, resolve));
+
+        try {
+            const { port } = taken.address();
+            const { code, stdout, stderr } = await run([], {
+                PORT: String(port),
+                PACKAGES_DIR: join(fixture.root, 'packages'),
+            });
+
+            assert.equal(code, 1);
+            assert.equal(stdout, '');
+            assert.match(stderr, /EADDRINUSE/);
+        } finally {
+            await new Promise((resolve) => taken.close(resolve));
         }
     });
 
@@ -550,7 +603,7 @@ describe('reserved names', () => {
         assert.deepEqual(logged, ['download', 'health', 'manifest', 'search', 'static'].map(skipped));
     });
 
-    test('every reserved name is compared exactly, as the router and the assets match it', () => {
+    test('every reserved name is compared exactly [change: reserved]', () => {
         const { types, logged } = scanned(['Download', 'Search', 'Health', 'MANIFEST', 'STATIC', 'npm'], ['static']);
 
         assert.deepEqual(types, ['Download', 'Health', 'MANIFEST', 'STATIC', 'Search', 'npm']);
