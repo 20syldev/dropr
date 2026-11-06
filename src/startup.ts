@@ -17,13 +17,14 @@ const DEFAULT_PORT = 4000;
  *
  * @param text - Text to read
  * @param label - Where the text comes from, for the message
- * @returns The integer from 0 to 65535, 0 asking the system for a free port
+ * @returns The integer from 1 to 65535
  * @throws Error when the text is not such an integer
  */
 function parsePort(text: string, label: string): number {
     const port = Number(text);
-    if (!/^\d+$/.test(text) || port > 65535)
-        throw new Error(`${label} must be an integer from 0 to 65535, not '${text}'.`);
+    if (!/^\d+$/.test(text) || port < 1 || port > 65535) {
+        throw new Error(`${label} must be an integer from 1 to 65535, not '${text}'.`);
+    }
 
     return port;
 }
@@ -53,7 +54,8 @@ export function choosePort(flag: string | undefined, env: string | undefined): n
  * @param packages - Value of --packages, relative to the working folder; undefined keeps the one of the config
  * @param port - Port chosen by choosePort(), undefined to keep the one of the config
  * @returns The config, its paths absolute, and the file it came from, null for the defaults
- * @throws Error when the config cannot be read or is invalid, its message starting with "Invalid config:"
+ * @throws Error when --packages is empty, or the config cannot be read or is invalid, its message starting with
+ * "Invalid config:"
  */
 export function configure(
     file: string | undefined,
@@ -61,8 +63,10 @@ export function configure(
     packages: string | undefined,
     port: number | undefined,
 ): { config: Config; file: string | null } {
+    if (packages === '') throw new Error('--packages must not be empty.');
+
     const named = file === undefined ? join(cwd, CONFIG_FILE) : resolve(cwd, file);
-    const found = file !== undefined || fs.existsSync(named);
+    const found = file !== undefined || fs.lstatSync(named, { throwIfNoEntry: false }) !== undefined;
 
     let config: Config;
     if (found) {

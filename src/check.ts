@@ -14,7 +14,8 @@ import type { Config } from './types/index.js';
  * @param file - File the config came from, null for the defaults
  * @param out - Receives the report
  * @param err - Receives the problems, among them the entries that a server would skip
- * @returns 0 when the config is sound, 1 when the packages folder is not a folder; skipped entries only warn
+ * @returns 0 when the config is sound, 1 when the packages folder is not a folder or cannot be read; skipped entries
+ * only warn
  */
 export function check(
     config: Config,
@@ -33,6 +34,13 @@ export function check(
     out(`Config: ${file ?? 'defaults, no dropr.config.json in the working folder'}`);
     if (!fs.existsSync(config.packagesDir) || !fs.statSync(config.packagesDir).isDirectory()) {
         err(`Packages folder ${config.packagesDir} is not a folder.`);
+
+        return 1;
+    }
+    try {
+        fs.accessSync(config.packagesDir, fs.constants.R_OK | fs.constants.X_OK);
+    } catch {
+        err(`Packages folder ${config.packagesDir} cannot be read.`);
 
         return 1;
     }

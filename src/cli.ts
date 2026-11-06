@@ -31,14 +31,14 @@ export interface Context {
 
 /**
  * Runs the command line of dropr.
- * A server keeps the process alive after this returns, so the code that comes back is the one of the start.
+ * A server keeps the process alive after this settles, so the code that comes back is the one of the start.
  *
  * @param argv - Arguments after the program name
  * @param context - Env, working folder and the two outputs
- * @returns 0 when the command ran or the server started, 1 for a config or a folder that fails, 2 for a command line
- * that is not understood
+ * @returns 0 when the command ran or the server listens, 1 for a config, a folder or a port that fails, 2 for a command
+ * line that is not understood
  */
-export function main(argv: string[], context: Context): number {
+export async function main(argv: string[], context: Context): Promise<number> {
     const { env, cwd, out, err } = context;
     let parsed;
     try {
@@ -81,7 +81,7 @@ export function main(argv: string[], context: Context): number {
         const { config, file } = configure(rest[0], cwd, values.packages, choosePort(values.port, env.PORT));
         if (command === 'check') return check(config, file, out, err);
 
-        serve(config, readVersion(), out);
+        await serve(config, readVersion(), out);
 
         return 0;
     } catch (error) {
