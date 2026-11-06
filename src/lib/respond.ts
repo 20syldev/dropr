@@ -154,7 +154,7 @@ function tooMany(refusal: Refused, window: number): RouteResponse {
     const message =
         refusal.scope === 'global'
             ? 'Global rate limit exceeded.'
-            : `You have exceeded the limit of ${refusal.limit} requests per ${window === 1 ? 'second' : `${window} seconds`}.`;
+            : `You have exceeded the limit of ${refusal.limit} request${refusal.limit === 1 ? '' : 's'} per ${window === 1 ? 'second' : `${window} seconds`}.`;
 
     return failure(429, message, { 'Retry-After': String(refusal.retryAfter) });
 }

@@ -1,6 +1,9 @@
 import { ROUTES } from '../manifest.js';
 import type { Config } from '../types/index.js';
 
+// Longest rate limit window in seconds, a year, which keeps the window in milliseconds an exact integer
+const MAX_WINDOW = 31_536_000;
+
 // Keys of the params the routes take, which the manifest texts are filed under
 const PARAM_KEYS = [...new Set(ROUTES.flatMap((spec) => spec.params.map(({ key }) => key)))];
 
@@ -61,12 +64,17 @@ function text<T extends string | undefined>(value: unknown, path: string, fallba
  * @param value - Value read from the file
  * @param path - Dotted path of the key, for the messages
  * @param fallback - Value of an absent key
- * @returns The integer of 1 or more
+ * @param max - Greatest value the key accepts
+ * @returns The integer from 1 to max
  */
-function count(value: unknown, path: string, fallback: number): number {
+function count(value: unknown, path: string, fallback: number, max = Number.MAX_SAFE_INTEGER): number {
     if (value === undefined) return fallback;
-    if (typeof value !== 'number' || !Number.isInteger(value) || value < 1)
-        fail(path, 'must be an integer of 1 or more');
+    if (typeof value !== 'number' || !Number.isInteger(value) || value < 1 || value > max) {
+        fail(
+            path,
+            max === Number.MAX_SAFE_INTEGER ? 'must be an integer of 1 or more' : `must be an integer from 1 to ${max}`,
+        );
+    }
 
     return value;
 }
@@ -102,7 +110,7 @@ export function parseConfig(input: unknown): Config {
     }
 
     const limits = {
-        window: count(rateLimit.window, 'rateLimit.window', 10),
+        window: count(rateLimit.window, 'rateLimit.window', 10, MAX_WINDOW),
         client: count(rateLimit.client, 'rateLimit.client', 100),
         global: rateLimit.global === null ? null : count(rateLimit.global, 'rateLimit.global', 1000),
     };

@@ -11,6 +11,7 @@ const EXPOSED = [
     'Deprecation',
     'ETag',
     'Link',
+    'Retry-After',
     'X-Content-Type-Options',
 ];
 
