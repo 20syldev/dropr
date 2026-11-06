@@ -8,7 +8,7 @@ import { join } from 'path';
 import { createReader } from '../dist/disk.js';
 import { archiveEntries, archiveStream } from '../dist/lib/archive.js';
 import { loadIndex } from '../dist/lib/packages.js';
-import { exact } from '../dist/lib/stream.js';
+import { exact, watch } from '../dist/lib/stream.js';
 
 import { chunked, eventually, memoryPort } from './port.mjs';
 import { collect, readArchive } from './tar.mjs';
@@ -102,6 +102,88 @@ describe('exact', () => {
 
         assert.equal(log.pulled, 5, `${log.pulled} chunks pulled for 5 reads`);
         await reader.cancel();
+    });
+});
+
+describe('watch', () => {
+    test('passes the bytes of the source on, and reports nothing when it ends', async () => {
+        const reported = [];
+        const { stream } = recorded([[1, 2], [3]]);
+
+        assert.deepEqual([...(await collect(watch(stream, (error) => reported.push(error))))], [1, 2, 3]);
+        assert.deepEqual(reported, []);
+    });
+
+    test('reports the error of the source once, and fails with the same error', async () => {
+        const reported = [];
+        const failure = new Error('disk');
+        const { stream } = recorded([[1], failure]);
+
+        await assert.rejects(collect(watch(stream, (error) => reported.push(error))), (error) => error === failure);
+        assert.deepEqual(reported, [failure]);
+    });
+
+    test('reports the error of a stream that exact refuses', async () => {
+        const reported = [];
+
+        await assert.rejects(collect(watch(exact(chunked(Buffer.from('abc')), 5), (error) => reported.push(error))));
+        assert.equal(reported.length, 1);
+        assert.match(reported[0].message, /ended 2 bytes before the expected 5$/);
+    });
+
+    test('cancels the source with the reason when the result is cancelled, and reports nothing', async () => {
+        const reported = [];
+        const reasons = [];
+        const source = new ReadableStream(
+            {
+                pull: (controller) => controller.enqueue(new Uint8Array(1)),
+                cancel: (reason) => void reasons.push(reason),
+            },
+            { highWaterMark: 0 },
+        );
+        const reader = watch(source, (error) => reported.push(error)).getReader();
+
+        await reader.read();
+        await reader.cancel('gone');
+
+        assert.deepEqual(reasons, ['gone']);
+        assert.deepEqual(reported, []);
+    });
+
+    test('reports nothing for a read that was pending when the result was cancelled', async () => {
+        const reported = [];
+        let release;
+        let started = false;
+        const source = new ReadableStream(
+            {
+                pull: async (controller) => {
+                    started = true;
+                    await new Promise((resolve) => (release = resolve));
+                    controller.enqueue(new Uint8Array(1));
+                },
+            },
+            { highWaterMark: 0 },
+        );
+        const reader = watch(exact(source, 10), (error) => reported.push(error)).getReader();
+
+        const pending = reader.read().catch(() => undefined);
+        assert.equal(await eventually(() => started), true);
+        await reader.cancel('gone');
+        release();
+        await pending;
+        await new Promise((resolve) => setTimeout(resolve, 20));
+
+        assert.deepEqual(reported, []);
+    });
+
+    test('reads the source one chunk per read', async () => {
+        const { stream, log } = recorded([[1], [2], [3]]);
+        const reader = watch(stream, () => {}).getReader();
+
+        await reader.read();
+        assert.equal(log.pulled, 1);
+        await reader.read();
+        assert.equal(log.pulled, 2);
     });
 });
 
