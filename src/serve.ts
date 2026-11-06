@@ -1,33 +1,24 @@
-import fs from 'fs';
 import http from 'http';
-import { dirname, join, resolve } from 'path';
-import { fileURLToPath } from 'url';
 
 import { createLogger } from '@20syldev/logger.ts';
 
 import { createApp } from './app.js';
 import { scanAssets } from './assets.js';
-import { loadConfig, reservedNames } from './config.js';
+import { reservedNames } from './config.js';
 import { scan } from './scan.js';
-import type { Logger } from './types/index.js';
-
-const rootDir = join(dirname(fileURLToPath(import.meta.url)), '..');
+import type { Config, Logger } from './types/index.js';
 
 /**
- * Starts the server: reads the config file and the env, indexes the packages, then listens.
- * The config file is the first argument, dropr.config.json at the repository root by default; PORT and PACKAGES_DIR
- * win over its port and packagesDir, and a config that cannot be loaded sets the exit code to 1.
+ * Starts the server of a config: indexes the packages and the assets, then listens.
+ * A failure to listen (port taken) is emitted by the server, not thrown, so it is rethrown instead of letting the
+ * banner report a server that is not running.
+ *
+ * @param config - Validated config, its paths absolute and its port the one to listen on
+ * @param version - Version of dropr, which /health and /manifest report
+ * @param out - Receives the banner once the server listens
+ * @returns The server, which keeps the process alive
  */
-function serve(): void {
-    let config;
-    try {
-        config = loadConfig(resolve(process.argv[2] ?? join(rootDir, 'dropr.config.json')));
-    } catch (error) {
-        console.error((error as Error).message);
-        process.exitCode = 1;
-        return;
-    }
-
+export function serve(config: Config, version: string, out: (text: string) => void): http.Server {
     const colored = createLogger({ theme: 'colored', order: 'desc' });
     const logger: Logger = {
         request: ({ method, url, status, duration }) =>
@@ -35,22 +26,17 @@ function serve(): void {
         error: (...args) => console.error(...args),
     };
 
-    // PACKAGES_DIR serves another tree than the configured one, as the tests do with a generated one
-    if (process.env.PACKAGES_DIR) config.packagesDir = resolve(process.env.PACKAGES_DIR);
-    const port = Number(process.env.PORT ?? config.port);
-    const pkg = JSON.parse(fs.readFileSync(join(rootDir, 'package.json'), 'utf-8'));
-    const { packagesDir } = config;
+    const { packagesDir, port } = config;
     const index = scan(packagesDir, logger, reservedNames(config));
     const assets = scanAssets(config.assets, logger);
-    const server = http.createServer(createApp(config, { index, packagesDir, version: pkg.version, logger, assets }));
+    const server = http.createServer(createApp(config, { index, packagesDir, version, logger, assets }));
 
-    // A failure to listen (port taken) is emitted, not thrown, so the server must not report itself as running first
     server.on('error', (error) => {
         throw error;
     });
     server.listen(port, () => {
-        console.log(`${config.name} is running on\n    - http://127.0.0.1:${port}\n    - http://localhost:${port}`);
+        out(`${config.name} is running on\n    - http://127.0.0.1:${port}\n    - http://localhost:${port}`);
     });
-}
 
-serve();
+    return server;
+}
