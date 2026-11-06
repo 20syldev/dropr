@@ -18,9 +18,6 @@ import type {
     IndexVersion,
 } from './types/index.js';
 
-// Names that Express still matches in any case, so a type folder of that name in another case is skipped too
-const LENIENT = ['health', 'manifest'];
-
 /**
  * Reads the .deprecated.json notice of a project, if any.
  * Like .versions.json, it sits next to the version folders, so listings, archives and checksums never show it.
@@ -352,20 +349,16 @@ function scanProjects(typePath: string, logger: ErrorLogger): IndexProject[] {
 
 /**
  * Tells whether a folder name is taken by a route of the server, which would shadow the listing of a type of that name.
- * The router matches its own names in lower case only, so 'Download' and 'Search' stay free; the routes that Express
- * answers and the assets match in any case. Only the bare path of the type is shadowed for health, manifest and the
- * assets, but the whole folder is skipped, so that the rule is one list.
+ * Names are compared as they are written: the router matches its own in lower case only, so 'Download' and 'Health'
+ * stay free, and so does 'Favicon.ico' beside an asset of '/favicon.ico'.
  *
  * @param name - Folder name at the top of the packages tree
- * @param assets - First path segments of the configured assets, compared in any case
- * @returns True when a route of the server answers the path of that name before the listing of a package type could
+ * @param assets - First path segments of the configured assets
+ * @returns True when a route of the server or an asset answers the path of that name before the listing of a package
+ * type could
  */
 function isReserved(name: string, assets: string[]): boolean {
-    if (RESERVED.includes(name)) return true;
-
-    const lower = name.toLowerCase();
-
-    return [...LENIENT, ...assets].some((reserved) => reserved.toLowerCase() === lower);
+    return RESERVED.includes(name) || assets.includes(name);
 }
 
 /**
