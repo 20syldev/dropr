@@ -7,6 +7,7 @@ import type {
     FileEntry,
     RouteInput,
     RouteResponse,
+    Site,
 } from '../types/index.js';
 
 import { archiveEntries } from './archive.js';
@@ -437,16 +438,17 @@ function parseUrl(text: string): URL | null {
 }
 
 /**
- * Answers a request to the package routes from a catalog, once the adapter has applied its rate limit.
+ * Answers a request to the routes of the server from a catalog, once the rate limit has been applied.
  * It reads no disk, clock or log, never throws on client input, and answers HEAD as GET.
  *
  * @param request - Request to answer, its method upper case and its url absolute with an http or https scheme, of which
  * only the path and the query are read
  * @param catalog - Catalog built by loadIndex
+ * @param site - What /health and /manifest answer, which the catalog does not hold
  * @returns The status, the headers the core owns and the body, a file or an archive body being left to the caller to
  * stream
  */
-export function route(request: RouteInput, catalog: Catalog): RouteResponse {
+export function route(request: RouteInput, catalog: Catalog, site: Site): RouteResponse {
     if (request.method !== 'GET' && request.method !== 'HEAD') {
         const message = `Method '${request.method}' is not allowed, use GET or HEAD.`;
         return failure(405, message, { Allow: 'GET, HEAD, OPTIONS' });
@@ -467,6 +469,10 @@ export function route(request: RouteInput, catalog: Catalog): RouteResponse {
             return rootRoute(scope);
         case 'search':
             return searchRoute(scope);
+        case 'health':
+            return json(200, site.health());
+        case 'manifest':
+            return json(200, site.manifest, { 'Cache-Control': 'public, max-age=300' });
         case 'downloads':
             return downloadsRoute(scope);
         case 'typeDownloads':

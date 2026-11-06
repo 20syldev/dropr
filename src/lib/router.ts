@@ -79,7 +79,9 @@ export function matchPath(pathname: string): Match {
     const [first, second, third] = segments;
     const { length } = segments;
     if (length === 0) return { id: 'root' };
-    if (first === 'search') return length === 1 && !slash ? { id: 'search' } : { id: 'unknown' };
+    if (first === 'search' || first === 'health' || first === 'manifest') {
+        return length === 1 && !slash ? { id: first } : { id: 'unknown' };
+    }
     if (first === 'download') {
         if (length === 1) return { id: 'downloads' };
         if (length === 2) return { id: 'typeDownloads', type: second };
