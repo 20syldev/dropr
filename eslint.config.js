@@ -6,7 +6,7 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 // Node built-ins and server packages, which the core never imports so that it runs on any JavaScript runtime
-const SERVER_MODULES = [...builtinModules, '@20syldev/logger.ts', 'cors', 'express'];
+const SERVER_MODULES = [...builtinModules, '@20syldev/logger.ts'];
 
 // Node globals and timers the core never reads, console included since logging belongs to the adapter
 const SERVER_GLOBALS = [
