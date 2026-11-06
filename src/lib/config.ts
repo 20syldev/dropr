@@ -64,7 +64,7 @@ function text<T extends string | undefined>(value: unknown, path: string, fallba
  */
 export function parseConfig(input: unknown): Config {
     const root = section(input, '', ['name', 'port', 'packagesDir', 'clientIp', 'manifest', 'assets']);
-    const clientIp = section(root.clientIp, 'clientIp', ['header', 'trustProxy']);
+    const clientIp = section(root.clientIp, 'clientIp', ['header']);
     const manifest = section(root.manifest, 'manifest', ['baseUrl', 'params', 'routes']);
 
     const name = text(root.name, 'name', 'dropr');
@@ -82,9 +82,6 @@ export function parseConfig(input: unknown): Config {
     if (header !== null && (typeof header !== 'string' || !/^[A-Za-z0-9-]+$/.test(header))) {
         fail('clientIp.header', 'must be null or a header name');
     }
-
-    const trustProxy = clientIp.trustProxy ?? false;
-    if (typeof trustProxy !== 'boolean') fail('clientIp.trustProxy', 'must be true or false');
 
     const baseUrl = text(manifest.baseUrl, 'manifest.baseUrl', undefined);
     if (baseUrl === undefined) fail('manifest.baseUrl', 'is required');
@@ -136,7 +133,7 @@ export function parseConfig(input: unknown): Config {
         name,
         port,
         packagesDir,
-        clientIp: { header: header === null ? null : (header as string).toLowerCase(), trustProxy },
+        clientIp: { header: header === null ? null : (header as string).toLowerCase() },
         manifest: { baseUrl, params, routes } as Config['manifest'],
         assets: assets as Record<string, string>,
     };
