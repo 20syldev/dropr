@@ -7,7 +7,7 @@ import { matchPath, RESERVED } from '../dist/lib/router.js';
 import { ROUTES } from '../dist/manifest.js';
 import { scan } from '../dist/scan.js';
 
-import { createFixture } from './fixture.mjs';
+import { createFixture, SITE } from './fixture.mjs';
 
 // Seed of every random test, printed in the message of a failure so that it can be replayed
 const SEED = 350;
@@ -353,7 +353,11 @@ describe('route() on random targets', () => {
                 const method = random() < 0.05 ? 'HEAD' : 'GET';
                 let response;
                 try {
-                    response = route({ method, url: `http://localhost${target}`, headers: new Headers() }, catalog);
+                    response = route(
+                        { method, url: `http://localhost${target}`, headers: new Headers() },
+                        catalog,
+                        SITE,
+                    );
                 } catch (error) {
                     bad.push(`${target} throws ${error}`);
                     continue;

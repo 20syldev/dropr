@@ -2,6 +2,9 @@ import fs from 'fs';
 import os from 'os';
 import { dirname, join } from 'path';
 
+// What /health and /manifest answer in the tests that call route() alone, which the packages tree does not decide
+export const SITE = { health: () => ({ status: 'ok' }), manifest: { routes: [] } };
+
 // Files of the generated tree, by path under the fixture root; secret.txt sits outside packages/ on purpose
 const FILES = {
     'secret.txt': 'outside the packages tree\n',

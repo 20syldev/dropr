@@ -6,6 +6,7 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
 import { createApp } from '../dist/app.js';
+import { scanAssets } from '../dist/assets.js';
 import { loadConfig } from '../dist/config.js';
 import { scan } from '../dist/scan.js';
 
@@ -14,7 +15,7 @@ export const rootDir = join(dirname(fileURLToPath(import.meta.url)), '..');
 // Config of the repository, with its own client header so the rate limit of the tests never depends on the instance
 export const config = {
     ...loadConfig(join(rootDir, 'dropr.config.json')),
-    clientIp: { header: 'x-test-client', trustProxy: true },
+    clientIp: { header: 'x-test-client' },
 };
 
 // Version of dropr, which /health and /manifest report
@@ -41,7 +42,7 @@ export function freePort() {
 /**
  * Serves an app on a free loopback port.
  *
- * @param app - App from createApp, or any request listener
+ * @param app - Listener from createApp, or any request listener
  * @returns The port, and stop() which closes the server and its connections
  */
 export async function listen(app) {
@@ -66,7 +67,9 @@ export async function startServer(packagesDir = config.packagesDir, change = {},
     const logs = { requests: [], errors: [] };
     const logger = { request: (entry) => logs.requests.push(entry), error: (...args) => logs.errors.push(args) };
     const index = scan(packagesDir, logger);
-    const app = createApp({ ...config, ...change }, { index, packagesDir, version, logger, ...deps });
+    const settings = { ...config, ...change };
+    const assets = scanAssets(settings.assets, logger);
+    const app = createApp(settings, { index, packagesDir, version, logger, assets, ...deps });
 
     return { ...(await listen(app)), logs };
 }

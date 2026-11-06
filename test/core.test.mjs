@@ -11,7 +11,7 @@ import { exact } from '../dist/lib/stream.js';
 import { scan } from '../dist/scan.js';
 
 import { caseName, CASES, HEADERS, readBody } from './cases.mjs';
-import { createFixture } from './fixture.mjs';
+import { createFixture, SITE } from './fixture.mjs';
 import { memoryPort } from './port.mjs';
 import { rootDir } from './server.mjs';
 import { collect } from './tar.mjs';
@@ -98,7 +98,7 @@ async function sentBytes({ body, headers }, packagesDir) {
  * aborted when the archive stream errors
  */
 async function respond(entry) {
-    const response = route(toRequest(entry), catalog);
+    const response = route(toRequest(entry), catalog, SITE);
     const { status } = response;
     const headers = Object.fromEntries(
         Object.entries(response.headers).map(([name, value]) => [name.toLowerCase(), value]),
@@ -220,7 +220,7 @@ function versionOf(from, path) {
  * @returns Status, headers as the core set them, and the JSON body parsed, or the body itself when it is not JSON
  */
 function get(target, from) {
-    const { status, headers, body } = route(toRequest({ path: target }), from);
+    const { status, headers, body } = route(toRequest({ path: target }), from, SITE);
 
     return { status, headers, body: body.kind === 'json' ? JSON.parse(body.text) : body };
 }
@@ -295,7 +295,7 @@ describe('route() against routes.test.mjs.snapshot', () => {
 
     test('GET /npm/lib@1.2.0/index.js (if-none-match: its etag)', async (t) => {
         const path = '/npm/lib@1.2.0/index.js';
-        const etag = route(toRequest({ path }), catalog).headers.ETag;
+        const etag = route(toRequest({ path }), catalog, SITE).headers.ETag;
 
         assert.deepEqual(await respond({ path, headers: { 'if-none-match': etag } }), recorded(`routes > ${t.name} 1`));
     });
@@ -400,7 +400,7 @@ describe('route() on synthetic indexes', () => {
             path: `/npm/p@1.0.0/${loop.repeat(41)}index.js`,
             headers: { 'if-none-match': tag },
         });
-        assert.equal(route(request, loops).status, 404);
+        assert.equal(route(request, loops, SITE).status, 404);
     });
 
     test('a path that climbs above the root stops there, and one that climbs into another project names it', () => {
@@ -459,7 +459,7 @@ describe('route() on synthetic indexes', () => {
 
     test('a request URL that does not parse, or is not http or https, gives 400', () => {
         for (const url of ['not a url', 'data:text/plain,x', 'mailto:x', 'ftp://host/npm/lib', 'file:///npm/lib']) {
-            const response = route({ method: 'GET', url, headers: new Headers() }, catalog);
+            const response = route({ method: 'GET', url, headers: new Headers() }, catalog, SITE);
 
             assert.equal(response.status, 400, url);
             assert.equal(JSON.parse(response.body.text).message, 'The request URL is not valid.', url);

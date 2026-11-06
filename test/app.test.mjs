@@ -7,6 +7,7 @@ import os from 'os';
 import { dirname, join } from 'path';
 
 import { createApp } from '../dist/app.js';
+import { scanAssets } from '../dist/assets.js';
 import { reservedNames } from '../dist/config.js';
 import { parseConfig } from '../dist/lib/config.js';
 import { ROUTES } from '../dist/manifest.js';
@@ -31,7 +32,8 @@ async function start(change = {}, packagesDir = rootDir) {
     const logs = { requests: [], errors: [] };
     const logger = { request: (entry) => logs.requests.push(entry), error: (...args) => logs.errors.push(args) };
     const parsed = parseConfig({ manifest: { baseUrl: 'https://cdn.example.com' }, ...change });
-    const app = createApp(parsed, { index: EMPTY, packagesDir, version: '9.9.9', logger });
+    const assets = scanAssets(parsed.assets, logger);
+    const app = createApp(parsed, { index: EMPTY, packagesDir, version: '9.9.9', logger, assets });
 
     return { ...(await listen(app)), logs };
 }
@@ -259,19 +261,6 @@ describe('createApp', () => {
             assert.equal(await repeat(server, 1, { 'x-test-client': 'b' }), 200);
         } finally {
             await server.stop();
-        }
-    });
-
-    test('X-Forwarded-For counts only when the proxy is trusted', async () => {
-        const forwarded = (i) => ({ 'x-forwarded-for': `10.0.0.${i}` });
-        const trusted = await start({ clientIp: { trustProxy: true } });
-        const plain = await start();
-        try {
-            assert.equal(await repeat(trusted, 101, forwarded), 200);
-            assert.equal(await repeat(plain, 101, forwarded), 429);
-        } finally {
-            await trusted.stop();
-            await plain.stop();
         }
     });
 
@@ -561,11 +550,11 @@ describe('reserved names', () => {
         assert.deepEqual(logged, ['download', 'health', 'manifest', 'search', 'static'].map(skipped));
     });
 
-    test('download and search are compared exactly, health, manifest and assets in any case', () => {
+    test('every reserved name is compared exactly, as the router and the assets match it', () => {
         const { types, logged } = scanned(['Download', 'Search', 'Health', 'MANIFEST', 'STATIC', 'npm'], ['static']);
 
-        assert.deepEqual(types, ['Download', 'Search', 'npm']);
-        assert.deepEqual(logged, ['Health', 'MANIFEST', 'STATIC'].map(skipped));
+        assert.deepEqual(types, ['Download', 'Health', 'MANIFEST', 'STATIC', 'Search', 'npm']);
+        assert.deepEqual(logged, []);
     });
 
     test('a type folder named Download is served, since only download is a route', async () => {

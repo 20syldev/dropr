@@ -10,7 +10,7 @@ import { loadIndex } from '../dist/lib/packages.js';
 import { route } from '../dist/lib/route.js';
 import { scan } from '../dist/scan.js';
 
-import { isReadable } from './fixture.mjs';
+import { isReadable, SITE } from './fixture.mjs';
 
 let root;
 let logged;
@@ -94,7 +94,11 @@ function versionsOf(index, project) {
  * @returns The response of route()
  */
 function get(index, target, headers = {}) {
-    return route({ method: 'GET', url: `http://localhost${target}`, headers: new Headers(headers) }, loadIndex(index));
+    return route(
+        { method: 'GET', url: `http://localhost${target}`, headers: new Headers(headers) },
+        loadIndex(index),
+        SITE,
+    );
 }
 
 beforeEach(() => {

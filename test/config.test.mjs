@@ -21,7 +21,7 @@ const INVALID = [
     ['port', { ...MINIMAL, port: '4000' }, 'port'],
     ['packagesDir', { ...MINIMAL, packagesDir: '' }, 'packagesDir'],
     ['clientIp.header', { ...MINIMAL, clientIp: { header: 'x client' } }, 'clientIp.header'],
-    ['clientIp.trustProxy', { ...MINIMAL, clientIp: { trustProxy: 'yes' } }, 'clientIp.trustProxy'],
+    ['clientIp.trustProxy', { ...MINIMAL, clientIp: { trustProxy: true } }, 'clientIp.trustProxy'],
     ['clientIp.proxy', { ...MINIMAL, clientIp: { proxy: true } }, 'clientIp.proxy'],
     ['manifest.baseUrl', {}, 'manifest.baseUrl'],
     ['manifest.baseUrl', { manifest: {} }, 'manifest.baseUrl'],
@@ -65,7 +65,7 @@ describe('parseConfig', () => {
             name: 'dropr',
             port: 4000,
             packagesDir: 'packages',
-            clientIp: { header: null, trustProxy: false },
+            clientIp: { header: null },
             manifest: { baseUrl: 'https://cdn.example.com', params: {}, routes: {} },
             assets: {},
         });
@@ -82,10 +82,10 @@ describe('parseConfig', () => {
     });
 
     test('a header name is lowercased and the input is left as it was', () => {
-        const input = { ...MINIMAL, clientIp: { header: 'X-Real-IP', trustProxy: true } };
+        const input = { ...MINIMAL, clientIp: { header: 'X-Real-IP' } };
         const copy = structuredClone(input);
 
-        assert.deepEqual(parseConfig(input).clientIp, { header: 'x-real-ip', trustProxy: true });
+        assert.deepEqual(parseConfig(input).clientIp, { header: 'x-real-ip' });
         assert.deepEqual(input, copy);
     });
 
