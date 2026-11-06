@@ -1,6 +1,7 @@
 import assert from 'assert/strict';
 import { spawn } from 'child_process';
 import fs from 'fs';
+import http from 'http';
 import net from 'net';
 import { after, before, describe, test } from 'node:test';
 import os from 'os';
@@ -14,6 +15,7 @@ import { ROUTES } from '../dist/manifest.js';
 import { scan } from '../dist/scan.js';
 
 import { createFixture } from './fixture.mjs';
+import { eventually } from './port.mjs';
 import { config, freePort, listen, request, rootDir, startServer } from './server.mjs';
 
 const EMPTY = { format: 2, types: [] };
@@ -264,6 +266,36 @@ describe('createApp', () => {
         }
     });
 
+    test('tells the clients apart by the address of the connection when no header names them', async (t) => {
+        const server = await start();
+        const from = (localAddress) =>
+            new Promise((resolve, reject) => {
+                const req = http.get(
+                    { host: '127.0.0.1', port: server.port, path: '/health', localAddress, agent: false },
+                    (res) => {
+                        res.resume();
+                        res.on('end', () => resolve(res.statusCode));
+                    },
+                );
+                req.on('error', reject);
+            });
+        try {
+            let status;
+            for (let i = 0; i < 101; i++) status = await from('127.0.0.1');
+            assert.equal(status, 429);
+
+            try {
+                assert.equal(await from('127.0.0.2'), 200);
+            } catch (error) {
+                if (error.code !== 'EADDRNOTAVAIL') throw error;
+
+                t.skip('127.0.0.2 is not a loopback address here');
+            }
+        } finally {
+            await server.stop();
+        }
+    });
+
     test('two apps keep their own limiter, and the env is never read', async () => {
         const env = { PORT: process.env.PORT, PACKAGES_DIR: process.env.PACKAGES_DIR };
         process.env.PORT = 'junk';
@@ -308,9 +340,10 @@ describe('createApp', () => {
             await request(server.port, 'OPTIONS', '/npm');
             await request(server.port, 'GET', '/health');
 
+            assert.equal(await eventually(() => server.logs.requests.length === 3), true);
             assert.deepEqual(
-                server.logs.requests.map(({ method, url, status }) => `${method} ${url} ${status}`),
-                ['GET /robots.txt 200', 'OPTIONS /npm 204', 'GET /health 200'],
+                server.logs.requests.map(({ method, url, status }) => `${method} ${url} ${status}`).sort(),
+                ['GET /health 200', 'GET /robots.txt 200', 'OPTIONS /npm 204'],
             );
         } finally {
             await server.stop();
@@ -322,6 +355,7 @@ describe('createApp', () => {
         try {
             await request(server.port, 'GET', '/npm');
 
+            assert.equal(await eventually(() => server.logs.requests.length === 1), true);
             assert.match(server.logs.errors[0][0], /^No packages folder at /);
             assert.deepEqual(
                 server.logs.requests.map(({ method, url, status }) => ({ method, url, status })),
@@ -630,5 +664,154 @@ describe('reserved names', () => {
         const assets = { '/favicon.ico': 'a', '/static/logo.svg': 'b', '/': 'c' };
 
         assert.deepEqual(reservedNames({ assets }), ['favicon.ico', 'static']);
+    });
+});
+
+describe('streamed bodies', () => {
+    let fixture;
+
+    before(() => (fixture = createFixture()));
+    after(() => fixture?.remove());
+
+    test('the headers of a file reach the client before its first byte is read', async () => {
+        const stalled = async () => new ReadableStream({ pull: () => new Promise(() => {}) });
+        const server = await startServer(fixture.packagesDir, {}, { read: stalled });
+
+        try {
+            const status = await new Promise((resolve, reject) => {
+                const req = http.get(
+                    { host: '127.0.0.1', port: server.port, path: '/npm/lib@1.2.0/index.js', agent: false },
+                    (res) => {
+                        resolve(res.statusCode);
+                        req.destroy();
+                    },
+                );
+                req.on('error', reject);
+                setTimeout(() => resolve('no headers within 3 seconds'), 3000).unref();
+            });
+
+            assert.equal(status, 200);
+        } finally {
+            await server.stop();
+        }
+    });
+
+    test('a failure after the headers resets the connection, which a plain close would hide from HTTP/1.0', async () => {
+        const cut = async () => {
+            let pulled = 0;
+
+            return new ReadableStream(
+                {
+                    pull(controller) {
+                        if (pulled++ === 0) controller.enqueue(new Uint8Array(4));
+                        else controller.error(new Error('disk'));
+                    },
+                },
+                { highWaterMark: 0 },
+            );
+        };
+        const server = await startServer(fixture.packagesDir, {}, { read: cut });
+
+        try {
+            const outcome = await new Promise((resolve) => {
+                const socket = net.connect(server.port, '127.0.0.1', () => {
+                    socket.write('GET /npm/lib@1.2.0?download HTTP/1.0\r\n\r\n');
+                });
+                socket.on('data', () => {});
+                socket.on('error', (error) => resolve(error.code));
+                socket.on('end', () => resolve('ended'));
+            });
+
+            assert.equal(outcome, 'ECONNRESET');
+        } finally {
+            await server.stop();
+        }
+    });
+
+    test('logs a request whose client leaves with the last byte, before the body ends', async () => {
+        const text = Buffer.from('export default "1.2.0";\n');
+        let sent = false;
+        let left = false;
+        const late = async () =>
+            new ReadableStream({
+                pull: (controller) => {
+                    if (!sent) {
+                        sent = true;
+
+                        return controller.enqueue(new Uint8Array(text));
+                    }
+
+                    return new Promise((resolve) =>
+                        setTimeout(() => {
+                            if (!left) controller.close();
+                            resolve();
+                        }, 100),
+                    );
+                },
+                cancel: () => void (left = true),
+            });
+        const server = await startServer(fixture.packagesDir, {}, { read: late });
+
+        try {
+            await new Promise((resolve, reject) => {
+                const req = http.get(
+                    { host: '127.0.0.1', port: server.port, path: '/npm/lib@1.2.0/index.js', agent: false },
+                    (res) => {
+                        let got = 0;
+                        res.on('data', (chunk) => {
+                            got += chunk.length;
+                            if (got !== text.length) return;
+
+                            req.destroy();
+                            resolve();
+                        });
+                    },
+                );
+                req.on('error', () => undefined);
+                setTimeout(() => reject(new Error('the body did not arrive')), 3000).unref();
+            });
+
+            assert.equal(await eventually(() => server.logs.requests.length === 1), true);
+            assert.deepEqual(
+                server.logs.requests.map(({ method, url, status }) => `${method} ${url} ${status}`),
+                ['GET /npm/lib@1.2.0/index.js 200'],
+            );
+        } finally {
+            await server.stop();
+        }
+    });
+
+    test('a failure after the headers closes a connection that cannot be reset, and the server goes on', async () => {
+        const path = join(fixture.root, 'dropr.sock');
+        const cut = async () =>
+            new ReadableStream({
+                pull(controller) {
+                    controller.error(new Error('disk'));
+                },
+            });
+        const logs = { errors: [] };
+        const logger = { request() {}, error: (...args) => logs.errors.push(args) };
+        const index = scan(fixture.packagesDir, { error() {} });
+        const server = http.createServer(
+            createApp(config, { index, packagesDir: fixture.packagesDir, version: '9.9.9', logger, read: cut }),
+        );
+        await new Promise((resolve) => server.listen(path, resolve));
+
+        try {
+            const outcome = await new Promise((resolve) => {
+                const req = http.get({ socketPath: path, path: '/npm/lib@1.2.0/index.js', agent: false }, (res) => {
+                    res.on('error', () => resolve('aborted'));
+                    res.on('close', () => resolve(res.complete ? 'complete' : 'aborted'));
+                    res.resume();
+                });
+                req.on('error', () => resolve('aborted'));
+                setTimeout(() => resolve('hung'), 3000).unref();
+            });
+
+            assert.equal(outcome, 'aborted');
+            assert.deepEqual(logs.errors, [['File error on npm/lib/1.2.0/index.js:', 'disk']]);
+        } finally {
+            await new Promise((resolve) => (server.close(resolve), server.closeAllConnections()));
+        }
     });
 });

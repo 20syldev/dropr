@@ -527,6 +527,7 @@ describe('the read port of a file response', () => {
                 cancel: () => void (log.cancelled = true),
             });
         const server = await serve(read);
+        const scanned = server.logs.errors.length;
 
         await new Promise((resolve) => {
             const req = http.request(
@@ -540,6 +541,10 @@ describe('the read port of a file response', () => {
         });
 
         assert.ok(await eventually(() => log.cancelled), 'the stream of the port was not cancelled');
+
+        // A client that leaves is not a failure of the file, whatever was still being read
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        assert.deepEqual(server.logs.errors.slice(scanned), []);
     });
 
     const leaveWhileOpening = async (cancel) => {

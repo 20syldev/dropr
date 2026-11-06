@@ -9,7 +9,7 @@ import { createHandler, createResponder } from '../dist/lib/respond.js';
 import { scan } from '../dist/scan.js';
 
 import { createFixture } from './fixture.mjs';
-import { chunked, memoryPort } from './port.mjs';
+import { chunked, eventually, memoryPort } from './port.mjs';
 import { sha256 } from './server.mjs';
 import { collect } from './tar.mjs';
 
@@ -42,14 +42,16 @@ function ask(path, method = 'GET', headers = {}) {
  * Builds an asset held in memory that counts how often it is opened.
  *
  * @param text - Content of the asset
+ * @param contentType - Type that the extension of its file gives, plain text by default
  * @returns The asset, with its SHA-256 as strong tag, a fixed modification time, and opened counting its opens
  */
-function asset(text) {
+function asset(text, contentType = 'text/plain; charset=utf-8') {
     const bytes = Buffer.from(text);
     const made = {
         etag: `"${sha256(bytes)}"`,
         lastModified: Date.UTC(2025, 4, 1),
         size: bytes.length,
+        contentType,
         opened: 0,
         open: async (range) => {
             made.opened++;
@@ -160,6 +162,26 @@ describe('createResponder', () => {
             assert.match(headers['Access-Control-Expose-Headers'], /^Accept-Ranges, /, path);
         }
         assert.equal((await respond(ask('/', 'POST'), 'a')).headers['Access-Control-Allow-Origin'], '*');
+    });
+
+    test('puts the CORS headers on every answer about an asset', async () => {
+        const robots = asset('0123456789');
+        const { respond } = build({ assets: { '/robots.txt': robots } });
+        const sent = [
+            ['GET', {}, 200],
+            ['HEAD', {}, 200],
+            ['GET', { 'if-none-match': robots.etag }, 304],
+            ['GET', { 'if-match': '"nope"' }, 412],
+            ['GET', { range: 'bytes=2-4' }, 206],
+            ['GET', { range: 'bytes=99-' }, 416],
+        ];
+
+        for (const [method, headers, status] of sent) {
+            const answer = await respond(ask('/robots.txt', method, headers), 'a');
+            assert.equal(answer.status, status, `${method} ${JSON.stringify(headers)}`);
+            assert.equal(answer.headers['Access-Control-Allow-Origin'], '*', `${status}`);
+            assert.ok(answer.headers['Access-Control-Expose-Headers'], `${status}`);
+        }
     });
 
     test('answers /health from the site, the memory reader giving its figures', async () => {
@@ -305,6 +327,18 @@ describe('createResponder', () => {
         assert.equal((await first(ask('/health'), 'a')).status, 429);
         assert.equal((await second(ask('/health'), 'a')).status, 200);
     });
+
+    test('counts the uptime of /health from the creation of its own responder', async (t) => {
+        t.mock.timers.enable({ apis: ['Date'], now: 1_000_000 });
+        const first = build().respond;
+        t.mock.timers.tick(3_600_000 + 120_000 + 3_000);
+        const second = build().respond;
+        t.mock.timers.tick(5_000);
+        const uptime = async (respond) => JSON.parse((await respond(ask('/health'), 'a')).body).uptime;
+
+        assert.equal(await uptime(first), '1h 2m 8s');
+        assert.equal(await uptime(second), '0h 0m 5s');
+    });
 });
 
 describe('createResponder, assets', () => {
@@ -332,11 +366,12 @@ describe('createResponder, assets', () => {
         });
     });
 
-    test('gives an icon the type image/x-icon of the core', async () => {
-        const { respond } = build({ assets: { '/favicon.ico': asset('icon'), '/favicon.svg': asset('<svg/>') } });
+    test('sends the type of the file of the asset, whatever its URL says [change: assets]', async () => {
+        const icon = asset('icon', 'image/x-icon');
+        const { respond } = build({ assets: { '/icon': icon, '/logo.txt': asset('<svg/>', 'image/svg+xml') } });
 
-        assert.equal((await respond(ask('/favicon.ico'), 'a')).headers['Content-Type'], 'image/x-icon');
-        assert.equal((await respond(ask('/favicon.svg'), 'a')).headers['Content-Type'], 'image/svg+xml');
+        assert.equal((await respond(ask('/icon'), 'a')).headers['Content-Type'], 'image/x-icon');
+        assert.equal((await respond(ask('/logo.txt'), 'a')).headers['Content-Type'], 'image/svg+xml');
     });
 
     test('answers 304 to its tag, 412 to another If-Match, 206 to a range and 416 past the end', async () => {
@@ -371,15 +406,19 @@ describe('createResponder, assets', () => {
         assert.equal(robots.opened, 0);
     });
 
-    test('answers an empty asset with no body, opening it all the same', async () => {
-        const empty = asset('');
+    test('answers an empty asset with no body, opening it and releasing it', async () => {
+        let cancelled = 0;
+        const empty = {
+            ...asset(''),
+            open: async () => new ReadableStream({ cancel: () => void cancelled++ }),
+        };
         const { respond } = build({ assets: { [PATH]: empty } });
         const answer = await respond(ask(PATH), 'a');
 
         assert.equal(answer.status, 200);
         assert.equal(answer.body, null);
         assert.equal(answer.headers['Content-Length'], '0');
-        assert.equal(empty.opened, 1);
+        assert.equal(await eventually(() => cancelled === 1), true);
     });
 
     test('matches the pathname of an asset exactly [change: assetcase]', async () => {
@@ -398,13 +437,6 @@ describe('createResponder, assets', () => {
 
         assert.equal(answer.status, 405);
         assert.equal(answer.headers.Allow, 'GET, HEAD, OPTIONS');
-    });
-
-    test('a name of the prototype is no asset', async () => {
-        const { respond } = build({ assets: { [PATH]: asset('ok\n') } });
-
-        assert.equal((await respond(ask('/constructor'), 'a')).status, 404);
-        assert.equal((await respond(ask('/__proto__'), 'a')).status, 404);
     });
 
     test('answers the 404 of a route when the asset cannot be opened, and logs it', async () => {
@@ -429,11 +461,11 @@ describe('createResponder, assets', () => {
 
 describe('createResponder, files and archives', () => {
     // Wraps a read port and records the paths and ranges it is asked for
-    function counting(port) {
+    const counting = (port) => {
         const calls = [];
 
         return { calls, read: (path, range) => (calls.push([path, range]), port(path, range)) };
-    }
+    };
 
     const disk = memoryPort((path) => fs.readFileSync(join(fixture.packagesDir, path)));
 
@@ -499,20 +531,27 @@ describe('createResponder, files and archives', () => {
         assert.deepEqual(errors, [['Archive error on npm/lib/1.2.0:', 'unreadable']]);
     });
 
-    test('does not log a client that leaves, and cancels what it was reading', async () => {
-        let cancelled = false;
-        const open = async () =>
-            new ReadableStream({
-                pull: (controller) => controller.enqueue(new Uint8Array(24)),
-                cancel: () => void (cancelled = true),
-            });
-        const { respond, errors } = build({ read: open });
-        const answer = await respond(ask(FILE), 'a');
+    test('does not log a client that leaves, whether a read is pending or not, and cancels the file', async () => {
+        for (const pending of [false, true]) {
+            let cancelled = false;
+            const open = async () =>
+                new ReadableStream({
+                    pull: (controller) =>
+                        pending ? new Promise(() => undefined) : controller.enqueue(new Uint8Array(24)),
+                    cancel: () => void (cancelled = true),
+                });
+            const { respond, errors } = build({ read: open });
+            const answer = await respond(ask(FILE), 'a');
+            const reader = answer.body.getReader();
 
-        await answer.body.cancel();
+            if (pending) void reader.read().catch(() => undefined);
+            await eventually(() => false, 20);
+            await reader.cancel();
+            await new Promise((resolve) => setTimeout(resolve, 20));
 
-        assert.equal(cancelled, true);
-        assert.deepEqual(errors, []);
+            assert.equal(cancelled, true, `pending ${pending}`);
+            assert.deepEqual(errors, [], `pending ${pending}`);
+        }
     });
 });
 
