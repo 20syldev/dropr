@@ -1,13 +1,29 @@
 {
     "version": "3.9.0",
-    "name": "@20syldev/dropr",
-    "description": "dropr, a self-hosted CDN to store, version and distribute scripts and packages",
-    "main": "dist/app.js",
+    "name": "dropr",
+    "description": "A self-hosted CDN that stores, versions and serves scripts and packages, as a command line and a library",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
     "type": "module",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        }
+    },
+    "bin": {
+        "dropr": "./dist/bin.js"
+    },
+    "files": [
+        "dist",
+        "!dist/**/*.map"
+    ],
     "scripts": {
-        "dev": "tsx watch src/serve.ts",
-        "start": "node dist/serve.js",
+        "dev": "tsx watch src/bin.ts serve",
+        "start": "node dist/bin.js serve",
         "build": "tsc",
+        "prepack": "tsc",
+        "prepublishOnly": "npm run check && npm test",
         "test": "tsc && node --test \"test/*.test.mjs\"",
         "test:update": "tsc && node --test --test-update-snapshots test/routes.test.mjs",
         "fetch": "bash scripts/fetch.sh",
@@ -15,6 +31,9 @@
         "format": "prettier --write src/ scripts/ test/ dropr.config.json && eslint --fix src/ scripts/ test/",
         "upgrade:minor": "npm upgrade",
         "upgrade:major": "npx npm-check-updates -u && npm install"
+    },
+    "engines": {
+        "node": ">=24"
     },
     "dependencies": {
         "@20syldev/logger.ts": "^1.0.1",
@@ -32,20 +51,26 @@
         "typescript": "^5.9.3",
         "typescript-eslint": "^8.57.2"
     },
+    "publishConfig": {
+        "access": "public"
+    },
     "repository": {
         "type": "git",
         "url": "git+https://github.com/20syldev/dropr.git"
     },
     "keywords": [
         "cdn",
-        "utility"
+        "self-hosted",
+        "versioning",
+        "packages",
+        "server"
     ],
     "author": "Sylvain L.",
     "license": "BSD-3-Clause",
     "bugs": {
         "url": "https://github.com/20syldev/dropr/issues"
     },
-    "homepage": "https://dropr.sylvain.sh",
+    "homepage": "https://github.com/20syldev/dropr",
     "overrides": {
         "minimatch": "^11.0.1"
     }
