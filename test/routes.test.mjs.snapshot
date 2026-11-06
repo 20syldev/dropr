@@ -18,7 +18,7 @@ exports[`routes > GET / 1`] = `
 {
   "status": 200,
   "headers": {
-    "content-length": "1947",
+    "content-length": "1946",
     "content-type": "application/json; charset=utf-8"
   },
   "body": {
@@ -93,7 +93,7 @@ exports[`routes > GET / 1`] = `
           "deprecated": {
             "date": "2025-06-01",
             "message": "Renamed to lib.",
-            "successor": "https://dropr.sylvain.sh/npm/lib"
+            "successor": "https://cdn.example.com/npm/lib"
           }
         }
       }
@@ -106,7 +106,7 @@ exports[`routes > GET /%64ownload/npm 1`] = `
 {
   "status": 200,
   "headers": {
-    "content-length": "1118",
+    "content-length": "1117",
     "content-type": "application/json; charset=utf-8"
   },
   "body": {
@@ -144,7 +144,7 @@ exports[`routes > GET /%64ownload/npm 1`] = `
         "deprecated": {
           "date": "2025-06-01",
           "message": "Renamed to lib.",
-          "successor": "https://dropr.sylvain.sh/npm/lib"
+          "successor": "https://cdn.example.com/npm/lib"
         },
         "latest": "/download/npm/old",
         "versions": {
@@ -484,7 +484,7 @@ exports[`routes > GET /download 1`] = `
 {
   "status": 200,
   "headers": {
-    "content-length": "1654",
+    "content-length": "1653",
     "content-type": "application/json; charset=utf-8"
   },
   "body": {
@@ -541,7 +541,7 @@ exports[`routes > GET /download 1`] = `
           "deprecated": {
             "date": "2025-06-01",
             "message": "Renamed to lib.",
-            "successor": "https://dropr.sylvain.sh/npm/lib"
+            "successor": "https://cdn.example.com/npm/lib"
           },
           "latest": "/download/npm/old",
           "versions": {
@@ -588,7 +588,7 @@ exports[`routes > GET /download/npm 1`] = `
 {
   "status": 200,
   "headers": {
-    "content-length": "1118",
+    "content-length": "1117",
     "content-type": "application/json; charset=utf-8"
   },
   "body": {
@@ -626,7 +626,7 @@ exports[`routes > GET /download/npm 1`] = `
         "deprecated": {
           "date": "2025-06-01",
           "message": "Renamed to lib.",
-          "successor": "https://dropr.sylvain.sh/npm/lib"
+          "successor": "https://cdn.example.com/npm/lib"
         },
         "latest": "/download/npm/old",
         "versions": {
@@ -642,7 +642,7 @@ exports[`routes > GET /download/npm/ 1`] = `
 {
   "status": 200,
   "headers": {
-    "content-length": "1118",
+    "content-length": "1117",
     "content-type": "application/json; charset=utf-8"
   },
   "body": {
@@ -680,7 +680,7 @@ exports[`routes > GET /download/npm/ 1`] = `
         "deprecated": {
           "date": "2025-06-01",
           "message": "Renamed to lib.",
-          "successor": "https://dropr.sylvain.sh/npm/lib"
+          "successor": "https://cdn.example.com/npm/lib"
         },
         "latest": "/download/npm/old",
         "versions": {
@@ -856,7 +856,7 @@ exports[`routes > GET /download/npm/old 1`] = `
     "content-disposition": "attachment; filename=\\"old-1.0.0.tar.gz\\"",
     "content-type": "application/gzip",
     "deprecation": "@1748736000",
-    "link": "<https://dropr.sylvain.sh/npm/lib>; rel=\\"successor-version\\""
+    "link": "<https://cdn.example.com/npm/lib>; rel=\\"successor-version\\""
   },
   "body": [
     {
@@ -952,7 +952,7 @@ exports[`routes > GET /manifest 1`] = `
   "body": {
     "name": "dropr",
     "version": "<version>",
-    "baseUrl": "https://dropr.sylvain.sh",
+    "baseUrl": "https://cdn.example.com",
     "routes": [
       {
         "id": "file",
@@ -1327,7 +1327,7 @@ exports[`routes > GET /npm 1`] = `
 {
   "status": 200,
   "headers": {
-    "content-length": "1173",
+    "content-length": "1172",
     "content-type": "application/json; charset=utf-8"
   },
   "body": {
@@ -1375,7 +1375,7 @@ exports[`routes > GET /npm 1`] = `
         "deprecated": {
           "date": "2025-06-01",
           "message": "Renamed to lib.",
-          "successor": "https://dropr.sylvain.sh/npm/lib"
+          "successor": "https://cdn.example.com/npm/lib"
         }
       }
     }
@@ -1387,7 +1387,7 @@ exports[`routes > GET /npm/ 1`] = `
 {
   "status": 200,
   "headers": {
-    "content-length": "1173",
+    "content-length": "1172",
     "content-type": "application/json; charset=utf-8"
   },
   "body": {
@@ -1435,7 +1435,7 @@ exports[`routes > GET /npm/ 1`] = `
         "deprecated": {
           "date": "2025-06-01",
           "message": "Renamed to lib.",
-          "successor": "https://dropr.sylvain.sh/npm/lib"
+          "successor": "https://cdn.example.com/npm/lib"
         }
       }
     }
@@ -3364,17 +3364,17 @@ exports[`routes > GET /npm/old 1`] = `
 {
   "status": 200,
   "headers": {
-    "content-length": "279",
+    "content-length": "278",
     "content-type": "application/json; charset=utf-8",
     "deprecation": "@1748736000",
-    "link": "<https://dropr.sylvain.sh/npm/lib>; rel=\\"successor-version\\""
+    "link": "<https://cdn.example.com/npm/lib>; rel=\\"successor-version\\""
   },
   "body": {
     "message": "Available versions for the 'old' project.",
     "deprecated": {
       "date": "2025-06-01",
       "message": "Renamed to lib.",
-      "successor": "https://dropr.sylvain.sh/npm/lib"
+      "successor": "https://cdn.example.com/npm/lib"
     },
     "versions": {
       "latest": "/npm/old@latest",
@@ -3391,7 +3391,7 @@ exports[`routes > GET /npm/old/anything 1`] = `
     "content-length": "101",
     "content-type": "application/json; charset=utf-8",
     "deprecation": "@1748736000",
-    "link": "<https://dropr.sylvain.sh/npm/lib>; rel=\\"successor-version\\""
+    "link": "<https://cdn.example.com/npm/lib>; rel=\\"successor-version\\""
   },
   "body": {
     "status": 404,
@@ -3406,10 +3406,10 @@ exports[`routes > GET /npm/old/changelog 1`] = `
   "status": 200,
   "headers": {
     "cache-control": "public, max-age=300",
-    "content-length": "306",
+    "content-length": "305",
     "content-type": "application/json; charset=utf-8",
     "deprecation": "@1748736000",
-    "link": "<https://dropr.sylvain.sh/npm/lib>; rel=\\"successor-version\\""
+    "link": "<https://cdn.example.com/npm/lib>; rel=\\"successor-version\\""
   },
   "body": {
     "name": "old",
@@ -3417,7 +3417,7 @@ exports[`routes > GET /npm/old/changelog 1`] = `
     "deprecated": {
       "date": "2025-06-01",
       "message": "Renamed to lib.",
-      "successor": "https://dropr.sylvain.sh/npm/lib"
+      "successor": "https://cdn.example.com/npm/lib"
     },
     "versions": 1,
     "changelog": [
@@ -3457,7 +3457,7 @@ exports[`routes > GET /npm/old@1.0.0/index.js 1`] = `
     "deprecation": "@1748736000",
     "etag": "\\"c6910d39e8e3b4d0cf55fcc4788cd9e1c83de67f613e5c1431d077d84e60fb06\\"",
     "last-modified": "Wed, 01 Jan 2025 00:00:00 GMT",
-    "link": "<https://dropr.sylvain.sh/npm/lib>; rel=\\"successor-version\\"",
+    "link": "<https://cdn.example.com/npm/lib>; rel=\\"successor-version\\"",
     "x-content-type-options": "nosniff"
   },
   "body": "export default \\"old\\";\\n"
@@ -3471,7 +3471,7 @@ exports[`routes > GET /npm/old@9 1`] = `
     "content-length": "106",
     "content-type": "application/json; charset=utf-8",
     "deprecation": "@1748736000",
-    "link": "<https://dropr.sylvain.sh/npm/lib>; rel=\\"successor-version\\""
+    "link": "<https://cdn.example.com/npm/lib>; rel=\\"successor-version\\""
   },
   "body": {
     "status": 404,
@@ -3485,10 +3485,10 @@ exports[`routes > GET /npm/old@latest 1`] = `
 {
   "status": 200,
   "headers": {
-    "content-length": "301",
+    "content-length": "300",
     "content-type": "application/json; charset=utf-8",
     "deprecation": "@1748736000",
-    "link": "<https://dropr.sylvain.sh/npm/lib>; rel=\\"successor-version\\""
+    "link": "<https://cdn.example.com/npm/lib>; rel=\\"successor-version\\""
   },
   "body": {
     "name": "old",
@@ -3497,7 +3497,7 @@ exports[`routes > GET /npm/old@latest 1`] = `
     "deprecated": {
       "date": "2025-06-01",
       "message": "Renamed to lib.",
-      "successor": "https://dropr.sylvain.sh/npm/lib"
+      "successor": "https://cdn.example.com/npm/lib"
     },
     "files": [
       {
@@ -3857,7 +3857,7 @@ exports[`routes > GET /search?q=npm 1`] = `
 {
   "status": 200,
   "headers": {
-    "content-length": "1026",
+    "content-length": "1025",
     "content-type": "application/json; charset=utf-8"
   },
   "body": {
@@ -3915,7 +3915,7 @@ exports[`routes > GET /search?q=npm 1`] = `
         "deprecated": {
           "date": "2025-06-01",
           "message": "Renamed to lib.",
-          "successor": "https://dropr.sylvain.sh/npm/lib"
+          "successor": "https://cdn.example.com/npm/lib"
         }
       }
     ]

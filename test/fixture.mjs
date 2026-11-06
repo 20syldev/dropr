@@ -49,7 +49,7 @@ const FILES = {
     'packages/npm/next/0.1.0-beta.2/index.js': 'export default "0.1.0-beta.2";\n',
     'packages/npm/next/0.1.0-beta.10/index.js': 'export default "0.1.0-beta.10";\n',
     'packages/npm/old/.deprecated.json':
-        '{ "date": "2025-06-01", "message": "Renamed to lib.", "successor": "https://dropr.sylvain.sh/npm/lib" }\n',
+        '{ "date": "2025-06-01", "message": "Renamed to lib.", "successor": "https://cdn.example.com/npm/lib" }\n',
     'packages/npm/old/.versions.json': '{ "1.0.0": { "date": "2025-01-01" } }\n',
     'packages/npm/old/1.0.0/index.js': 'export default "old";\n',
     'packages/npm/sealed/.versions.json': '{ "1.0.0": { "date": "2025-01-01" } }\n',

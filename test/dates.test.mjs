@@ -39,9 +39,9 @@ describe('parseDeprecation', () => {
 
     test('keeps the date, the message and the successor of a safe notice, and nothing else', () => {
         assert.deepEqual(parseDeprecation({ ...notice, extra: 1 }), notice);
-        assert.deepEqual(parseDeprecation({ ...notice, successor: 'https://dropr.sylvain.sh/npm/moxon?a=b#c' }), {
+        assert.deepEqual(parseDeprecation({ ...notice, successor: 'https://cdn.example.com/npm/moxon?a=b#c' }), {
             ...notice,
-            successor: 'https://dropr.sylvain.sh/npm/moxon?a=b#c',
+            successor: 'https://cdn.example.com/npm/moxon?a=b#c',
         });
         assert.ok(parseDeprecation({ ...notice, date: '2999-01-01' }), 'a deprecation may announce a future date');
     });

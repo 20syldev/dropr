@@ -12,10 +12,13 @@ import { scan } from '../dist/scan.js';
 
 export const rootDir = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-// Config of the repository, with its own client header so the rate limit of the tests never depends on the instance
+// Config of the repository, with its own client header and base URL so the tests never depend on the instance
+const instance = loadConfig(join(rootDir, 'dropr.config.json'));
+
 export const config = {
-    ...loadConfig(join(rootDir, 'dropr.config.json')),
+    ...instance,
     clientIp: { header: 'x-test-client' },
+    manifest: { ...instance.manifest, baseUrl: 'https://cdn.example.com' },
 };
 
 // Version of dropr, which /health and /manifest report
