@@ -157,6 +157,8 @@ export type RouteInput = Pick<Request, 'method' | 'url' | 'headers'>;
 export type Match =
     | { id: 'root' }
     | { id: 'search' }
+    | { id: 'health' }
+    | { id: 'manifest' }
     | { id: 'downloads' }
     | { id: 'typeDownloads'; type: string }
     | { id: 'archive'; type: string; name: string; version: string | null }
@@ -238,6 +240,44 @@ export interface Decision {
     range: ByteRange | null;
 }
 
+export interface Asset extends Validators {
+    contentType: string;
+    open(range?: ByteRange): Promise<ReadableStream<Uint8Array<ArrayBuffer>>>;
+}
+
+export interface Memory {
+    rss: number;
+    heapUsed: number;
+    heapTotal: number;
+}
+
+export interface Site {
+    health(): Record<string, unknown>;
+    manifest: Manifest;
+}
+
+export interface Answer {
+    status: number;
+    headers: Record<string, string>;
+    body: string | ReadableStream<Uint8Array<ArrayBuffer>> | null;
+}
+
+export interface ResponderOptions {
+    catalog: Catalog;
+    name: string;
+    version: string;
+    manifest: Manifest;
+    read: ReadFile;
+    assets: Record<string, Asset>;
+    clientHeader: string | null;
+    memory?: () => Memory;
+    logger: ErrorLogger;
+}
+
+export type Respond = (request: RouteInput, client: string) => Promise<Answer>;
+
+export type Handler = (request: RouteInput, client?: string) => Promise<Response>;
+
 export interface Limiter {
     readonly size: number;
     check(client: string, now: number): string | null;
@@ -264,7 +304,7 @@ export interface Config {
     name: string;
     port: number;
     packagesDir: string;
-    clientIp: { header: string | null; trustProxy: boolean };
+    clientIp: { header: string | null };
     manifest: ManifestConfig;
     assets: Record<string, string>;
 }
@@ -275,4 +315,5 @@ export interface AppDeps {
     version: string;
     logger: Logger;
     read?: ReadFile;
+    assets?: Record<string, Asset>;
 }
