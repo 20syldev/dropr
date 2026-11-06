@@ -25,6 +25,8 @@ const INVALID = [
     ['clientIp.proxy', { ...MINIMAL, clientIp: { proxy: true } }, 'clientIp.proxy'],
     ['rateLimit.window', { ...MINIMAL, rateLimit: { window: 0 } }, 'rateLimit.window'],
     ['rateLimit.window', { ...MINIMAL, rateLimit: { window: 1.5 } }, 'rateLimit.window'],
+    ['rateLimit.window', { ...MINIMAL, rateLimit: { window: 31_536_001 } }, 'rateLimit.window'],
+    ['rateLimit.window', { ...MINIMAL, rateLimit: { window: 1e21 } }, 'rateLimit.window'],
     ['rateLimit.client', { ...MINIMAL, rateLimit: { client: '100' } }, 'rateLimit.client'],
     ['rateLimit.client', { ...MINIMAL, rateLimit: { client: null } }, 'rateLimit.client'],
     ['rateLimit.global', { ...MINIMAL, rateLimit: { global: -1 } }, 'rateLimit.global'],

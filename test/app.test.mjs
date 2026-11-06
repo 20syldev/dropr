@@ -315,6 +315,20 @@ describe('createApp', () => {
         }
     });
 
+    test('reads the rate limit of the config, which a null global cap leaves open', async () => {
+        const server = await start({ rateLimit: { window: 10, client: 2, global: null } });
+        try {
+            assert.equal(await repeat(server, 2), 200);
+            const { status, headers, body } = await request(server.port, 'GET', '/health');
+
+            assert.equal(status, 429);
+            assert.match(headers['retry-after'], /^\d+$/);
+            assert.equal(JSON.parse(body).message, 'You have exceeded the limit of 2 requests per 10 seconds.');
+        } finally {
+            await server.stop();
+        }
+    });
+
     test('sends no X-Powered-By on a route, an asset, a preflight or an error [change: powered]', async () => {
         const server = await start({ assets: { '/robots.txt': join(rootDir, 'robots.txt') } });
         try {
@@ -479,6 +493,18 @@ describe('dist/bin.js serve', () => {
         }
     });
 
+    test('listens on --port rather than on PORT', async () => {
+        const port = await freePort();
+        const other = await freePort();
+        const args = ['--packages', join(fixture.root, 'packages'), '--port', String(port)];
+        const { stdout, probed } = await run(args, { PORT: String(other) }, async () =>
+            request(port, 'GET', '/health'),
+        );
+
+        assert.match(stdout, new RegExp(`http://127\\.0\\.0\\.1:${port}\n`));
+        assert.equal(probed.status, 200);
+    });
+
     test('ignores PACKAGES_DIR and serves the packagesDir of the config [change: packagesenv]', async () => {
         const port = await freePort();
         const files = ['packages/npm/lib/1.0.0/b.txt', 'packages/npm/lib/.versions.json', 'config.json'];
@@ -546,7 +572,8 @@ describe('dist/bin.js serve', () => {
 
             assert.equal(code, 1);
             assert.equal(stdout, '');
-            assert.match(stderr, /EADDRINUSE/);
+            assert.match(stderr.trim().split('\n').at(-1), /^listen EADDRINUSE/);
+            assert.doesNotMatch(stderr, /throw error/);
         } finally {
             await new Promise((resolve) => taken.close(resolve));
         }

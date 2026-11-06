@@ -77,6 +77,16 @@ describe('the package', () => {
         assert.ok(fs.readFileSync(join(rootDir, 'dist', 'bin.js'), 'utf-8').startsWith('#!/usr/bin/env node\n'));
     });
 
+    test('holds no build output whose source is gone', () => {
+        const orphans = files.filter((path) => {
+            const source = path.replace(/^dist\//, 'src/').replace(/\.(d\.ts|js)$/, '.ts');
+
+            return path.startsWith('dist/') && !fs.existsSync(join(rootDir, source));
+        });
+
+        assert.deepEqual(orphans, []);
+    });
+
     test('exports the API and nothing else', async () => {
         const entry = await import('../dist/index.js');
 

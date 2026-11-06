@@ -19,6 +19,7 @@ describe('CORS headers', () => {
             'Deprecation',
             'ETag',
             'Link',
+            'Retry-After',
             'X-Content-Type-Options',
         ]);
     });

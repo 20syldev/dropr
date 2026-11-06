@@ -327,7 +327,8 @@ describe('createResponder', () => {
         const refused = await send('a');
         assert.equal(refused.status, 429);
         assert.equal(refused.headers['Retry-After'], '8');
-        assert.equal(JSON.parse(refused.body).message, 'You have exceeded the limit of 1 requests per 10 seconds.');
+        assert.match(refused.headers['Access-Control-Expose-Headers'], /(^|, )Retry-After(,|$)/);
+        assert.equal(JSON.parse(refused.body).message, 'You have exceeded the limit of 1 request per 10 seconds.');
 
         assert.equal((await send('b')).status, 200);
         assert.equal((await send('c')).status, 200);
@@ -343,7 +344,7 @@ describe('createResponder', () => {
 
         assert.equal((await respond(ask('/health'), 'a')).status, 200);
         const refused = await respond(ask('/health'), 'a');
-        assert.equal(JSON.parse(refused.body).message, 'You have exceeded the limit of 1 requests per second.');
+        assert.equal(JSON.parse(refused.body).message, 'You have exceeded the limit of 1 request per second.');
         for (let i = 0; i < 2000; i++) assert.equal((await respond(ask('/health'), `c${i}`)).status, 200);
     });
 

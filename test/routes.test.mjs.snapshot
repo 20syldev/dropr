@@ -2459,7 +2459,7 @@ exports[`routes > GET /npm/lib@1.2.0/index.js (origin: https://example.com) 1`] 
   "headers": {
     "accept-ranges": "bytes",
     "access-control-allow-origin": "*",
-    "access-control-expose-headers": "Accept-Ranges, Content-Disposition, Content-Range, Deprecation, ETag, Link, X-Content-Type-Options",
+    "access-control-expose-headers": "Accept-Ranges, Content-Disposition, Content-Range, Deprecation, ETag, Link, Retry-After, X-Content-Type-Options",
     "cache-control": "public, max-age=31536000, immutable",
     "content-length": "24",
     "content-type": "text/javascript; charset=utf-8",
@@ -3972,7 +3972,7 @@ exports[`routes > OPTIONS / (origin: https://example.com, access-control-request
     "access-control-allow-headers": "If-Match, If-Modified-Since, If-None-Match, If-Range, If-Unmodified-Since, Range",
     "access-control-allow-methods": "GET, HEAD",
     "access-control-allow-origin": "*",
-    "access-control-expose-headers": "Accept-Ranges, Content-Disposition, Content-Range, Deprecation, ETag, Link, X-Content-Type-Options",
+    "access-control-expose-headers": "Accept-Ranges, Content-Disposition, Content-Range, Deprecation, ETag, Link, Retry-After, X-Content-Type-Options",
     "access-control-max-age": "86400"
   },
   "body": ""
