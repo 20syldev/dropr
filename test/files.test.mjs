@@ -16,7 +16,7 @@ const CONTENT = 'export default "1.2.0";\n';
 const LAST_MODIFIED = Date.UTC(2025, 4, 1);
 
 /**
- * Lists the response headers of the core, leaving out the ones Node, CORS and Express add to every answer.
+ * Lists the response headers of the core, leaving out the ones Node and CORS add to every answer.
  *
  * @param response - Response from request()
  * @returns The header names in alphabetical order, without date, connection, keep-alive, access-control-* and

@@ -236,7 +236,6 @@ export function readBody(response) {
 
 /**
  * Turns a response into its snapshot.
- * A weak ETag is recorded without its value: express.static derives it from the date of the file in the clone.
  *
  * @param response - Response from request()
  * @param options - cors also records the Access-Control-* headers, which every response carries; checkout hides the
@@ -248,7 +247,6 @@ export function capture(response, { cors = false, checkout = false } = {}) {
         (name) => HEADERS.includes(name) || (cors && name.startsWith('access-control-')),
     );
     const headers = Object.fromEntries(names.sort().map((name) => [name, response.headers[name]]));
-    if (headers.etag?.startsWith('W/')) headers.etag = 'W/<weak>';
     if (checkout && headers['last-modified']) headers['last-modified'] = '<checkout>';
 
     if (response.aborted) return { status: response.status, headers, aborted: true };
