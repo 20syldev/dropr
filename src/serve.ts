@@ -1,10 +1,12 @@
 import fs from 'fs';
+import http from 'http';
 import { dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';
 
 import { createLogger } from '@20syldev/logger.ts';
 
 import { createApp } from './app.js';
+import { scanAssets } from './assets.js';
 import { loadConfig, reservedNames } from './config.js';
 import { scan } from './scan.js';
 import type { Logger } from './types/index.js';
@@ -39,12 +41,14 @@ function serve(): void {
     const pkg = JSON.parse(fs.readFileSync(join(rootDir, 'package.json'), 'utf-8'));
     const { packagesDir } = config;
     const index = scan(packagesDir, logger, reservedNames(config));
-    const app = createApp(config, { index, packagesDir, version: pkg.version, logger });
+    const assets = scanAssets(config.assets, logger);
+    const server = http.createServer(createApp(config, { index, packagesDir, version: pkg.version, logger, assets }));
 
-    // Express 5 hands a listen failure (port taken) to this callback, so it must not report the server as running
-    app.listen(port, (error) => {
-        if (error) throw error;
-
+    // A failure to listen (port taken) is emitted, not thrown, so the server must not report itself as running first
+    server.on('error', (error) => {
+        throw error;
+    });
+    server.listen(port, () => {
         console.log(`${config.name} is running on\n    - http://127.0.0.1:${port}\n    - http://localhost:${port}`);
     });
 }
