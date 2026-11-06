@@ -1,3 +1,6 @@
+import { createLimiter } from '@moxon/limiter';
+import type { Refused } from '@moxon/limiter';
+
 import type {
     Answer,
     Asset,
@@ -15,7 +18,6 @@ import { archiveStream } from './archive.js';
 import { CORS_HEADERS, preflight } from './cors.js';
 import { conditionsOf, decide } from './http.js';
 import { countPackages } from './packages.js';
-import { createLimiter } from './ratelimit.js';
 import { failure, INTERNAL, route } from './route.js';
 import { exact, watch } from './stream.js';
 
@@ -142,6 +144,22 @@ function plain(response: RouteResponse, head = false): Answer {
 }
 
 /**
+ * Makes the 429 of a request that the limiter refused.
+ *
+ * @param refusal - Refusal of the limiter, whose scope tells which cap was reached
+ * @param window - Window of the limiter in seconds, which the message of a client refusal names
+ * @returns The response, its Retry-After the whole seconds to wait
+ */
+function tooMany(refusal: Refused, window: number): RouteResponse {
+    const message =
+        refusal.scope === 'global'
+            ? 'Global rate limit exceeded.'
+            : `You have exceeded the limit of ${refusal.limit} requests per ${window === 1 ? 'second' : `${window} seconds`}.`;
+
+    return failure(429, message, { 'Retry-After': String(refusal.retryAfter) });
+}
+
+/**
  * Answers a GET or HEAD of an asset from its validators, like a package file.
  *
  * @param request - Request whose path names the asset, read for its method and its conditional and range headers
@@ -215,13 +233,17 @@ async function answerOf(
  * memory from the option that gives it.
  *
  * @param options - Catalog the package routes answer from, name and version of the server, manifest, read port, assets
- * by pathname, name of the client IP header, optional memory reader, and logger of the failures
+ * by pathname, name of the client IP header, rate limit, optional memory reader, and logger of the failures
  * @returns The function that answers a request: it never rejects, and the body of the answer is a string, a stream or null
  */
 export function createResponder(options: ResponderOptions): Respond {
-    const { catalog, read, assets, logger } = options;
+    const { catalog, read, assets, logger, rateLimit } = options;
     const startTime = Date.now();
-    const limiter = createLimiter(startTime);
+    const limiter = createLimiter({
+        window: rateLimit.window * 1000,
+        client: rateLimit.client,
+        global: rateLimit.global ?? undefined,
+    });
 
     const site: Site = {
         manifest: options.manifest,
@@ -253,8 +275,8 @@ export function createResponder(options: ResponderOptions): Respond {
                 return await assetAnswer(request, path, assets[path], logger);
             }
 
-            const refusal = limiter.check(clientOf(request, options.clientHeader, address), Date.now());
-            if (refusal) return plain(failure(429, refusal));
+            const decision = limiter.check(clientOf(request, options.clientHeader, address), Date.now());
+            if (!decision.ok) return plain(tooMany(decision, rateLimit.window));
 
             return await answerOf(route(request, catalog, site), head, read, logger);
         } catch (error) {

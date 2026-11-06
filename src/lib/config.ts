@@ -56,15 +56,33 @@ function text<T extends string | undefined>(value: unknown, path: string, fallba
 }
 
 /**
+ * Reads an optional count.
+ *
+ * @param value - Value read from the file
+ * @param path - Dotted path of the key, for the messages
+ * @param fallback - Value of an absent key
+ * @returns The integer of 1 or more
+ */
+function count(value: unknown, path: string, fallback: number): number {
+    if (value === undefined) return fallback;
+    if (typeof value !== 'number' || !Number.isInteger(value) || value < 1)
+        fail(path, 'must be an integer of 1 or more');
+
+    return value;
+}
+
+/**
  * Validates the content of a config file and fills the defaults in, without touching the disk or the env.
  * Paths stay as written; loadConfig resolves them against the file.
  *
- * @param input - Parsed JSON; only manifest.baseUrl is required
+ * @param input - Parsed JSON; only manifest.baseUrl is required, and rateLimit.global may be null to leave out the
+ * global cap
  * @returns The complete config; throws an Error whose message starts with "Invalid config:" and names the key
  */
 export function parseConfig(input: unknown): Config {
-    const root = section(input, '', ['name', 'port', 'packagesDir', 'clientIp', 'manifest', 'assets']);
+    const root = section(input, '', ['name', 'port', 'packagesDir', 'clientIp', 'rateLimit', 'manifest', 'assets']);
     const clientIp = section(root.clientIp, 'clientIp', ['header']);
+    const rateLimit = section(root.rateLimit, 'rateLimit', ['window', 'client', 'global']);
     const manifest = section(root.manifest, 'manifest', ['baseUrl', 'params', 'routes']);
 
     const name = text(root.name, 'name', 'dropr');
@@ -82,6 +100,12 @@ export function parseConfig(input: unknown): Config {
     if (header !== null && (typeof header !== 'string' || !/^[A-Za-z0-9-]+$/.test(header))) {
         fail('clientIp.header', 'must be null or a header name');
     }
+
+    const limits = {
+        window: count(rateLimit.window, 'rateLimit.window', 10),
+        client: count(rateLimit.client, 'rateLimit.client', 100),
+        global: rateLimit.global === null ? null : count(rateLimit.global, 'rateLimit.global', 1000),
+    };
 
     const baseUrl = text(manifest.baseUrl, 'manifest.baseUrl', undefined);
     if (baseUrl === undefined) fail('manifest.baseUrl', 'is required');
@@ -134,6 +158,7 @@ export function parseConfig(input: unknown): Config {
         port,
         packagesDir,
         clientIp: { header: header === null ? null : (header as string).toLowerCase() },
+        rateLimit: limits,
         manifest: { baseUrl, params, routes } as Config['manifest'],
         assets: assets as Record<string, string>,
     };

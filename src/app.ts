@@ -119,6 +119,7 @@ export function createApp(config: Config, deps: AppDeps): RequestListener {
         read: deps.read ?? createReader(packagesDir),
         assets: deps.assets ?? {},
         clientHeader: config.clientIp.header,
+        rateLimit: config.rateLimit,
         memory: process.memoryUsage,
         logger,
     });

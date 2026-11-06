@@ -17,7 +17,8 @@
         "upgrade:major": "npx npm-check-updates -u && npm install"
     },
     "dependencies": {
-        "@20syldev/logger.ts": "^1.0.1"
+        "@20syldev/logger.ts": "^1.0.1",
+        "@moxon/limiter": "^1.0.0"
     },
     "devDependencies": {
         "@eslint/js": "^10.0.1",

@@ -270,6 +270,7 @@ export interface ResponderOptions {
     read: ReadFile;
     assets: Record<string, Asset>;
     clientHeader: string | null;
+    rateLimit: RateLimit;
     memory?: () => Memory;
     logger: ErrorLogger;
 }
@@ -278,9 +279,10 @@ export type Respond = (request: RouteInput, client: string) => Promise<Answer>;
 
 export type Handler = (request: RouteInput, client?: string) => Promise<Response>;
 
-export interface Limiter {
-    readonly size: number;
-    check(client: string, now: number): string | null;
+export interface RateLimit {
+    window: number;
+    client: number;
+    global: number | null;
 }
 
 export interface Logger {
@@ -305,6 +307,7 @@ export interface Config {
     port: number;
     packagesDir: string;
     clientIp: { header: string | null };
+    rateLimit: RateLimit;
     manifest: ManifestConfig;
     assets: Record<string, string>;
 }
