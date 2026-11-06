@@ -79,6 +79,7 @@ function build(change = {}) {
         read: memoryPort((path) => fs.readFileSync(join(fixture.packagesDir, path))),
         assets: {},
         clientHeader: null,
+        rateLimit: { window: 10, client: 100, global: 1000 },
         logger: { error: (...args) => errors.push(args) },
         ...change,
     };
@@ -291,6 +292,59 @@ describe('createResponder', () => {
         assert.equal(answer.status, 429);
         assert.equal(answer.headers['Access-Control-Allow-Origin'], '*');
         assert.equal(JSON.parse(answer.body).error, 'Too Many Requests');
+    });
+
+    test('lets a client through again when its window holds fewer requests than the cap [change: refused]', async (t) => {
+        t.mock.timers.enable({ apis: ['Date'], now: 1_000_000 });
+        const { respond } = build({ rateLimit: { window: 10, client: 2, global: null } });
+        const status = async () => (await respond(ask('/health'), 'a')).status;
+
+        assert.equal(await status(), 200);
+        t.mock.timers.tick(1000);
+        assert.equal(await status(), 200);
+        for (let i = 0; i < 20; i++) {
+            t.mock.timers.tick(400);
+            assert.equal(await status(), 429);
+        }
+
+        t.mock.timers.tick(1000);
+        assert.equal(await status(), 200);
+        assert.equal(await status(), 429);
+        t.mock.timers.tick(1000);
+        assert.equal(await status(), 200);
+    });
+
+    test('sends Retry-After with a 429, for the client and for the global cap [change: retry]', async (t) => {
+        t.mock.timers.enable({ apis: ['Date'], now: 1_000_000 });
+        const { respond } = build({ rateLimit: { window: 10, client: 1, global: 3 } });
+        const send = (client) => respond(ask('/health'), client);
+
+        const first = await send('a');
+        assert.equal(first.status, 200);
+        assert.equal(first.headers['Retry-After'], undefined);
+
+        t.mock.timers.tick(2500);
+        const refused = await send('a');
+        assert.equal(refused.status, 429);
+        assert.equal(refused.headers['Retry-After'], '8');
+        assert.equal(JSON.parse(refused.body).message, 'You have exceeded the limit of 1 requests per 10 seconds.');
+
+        assert.equal((await send('b')).status, 200);
+        assert.equal((await send('c')).status, 200);
+        t.mock.timers.tick(1000);
+        const full = await send('d');
+        assert.equal(full.status, 429);
+        assert.equal(full.headers['Retry-After'], '7');
+        assert.equal(JSON.parse(full.body).message, 'Global rate limit exceeded.');
+    });
+
+    test('names a window of one second in the singular and leaves the global cap out when it is null', async () => {
+        const { respond } = build({ rateLimit: { window: 1, client: 1, global: null } });
+
+        assert.equal((await respond(ask('/health'), 'a')).status, 200);
+        const refused = await respond(ask('/health'), 'a');
+        assert.equal(JSON.parse(refused.body).message, 'You have exceeded the limit of 1 requests per second.');
+        for (let i = 0; i < 2000; i++) assert.equal((await respond(ask('/health'), `c${i}`)).status, 200);
     });
 
     test('never counts an asset nor a preflight against the limit', async () => {

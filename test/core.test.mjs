@@ -5,7 +5,6 @@ import { join } from 'path';
 
 import { archiveEntries, archiveStream } from '../dist/lib/archive.js';
 import { loadIndex } from '../dist/lib/packages.js';
-import { createLimiter } from '../dist/lib/ratelimit.js';
 import { route } from '../dist/lib/route.js';
 import { exact } from '../dist/lib/stream.js';
 import { scan } from '../dist/scan.js';
@@ -21,9 +20,6 @@ const EMPTY_SHA256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b78
 
 // Names that a plain object treats apart (integer-like keys, the prototype setter, an inherited key), in byte order
 const NAMES = ['10', '9', '__proto__', 'constructor'];
-
-// Refusal of a client past 100 requests within 10 seconds
-const PER_CLIENT = 'You have exceeded the limit of 100 requests per 10 seconds.';
 
 // Entries recorded by routes.test.mjs, which route() reproduces for the cases it decides alone
 const snapshot = loadSnapshot(join(rootDir, 'test', 'routes.test.mjs.snapshot'));
@@ -495,57 +491,5 @@ describe('route() on synthetic indexes', () => {
 
             assert.deepEqual([status, body.query], [200, query], raw);
         }
-    });
-});
-
-describe('createLimiter', () => {
-    test('a client gets 100 requests per 10 seconds and passes again once they left the window', () => {
-        const limiter = createLimiter(0);
-
-        for (let i = 0; i < 100; i++) assert.equal(limiter.check('a', 0), null);
-        assert.equal(limiter.check('a', 9999), PER_CLIENT);
-        assert.equal(limiter.check('b', 9999), null);
-        assert.equal(limiter.check('a', 10_000), null);
-    });
-
-    test('refused requests count against their client', () => {
-        const limiter = createLimiter(0);
-
-        for (let i = 0; i < 100; i++) assert.equal(limiter.check('a', 0), null);
-        for (let i = 0; i < 100; i++) assert.equal(limiter.check('a', 5000), PER_CLIENT);
-        assert.equal(limiter.check('a', 10_000), PER_CLIENT);
-        assert.equal(limiter.check('a', 15_000), null);
-    });
-
-    test('the 1001st request of a window is refused, until a request comes after the window end', () => {
-        const limiter = createLimiter(0);
-
-        for (let i = 0; i < 1000; i++) assert.equal(limiter.check(`client ${i}`, 0), null);
-        assert.equal(limiter.check('late', 0), 'Global rate limit exceeded.');
-        assert.equal(limiter.check('late', 10_000), 'Global rate limit exceeded.');
-        assert.equal(limiter.check('late', 10_001), null);
-    });
-
-    test('two limiters keep their own counters', () => {
-        const first = createLimiter(0);
-        const second = createLimiter(0);
-
-        for (let i = 0; i <= 100; i++) first.check('a', 0);
-        assert.equal(first.check('a', 0), PER_CLIENT);
-        assert.equal(second.check('a', 0), null);
-    });
-
-    test('a sweep drops the clients whose requests all left the window', () => {
-        const limiter = createLimiter(0);
-
-        limiter.check('a', 0);
-        limiter.check('b', 5000);
-        assert.equal(limiter.size, 2);
-
-        limiter.check('c', 9999);
-        assert.equal(limiter.size, 3);
-
-        limiter.check('c', 10_000);
-        assert.equal(limiter.size, 2);
     });
 });

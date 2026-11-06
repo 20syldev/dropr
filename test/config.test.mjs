@@ -23,6 +23,14 @@ const INVALID = [
     ['clientIp.header', { ...MINIMAL, clientIp: { header: 'x client' } }, 'clientIp.header'],
     ['clientIp.trustProxy', { ...MINIMAL, clientIp: { trustProxy: true } }, 'clientIp.trustProxy'],
     ['clientIp.proxy', { ...MINIMAL, clientIp: { proxy: true } }, 'clientIp.proxy'],
+    ['rateLimit.window', { ...MINIMAL, rateLimit: { window: 0 } }, 'rateLimit.window'],
+    ['rateLimit.window', { ...MINIMAL, rateLimit: { window: 1.5 } }, 'rateLimit.window'],
+    ['rateLimit.client', { ...MINIMAL, rateLimit: { client: '100' } }, 'rateLimit.client'],
+    ['rateLimit.client', { ...MINIMAL, rateLimit: { client: null } }, 'rateLimit.client'],
+    ['rateLimit.global', { ...MINIMAL, rateLimit: { global: -1 } }, 'rateLimit.global'],
+    ['rateLimit.global', { ...MINIMAL, rateLimit: { global: 'none' } }, 'rateLimit.global'],
+    ['rateLimit.burst', { ...MINIMAL, rateLimit: { burst: 5 } }, 'rateLimit.burst'],
+    ['rateLimit', { ...MINIMAL, rateLimit: 100 }, 'rateLimit'],
     ['manifest.baseUrl', {}, 'manifest.baseUrl'],
     ['manifest.baseUrl', { manifest: {} }, 'manifest.baseUrl'],
     ['manifest.baseUrl', { manifest: { baseUrl: 'cdn.example.com' } }, 'manifest.baseUrl'],
@@ -66,6 +74,7 @@ describe('parseConfig', () => {
             port: 4000,
             packagesDir: 'packages',
             clientIp: { header: null },
+            rateLimit: { window: 10, client: 100, global: 1000 },
             manifest: { baseUrl: 'https://cdn.example.com', params: {}, routes: {} },
             assets: {},
         });
@@ -79,6 +88,18 @@ describe('parseConfig', () => {
         };
 
         assert.deepEqual(parseConfig({ manifest }).manifest, manifest);
+    });
+
+    test('the rate limit is read key by key, a null global cap leaving the global cap out', () => {
+        const limit = (rateLimit) => parseConfig({ ...MINIMAL, rateLimit }).rateLimit;
+
+        assert.deepEqual(limit({ client: 5 }), { window: 10, client: 5, global: 1000 });
+        assert.deepEqual(limit({ window: 60, client: 1000, global: 50_000 }), {
+            window: 60,
+            client: 1000,
+            global: 50_000,
+        });
+        assert.deepEqual(limit({ global: null }), { window: 10, client: 100, global: null });
     });
 
     test('a header name is lowercased and the input is left as it was', () => {
