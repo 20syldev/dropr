@@ -11,9 +11,10 @@ Personal CDN that stores, versions and serves bash scripts, npm packages and sha
 - JSON listings of every type, project, version and folder, with file sizes; SHA-256 checksums of a version (`?checksums`) and its `.tar.gz` archive (`?download` or `/download/...`).
 - Changelog of a project with release dates, search by name or type, route manifest (`/manifest`) and health check (`/health`).
 - Deprecated projects stay reachable at their old address, frozen at their last version: JSON responses carry a `deprecated` field (date, message, successor), and every response under the project a `Deprecation` header and a `Link` to the successor.
+- An asset is matched by its exact path and answered like a package file: strong `ETag`, `Last-Modified`, ranges and conditional requests. Its size, date and hash are read at startup, so a changed file needs a restart, and a folder is not an asset.
 - One error body for every status: `{ "status": 404, "error": "Not Found", "message": "..." }`; a method other than `GET` or `HEAD` gets a `405`.
 - Files served from inside their version folder only: `..` is resolved by the URL before routing, never by the file system, and a symlink is followed only when its target stays inside; listings, sizes and checksums follow the same rule.
-- Rate limit of 100 requests per 10 seconds per client and 1000 per 10 seconds overall, answered with a `429`; CORS open to every origin, with the `Deprecation`, `Link`, `ETag` and `Content-Disposition` headers exposed.
+- Rate limit of 100 requests per 10 seconds per client and 1000 per 10 seconds overall, answered with a `429`; CORS open to every origin, with the validators, range, `Link` and `Deprecation` headers exposed; a preflight allows `GET`, `HEAD` and the conditional and range headers.
 
 ## Usage
 
@@ -61,7 +62,7 @@ The release date comes from the GitHub release, or is today's UTC day when there
 
 ## Stack
 
-Node.js, Express 5, strict TypeScript (ESM), @20syldev/logger.ts
+Node.js, strict TypeScript (ESM), @20syldev/logger.ts
 
 ## Scripts
 
@@ -85,15 +86,16 @@ Node.js, Express 5, strict TypeScript (ESM), @20syldev/logger.ts
 packages/         Published versions, as packages/<type>/<project>/<version>/
 public/           Favicon: the dropr mark, a vermilion box falling into its tray (SVG and ICO)
 scripts/          fetch.sh (version publishing), versions.mjs (release dates)
-src/app.ts        createApp(config, deps): Express app with static files, logs, rate limit, /health and /manifest, then route() for every other request; reads no env and listens nowhere
+src/app.ts        createApp(config, deps): the node:http listener, which gives each request to the core and writes its answer; reads no env and listens nowhere
+src/assets.ts     scanAssets(): size, date and SHA-256 of the configured assets, read once at startup
 src/disk.ts       createReader(): the read port over the packages folder, files opened before their headers and read in 64 KiB chunks
 src/serve.ts      Entry point: reads the config file and the env, indexes packages/, builds the app and listens
 src/config.ts     loadConfig(): reads the config file and resolves its paths against the folder of the file
 src/scan.ts       Startup index of packages/: folders, files, links, sizes, release dates, deprecations and SHA-256
 src/manifest.ts   Routes and English texts of /manifest, built by buildManifest() with the overrides of the config
-src/lib/          Node-free core: route(), path router, index loading, semver and byte order, version resolution, paths, checksums, conditions and ranges of HTTP, tar writer, byte stream guard, MIME types, errors, deprecations, rate limiter, config parser
+src/lib/          Node-free core: route(), path router, index loading, semver and byte order, version resolution, paths, checksums, conditions and ranges of HTTP, tar writer, byte stream guard, MIME types, errors, deprecations, rate limiter, CORS, responder (rate limit, assets, routes; also a fetch handler), config parser
 src/types/        Shared types: the index and its catalog, route input, match and response, tar entries, read port, conditions, config and logger
-test/             Route snapshots on a generated tree, createApp and the entry point, config, path router, route() and the limiter in process, HTTP rules against a model of RFC 9110, streams, files over HTTP, tar writer, the ledger of the decided changes of a release, sweep of packages/
+test/             Route snapshots on a generated tree, createApp and the entry point, config, path router, route(), the responder and the limiter in process, HTTP rules against a model of RFC 9110, streams, files over HTTP, tar writer, the ledger of the decided changes of a release, sweep of packages/
 dropr.config.json Config of the instance: name, port, packages folder, client IP header, base URL and assets
 robots.txt        Crawler rules, served on /robots.txt
 ```
@@ -109,11 +111,11 @@ robots.txt        Crawler rules, served on /robots.txt
 - `.versions.json` (release dates) and `.deprecated.json` (deprecation notice) sit next to the version folders of a project, so they never show up in listings, archives or checksums. `.versions.json` maps a version to `{ "date": "YYYY-MM-DD" }` (other keys are ignored), and `.deprecated.json` is `{ "date": "YYYY-MM-DD", "message": "...", "successor": "/npm/other" }`, the date being a real day and the successor a URL made of printable ASCII without a space, `<`, `>` or `"`.
 - In production: `npm install && npm run build`, then `npm start`; the committed lockfile pins what gets installed.
 - `dropr.config.json` at the repository root holds everything specific to an instance, and is required: a file that is missing, is not JSON or is refused prints `Invalid config: ...` and exits with 1 without listening. The path of another file is the first argument, `node dist/serve.js path/to/config.json`. Unknown keys are refused, and a relative path is resolved against the folder of the file.
-- Keys and defaults: `name` (`"dropr"`, used by `/health`, `/manifest` and the startup banner), `port` (`4000`), `packagesDir` (`"packages"`), `clientIp.header` (`null`, the header that names the client for the rate limit) and `clientIp.trustProxy` (`false`), `manifest.baseUrl` (required: an http or https URL without a trailing slash, space or control character), `manifest.params` and `manifest.routes` (`{}`, overrides of the manifest texts, below) and `assets` (`{}`, a URL path mapped to the file served there).
+- Keys and defaults: `name` (`"dropr"`, used by `/health`, `/manifest` and the startup banner), `port` (`4000`), `packagesDir` (`"packages"`), `clientIp.header` (`null`, the header that names the client for the rate limit), `manifest.baseUrl` (required: an http or https URL without a trailing slash, space or control character), `manifest.params` and `manifest.routes` (`{}`, overrides of the manifest texts, below) and `assets` (`{}`, a URL path mapped to the file served there).
 - `PORT` and `PACKAGES_DIR` win over `port` and `packagesDir`; `PACKAGES_DIR` serves another tree than `packages/`, as the tests do with a tree they generate in the system temp folder.
-- The client for the rate limit is the value of `clientIp.header` when the request carries one, so set it only behind a proxy that rewrites that header; otherwise it is the socket address, or the address `X-Forwarded-For` gives when `clientIp.trustProxy` is `true`.
+- The client for the rate limit is the value of `clientIp.header` when the request carries one, so set it only behind a proxy that rewrites that header; otherwise it is the socket address; `X-Forwarded-For` is never read.
 - The manifest has English texts built into `src/manifest.ts`; an instance overrides them in its config, per field and only where it wants to: `manifest.params.<type|project|version|file|q>` takes `name` (path params only), `description` and `example`, and `manifest.routes.<id>` takes `title`, `summary`, `example` and `notes`, with the ids and params listed on `/manifest`. A field left out keeps its default, `notes` replaces the whole list, and a renamed path param is renamed in the paths and in every note, the notes of the config included, so write `{name}` for the new name of a path param there.
-- `createApp(config, { index, packagesDir, version, logger, read? })` reads no env, argument or file at creation, and neither scans, listens nor prints: `src/serve.ts` does, so importing `dist/app.js` has no side effect and every app has its own rate limiter. It takes a config that went through `parseConfig`.
+- `createApp(config, { index, packagesDir, version, logger, read?, assets? })` reads no env, argument or file at creation, and neither scans, listens nor prints: `src/serve.ts` does, so importing `dist/app.js` has no side effect and every app has its own rate limiter. It takes a config that went through `parseConfig`.
 - Files and archives come from a read port, `deps.read(path, range?)`; a file is opened before its headers, so one removed or cut since startup answers a logged `404`, and one that grew is sent up to its startup size.
 - The tests start the app in process on a loopback port, with a logger that records what the app reports, and run `dist/serve.js` in a child process for its arguments, env and exit code only.
 - The tests need Node 24, GNU tar (to check the archives), bash, rsync (for the fetch.sh tests that copy files, skipped without it) and a regular user: root can read a file of mode `000`, so the cases that rely on one are skipped, and `npm run test:update` would then drop their snapshots. With `CI` set, these cases fail instead of being skipped.
@@ -126,7 +128,7 @@ robots.txt        Crawler rules, served on /robots.txt
 - A trailing slash marks a folder. It is accepted on `/`, `/download`, `/download/<type>`, `/<type>`, `/<type>/<project>`, `/<type>/<project>@<version>` and the folders of a version. On a file it answers a missing file, like any missing path, whose message echoes the slash, and on `/search`, an archive (`/download/<type>/<project>`) or the changelog it answers `Route '...' does not exist.`
 - A project is split from its version at the last `@`, and an `@` in first or last place is no separator: `lib@` and `@1.0.0` name no project, `lib@@1.0.0` names the project `lib@`, and `lib@1.0.0@junk` names the project `lib@1.0.0`. Scoped names such as `@moxon/api` are not routed.
 - The query is read with `URLSearchParams`: `q` must appear exactly once and not be blank, `checksums` and `download` count by their presence, and the number of keys is not limited. `Q=lib` is not `q`, and `+` in `q` is a space.
-- A top-level folder of `packages/` named `download`, `search`, `health`, `manifest` or like the first segment of a configured asset (`favicon.ico`, `robots.txt`) is not a package type: the scan skips the whole folder and logs `Skipping type '<name>': reserved name.` `download` and `search` are compared exactly, so a `Download` or `Search` folder is a type; `health`, `manifest` and the assets are compared in any case, since `/health`, `/manifest` and the asset files still answer in any case.
+- A top-level folder of `packages/` named `download`, `search`, `health`, `manifest` or like the first segment of a configured asset (`favicon.ico`, `robots.txt`) is not a package type: the scan skips the whole folder and logs `Skipping type '<name>': reserved name.` Names are compared exactly, so a `Download` or `Health` folder is a type.
 - The `ETag` of a file is its checksum, `"<64 hex digits>"`, the value `?checksums` gives for it: it follows the bytes, so two files with the same content share a tag whatever their name, version or date, and a link has the tag of its target. Files are hashed in 1 MiB reads, so no size limit applies, and an index must carry the checksum of every file (`loadIndex()` refuses one without). The tag is strong, so `If-Match` and `If-Range` accept it; `If-None-Match` also takes a list, a weak copy (`W/"..."`) or `*`. Listings and the other JSON answers have no `ETag`.
 - `Last-Modified` is the release date of the version at 00:00:00 GMT, the same for every file of it and for its 200, 206, 304 and HEAD answers, and the date written in its archive entries; it does not follow the date of the file or of the checkout. A request that carries the tag of a file reached through more than 40 links answers `404` like the same request without it.
 - Scan policy. The scan never stops the server for what a tree holds: it logs one line and leaves out the smallest thing that is wrong, and only a packages folder that cannot be listed for another reason than missing, not a folder or denied stops it. The lines start with `Skipping <path>:`, `Error reading <path>:`, `Invalid ...` or `No packages folder ...`, so a check can count them; a clean tree logs nothing, as `packages/` does.
