@@ -368,7 +368,7 @@ describe('createApp', () => {
     });
 });
 
-describe('dist/serve.js', () => {
+describe('dist/bin.js serve', () => {
     let fixture;
 
     before(() => (fixture = createFixture()));
@@ -377,15 +377,17 @@ describe('dist/serve.js', () => {
     /**
      * Runs the entry point in a child process until it exits or listens.
      *
-     * @param args - Arguments of the entry point
+     * @param args - Arguments after the serve command
      * @param env - Env added to the one of the test, which cannot leak PORT or PACKAGES_DIR in
      * @param probe - Called once the child reports it is running, which is killed after it settles
+     * @param cwd - Working folder of the child, the one of the test by default
      * @returns Exit code, stdout, stderr and the value of probe; a child still listening is killed and reports a null
      * code, and one that neither exits nor listens within 10 seconds is killed and rejects with its stderr
      */
-    function run(args = [], env = {}, probe = undefined) {
+    function run(args = [], env = {}, probe = undefined, cwd = undefined) {
         return new Promise((resolve, reject) => {
-            const child = spawn(process.execPath, [join(rootDir, 'dist', 'serve.js'), ...args], {
+            const child = spawn(process.execPath, [join(rootDir, 'dist', 'bin.js'), 'serve', ...args], {
+                cwd,
                 env: { ...process.env, PORT: '', PACKAGES_DIR: '', ...env },
             });
             let stdout = '';
@@ -393,7 +395,7 @@ describe('dist/serve.js', () => {
             let probed;
             const timer = setTimeout(() => {
                 child.kill();
-                reject(new Error(`serve.js neither exited nor listened within 10 seconds: ${stderr}`));
+                reject(new Error(`bin.js neither exited nor listened within 10 seconds: ${stderr}`));
             }, 10_000);
             child.stderr.on('data', (chunk) => (stderr += chunk));
             child.stdout.on('data', (chunk) => {
@@ -411,10 +413,10 @@ describe('dist/serve.js', () => {
         });
     }
 
-    test('listens on PORT, serving PACKAGES_DIR, and prints that it is running', async () => {
+    test('listens on PORT, serving --packages, and prints that it is running', async () => {
         const port = await freePort();
-        const env = { PORT: String(port), PACKAGES_DIR: join(fixture.root, 'packages') };
-        const { stdout, probed } = await run([], env, async () => ({
+        const env = { PORT: String(port) };
+        const { stdout, probed } = await run(['--packages', join(fixture.root, 'packages')], env, async () => ({
             health: JSON.parse((await request(port, 'GET', '/health')).body),
             file: await request(port, 'GET', '/npm/lib@1.2.0/index.js'),
         }));
@@ -477,15 +479,69 @@ describe('dist/serve.js', () => {
         }
     });
 
+    test('ignores PACKAGES_DIR and serves the packagesDir of the config [change: packagesenv]', async () => {
+        const port = await freePort();
+        const files = ['packages/npm/lib/1.0.0/b.txt', 'packages/npm/lib/.versions.json', 'config.json'];
+        const tree = makeTree(files, {
+            'config.json': JSON.stringify({ manifest: { baseUrl: 'https://cdn.example.com' } }),
+        });
+
+        try {
+            const env = { PORT: String(port), PACKAGES_DIR: join(tree.root, 'missing') };
+            const { probed } = await run([join(tree.root, 'config.json')], env, async () =>
+                request(port, 'GET', '/npm/lib@1.0.0/b.txt'),
+            );
+
+            assert.equal(probed.status, 200);
+        } finally {
+            tree.remove();
+        }
+    });
+
+    test('reads dropr.config.json of the working folder, then the defaults [change: configpath]', async () => {
+        const files = ['packages/npm/lib/1.0.0/b.txt', 'packages/npm/lib/.versions.json', 'dropr.config.json'];
+        const named = makeTree(files, {
+            'dropr.config.json': JSON.stringify({ name: 'folder', manifest: { baseUrl: 'https://cdn.example.com' } }),
+        });
+        const bare = makeTree(['keep.txt']);
+        const port = await freePort();
+
+        try {
+            const found = await run(
+                [],
+                { PORT: String(port) },
+                () => request(port, 'GET', '/npm/lib@1.0.0/b.txt'),
+                named.root,
+            );
+            assert.match(found.stdout, /^folder is running on\n/);
+            assert.equal(found.probed.status, 200);
+
+            const defaults = await run(
+                [],
+                { PORT: String(port) },
+                async () => JSON.parse((await request(port, 'GET', '/health')).body),
+                bare.root,
+            );
+            assert.match(defaults.stdout, /^dropr is running on\n/);
+            assert.equal(defaults.probed.packages, 0);
+
+            const missing = await run([join(bare.root, 'nope.json')]);
+            assert.equal(missing.code, 1);
+            assert.match(missing.stderr, /^Invalid config: .*nope\.json cannot be read/);
+        } finally {
+            named.remove();
+            bare.remove();
+        }
+    });
+
     test('fails without the banner when the port is taken', async () => {
         const taken = net.createServer();
         await new Promise((resolve) => taken.listen(0, resolve));
 
         try {
             const { port } = taken.address();
-            const { code, stdout, stderr } = await run([], {
+            const { code, stdout, stderr } = await run(['--packages', join(fixture.root, 'packages')], {
                 PORT: String(port),
-                PACKAGES_DIR: join(fixture.root, 'packages'),
             });
 
             assert.equal(code, 1);
