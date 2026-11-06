@@ -1,5 +1,5 @@
 {
-    "version": "3.9.0",
+    "version": "4.0.0-pre",
     "name": "dropr",
     "description": "A self-hosted CDN that stores, versions and serves scripts and packages, as a command line and a library",
     "main": "./dist/index.js",
