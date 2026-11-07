@@ -879,15 +879,15 @@ exports[`routes > GET /favicon.ico 1`] = `
   "headers": {
     "accept-ranges": "bytes",
     "cache-control": "public, max-age=0",
-    "content-length": "1082",
+    "content-length": "93",
     "content-type": "image/x-icon",
-    "etag": "\\"27a4aaa107ac94aa5c9385d548ffc63f94d82b272921b73593c20e1adad052df\\"",
+    "etag": "\\"5eac1f520446a627fc6b7c872424d0f7bea105b233f252ea218388edd012aa3c\\"",
     "last-modified": "<checkout>",
     "x-content-type-options": "nosniff"
   },
   "body": {
-    "length": 1082,
-    "sha256": "27a4aaa107ac94aa5c9385d548ffc63f94d82b272921b73593c20e1adad052df"
+    "length": 93,
+    "sha256": "5eac1f520446a627fc6b7c872424d0f7bea105b233f252ea218388edd012aa3c"
   }
 }
 `;
@@ -898,13 +898,13 @@ exports[`routes > GET /favicon.svg 1`] = `
   "headers": {
     "accept-ranges": "bytes",
     "cache-control": "public, max-age=0",
-    "content-length": "186",
+    "content-length": "63",
     "content-type": "image/svg+xml",
-    "etag": "\\"9bd769bd104ad122631b2b0f950b34dd02cd41bc14b3a912682d431efd817963\\"",
+    "etag": "\\"38faf4153750fdb3d8b4ac3c34650dce4c2128f5c7b1dce0c1f5efb5c2522809\\"",
     "last-modified": "<checkout>",
     "x-content-type-options": "nosniff"
   },
-  "body": "<svg xmlns=\\"http://www.w3.org/2000/svg\\" viewBox=\\"0 0 32 32\\" fill=\\"#FF4A1C\\"><path d=\\"M2 16h4v10h20V16h4v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z\\"/><polygon points=\\"6,6 20,2 24,16 10,20\\"/></svg>\\n"
+  "body": "<svg xmlns=\\"http://www.w3.org/2000/svg\\" width=\\"1\\" height=\\"1\\"/>\\n"
 }
 `;
 
@@ -3617,22 +3617,6 @@ exports[`routes > GET /npm\\lib 1`] = `
       "2.0.0-pre": "/npm/lib@2.0.0-pre"
     }
   }
-}
-`;
-
-exports[`routes > GET /robots.txt 1`] = `
-{
-  "status": 200,
-  "headers": {
-    "accept-ranges": "bytes",
-    "cache-control": "public, max-age=0",
-    "content-length": "1719",
-    "content-type": "text/plain; charset=utf-8",
-    "etag": "\\"a2457b90a81fc1331e96b98624849b1c5eeabf36659f227ee7c19a55aa2a1169\\"",
-    "last-modified": "<checkout>",
-    "x-content-type-options": "nosniff"
-  },
-  "body": "User-agent: 360Spider\\nUser-agent: 360Spider-Image\\nUser-agent: 360Spider-Video\\nUser-agent: AdsBot-Google\\nUser-agent: AdsBot-Google-Mobile\\nUser-agent: AdsBot-Google-Mobile-Apps\\nUser-agent: adidxbot\\nUser-agent: Applebot\\nUser-agent: AppleNewsBot\\nUser-agent: Baiduspider\\nUser-agent: Baiduspider-image\\nUser-agent: Baiduspider-news\\nUser-agent: Baiduspider-video\\nUser-agent: bingbot\\nUser-agent: BingPreview\\nUser-agent: BublupBot\\nUser-agent: CCBot\\nUser-agent: Cliqzbot\\nUser-agent: coccoc\\nUser-agent: coccocbot-image\\nUser-agent: coccocbot-web\\nUser-agent: Daumoa\\nUser-agent: Dazoobot\\nUser-agent: DeuSu\\nUser-agent: DuckDuckBot\\nUser-agent: DuckDuckGo-Favicons-Bot\\nUser-agent: EuripBot\\nUser-agent: Exploratodo\\nUser-agent: Facebot\\nUser-agent: Feedly\\nUser-agent: Findxbot\\nUser-agent: Googlebot\\nUser-agent: Googlebot-Image\\nUser-agent: Googlebot-Mobile\\nUser-agent: Googlebot-News\\nUser-agent: Googlebot-Video\\nUser-agent: HaoSouSpider\\nUser-agent: ichiro\\nUser-agent: istellabot\\nUser-agent: JikeSpider\\nUser-agent: Lycos\\nUser-agent: Mail.Ru\\nUser-agent: Mediapartners-Google\\nUser-agent: MojeekBot\\nUser-agent: msnbot\\nUser-agent: msnbot-media\\nUser-agent: OrangeBot\\nUser-agent: Pinterest\\nUser-agent: Plukkie\\nUser-agent: Qwantify\\nUser-agent: Rambler\\nUser-agent: SeznamBot\\nUser-agent: Sosospider\\nUser-agent: Slurp\\nUser-agent: Sogou blog\\nUser-agent: Sogou inst spider\\nUser-agent: Sogou News Spider\\nUser-agent: Sogou Orion spider\\nUser-agent: Sogou spider2\\nUser-agent: Sogou web spider\\nUser-agent: SputnikBot\\nUser-agent: Teoma\\nUser-agent: Twitterbot\\nUser-agent: wotbox\\nUser-agent: yacybot\\nUser-agent: Yandex\\nUser-agent: YandexMobileBot\\nUser-agent: Yeti\\nUser-agent: YioopBot\\nUser-agent: yoozBot\\nUser-agent: YoudaoBot\\nDisallow:\\nUser-agent: *\\nDisallow: /"
 }
 `;
 

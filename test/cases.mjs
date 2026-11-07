@@ -28,7 +28,6 @@ export const CASES = [
     { path: '/' },
     { path: '/favicon.ico', checkout: true },
     { path: '/favicon.svg', checkout: true },
-    { path: '/robots.txt', checkout: true },
     { path: '/search?q=lib' },
     { path: '/search?q=LIB' },
     { path: '/search?q=npm' },
@@ -239,7 +238,7 @@ export function readBody(response) {
  *
  * @param response - Response from request()
  * @param options - cors also records the Access-Control-* headers, which every response carries; checkout hides the
- * Last-Modified of a repository file (favicon, robots.txt), which follows the date of the clone
+ * Last-Modified of a repository file (the icons), which follows the date of the clone
  * @returns Status, recorded headers, and the decoded body, or aborted when the server cut the body short
  */
 export function capture(response, { cors = false, checkout = false } = {}) {

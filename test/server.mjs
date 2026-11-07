@@ -7,19 +7,21 @@ import { fileURLToPath } from 'url';
 
 import { createApp } from '../dist/app.js';
 import { scanAssets } from '../dist/assets.js';
-import { loadConfig } from '../dist/config.js';
+import { parseConfig } from '../dist/lib/config.js';
 import { scan } from '../dist/scan.js';
 
 export const rootDir = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-// Config of the repository, with its own client header and base URL so the tests never depend on the instance
-const instance = loadConfig(join(rootDir, 'dropr.config.json'));
-
-export const config = {
-    ...instance,
+// Config of the tests: its own client header, a base URL that names no real host, two small icons as assets
+export const config = parseConfig({
+    packagesDir: join(rootDir, 'packages'),
     clientIp: { header: 'x-test-client' },
-    manifest: { ...instance.manifest, baseUrl: 'https://cdn.example.com' },
-};
+    manifest: { baseUrl: 'https://cdn.example.com' },
+    assets: {
+        '/favicon.ico': join(rootDir, 'test', 'assets', 'icon.ico'),
+        '/favicon.svg': join(rootDir, 'test', 'assets', 'icon.svg'),
+    },
+});
 
 // Version of dropr, which /health and /manifest report
 export const { version } = JSON.parse(fs.readFileSync(join(rootDir, 'package.json'), 'utf-8'));
@@ -59,10 +61,10 @@ export async function listen(app) {
 }
 
 /**
- * Starts the app of the repository config in process, on a packages tree of the test.
+ * Starts the app of the test config in process, on a packages tree of the test.
  *
- * @param packagesDir - Packages tree, the repository's packages/ by default
- * @param change - Config keys that replace the ones of the repository config
+ * @param packagesDir - Packages tree, a packages/ folder that does not exist by default
+ * @param change - Config keys that replace the ones of the test config
  * @param deps - Dependencies of createApp that replace the default ones, such as a read port
  * @returns The port, stop(), and what the app logged in requests and errors, the scan messages included
  */

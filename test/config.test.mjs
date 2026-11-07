@@ -8,7 +8,7 @@ import { loadConfig } from '../dist/config.js';
 import { parseConfig } from '../dist/lib/config.js';
 import { buildManifest } from '../dist/manifest.js';
 
-import { config, rootDir } from './server.mjs';
+import { config } from './server.mjs';
 
 const MINIMAL = { manifest: { baseUrl: 'https://cdn.example.com' } };
 
@@ -280,15 +280,6 @@ describe('buildManifest', () => {
 });
 
 describe('loadConfig', () => {
-    test('resolves packagesDir and the asset files against the folder of the file', () => {
-        assert.equal(config.packagesDir, join(rootDir, 'packages'));
-
-        for (const [url, file] of Object.entries(config.assets)) {
-            assert.ok(url.startsWith('/'));
-            assert.ok(fs.statSync(file).isFile(), `${url} serves ${file}`);
-        }
-    });
-
     test('resolves a relative packagesDir and assets against the folder of the file, not the working directory', () => {
         const dir = fs.mkdtempSync(join(os.tmpdir(), 'dropr-config-'));
         const file = join(dir, 'config.json');

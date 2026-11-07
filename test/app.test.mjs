@@ -330,11 +330,11 @@ describe('createApp', () => {
     });
 
     test('sends no X-Powered-By on a route, an asset, a preflight or an error [change: powered]', async () => {
-        const server = await start({ assets: { '/robots.txt': join(rootDir, 'robots.txt') } });
+        const server = await start({ assets: { '/favicon.svg': join(rootDir, 'test', 'assets', 'icon.svg') } });
         try {
             for (const [method, path] of [
                 ['GET', '/health'],
-                ['GET', '/robots.txt'],
+                ['GET', '/favicon.svg'],
                 ['OPTIONS', '/'],
                 ['GET', '/nope'],
             ]) {
@@ -348,16 +348,16 @@ describe('createApp', () => {
     });
 
     test('logs an asset and a preflight like every other request [change: logged]', async () => {
-        const server = await start({ assets: { '/robots.txt': join(rootDir, 'robots.txt') } });
+        const server = await start({ assets: { '/favicon.svg': join(rootDir, 'test', 'assets', 'icon.svg') } });
         try {
-            await request(server.port, 'GET', '/robots.txt');
+            await request(server.port, 'GET', '/favicon.svg');
             await request(server.port, 'OPTIONS', '/npm');
             await request(server.port, 'GET', '/health');
 
             assert.equal(await eventually(() => server.logs.requests.length === 3), true);
             assert.deepEqual(
                 server.logs.requests.map(({ method, url, status }) => `${method} ${url} ${status}`).sort(),
-                ['GET /health 200', 'GET /robots.txt 200', 'OPTIONS /npm 204'],
+                ['GET /favicon.svg 200', 'GET /health 200', 'OPTIONS /npm 204'],
             );
         } finally {
             await server.stop();
