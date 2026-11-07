@@ -1,5 +1,2 @@
 dist/
 node_modules/
-packages/**/package-lock.json
-!packages/**/dist/**
-!packages/**/dist/
