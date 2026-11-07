@@ -78,7 +78,7 @@ dropr check [config] [--packages ./packages]                 # check the config 
     "clientIp": { "header": "x-real-ip" },
     "rateLimit": { "window": 10, "client": 100, "global": 1000 },
     "manifest": { "baseUrl": "https://dropr.example.com" },
-    "assets": { "/favicon.ico": "public/favicon.ico" }
+    "assets": { "/robots.txt": "robots.txt" }
 }
 ```
 
@@ -187,24 +187,6 @@ file, and `read(path, range?)` is any function that returns a stream of the file
 folder. `createResponder` takes the same options and returns the status, headers and body without building a `Response`.
 `parseConfig` and the types of the API are exported too.
 
-## Publishing a version
-
-```bash
-# From a GitHub release: clones the tag, builds it when it has a build script, copies it
-npm run fetch -- my-org/my-tool packages/bash 1.0.7
-
-# From the published npm tarball, the method used for the npm packages
-npm run fetch -- --npm @scope/lib my-org/lib packages/npm 2.0.0 lib
-```
-
-`fetch.sh [options] <user/repo> <path> [version] [name]`: `<path>` is the folder to publish into and `[name]` the
-project name (the repository's by default). The version defaults to the latest GitHub release, or to the npm `latest`
-with `--npm <package>`, which packs the published tarball instead of cloning. `--force` replaces an existing version
-once the new one is fetched, `--no-build` skips the build and `--exclude <pattern>` leaves files out. It needs Node.js
-and rsync, plus git for a GitHub source and npm for `--npm` or a build; `gft` is used when installed, `curl` and the
-GitHub API otherwise. The release date comes from the GitHub release, or is today's UTC day, and is recorded in
-`.versions.json` before any file is copied.
-
 ## Stack
 
 Node.js, strict TypeScript (ESM), [@moxon/limiter](https://github.com/moxondev/limiter),
@@ -217,18 +199,14 @@ Node.js, strict TypeScript (ESM), [@moxon/limiter](https://github.com/moxondev/l
 | `npm run dev`         | Dev server, reloaded on change (tsx watch)                                                    |
 | `npm run build`       | Compile TypeScript to `dist/`                                                                 |
 | `npm start`           | Production server (`dropr serve`, after `npm run build`) on the port of the config or `$PORT` |
-| `npm run fetch`       | Publish a version into `packages/` (`scripts/fetch.sh`)                                       |
 | `npm run check`       | Type checks (Node-free core included), ESLint, Prettier                                       |
 | `npm test`            | Route snapshots, config, router, core, HTTP rules, CLI, package                               |
 | `npm run test:update` | Record the snapshots again after an intended change                                           |
-| `npm run format`      | Prettier and ESLint fixes on `src/`, `scripts/` and `test/`                                   |
+| `npm run format`      | Prettier and ESLint fixes on `src/` and `test/`                                               |
 
 ## Structure
 
 ```
-packages/       Published versions, as packages/<type>/<project>/<version>/
-public/         Favicon: the dropr mark (SVG and ICO)
-scripts/        fetch.sh (version publishing), versions.mjs (release dates)
 src/lib/        Node-free core: router, routes, packages, semver, checksums, HTTP rules, CORS, tar archive, responder
 src/            Command line and Node adapter: bin, cli, serve, check, startup, app, scan, assets, config, disk, index
 src/manifest.ts Route texts of /manifest, also Node-free
