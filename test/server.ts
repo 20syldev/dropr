@@ -12,7 +12,7 @@ import { createApp } from '../dist/app.js';
 import { scanAssets } from '../dist/assets.js';
 import { parseConfig } from '../dist/lib/config.js';
 import { scan } from '../dist/scan.js';
-import type { AppDeps, Config, Logger } from '../dist/types/index.js';
+import type { AppDeps, Config, Logger, UiSettings } from '../dist/types/index.js';
 
 export const rootDir = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -26,6 +26,9 @@ export const config = parseConfig({
         '/favicon.svg': join(rootDir, 'test', 'assets', 'icon.svg'),
     },
 });
+
+// Pages in their default look, for the tests that turn the pages on
+export const PAGES: UiSettings = { accent: null, logo: null, favicon: null };
 
 // Version of dropr, which /health and /manifest report
 export const { version } = JSON.parse(fs.readFileSync(join(rootDir, 'package.json'), 'utf-8')) as { version: string };

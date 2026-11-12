@@ -85,15 +85,107 @@ describe('parseConfig', () => {
         });
     });
 
-    test('the pages are off unless ui is true or false, and nothing else is accepted for it', () => {
-        assert.equal(parseConfig({ ...MINIMAL, ui: true }).ui, true);
-        assert.equal(parseConfig({ ...MINIMAL, ui: false }).ui, false);
+    test('the pages are off unless ui is given, and true or an empty object gives the default look', () => {
+        const plain = { accent: null, logo: null, favicon: null };
 
-        for (const bad of ['yes', 1, 0, null, {}, []]) {
+        assert.equal(parseConfig({ ...MINIMAL, ui: false }).ui, false);
+        assert.deepEqual(parseConfig({ ...MINIMAL, ui: true }).ui, plain);
+        assert.deepEqual(parseConfig({ ...MINIMAL, ui: {} }).ui, plain);
+        assert.deepEqual(parseConfig({ ...MINIMAL, ui: { accent: null, logo: null, favicon: null } }).ui, plain);
+    });
+
+    test('ui can set an accent, written in any case and kept in lower case, and name assets as logo and favicon', () => {
+        const assets = { '/logo.svg': 'public/logo.svg', '/favicon.ico': 'public/favicon.ico' };
+
+        assert.deepEqual(parseConfig({ ...MINIMAL, ui: { accent: '#1D4ED8' } }).ui, {
+            accent: '#1d4ed8',
+            logo: null,
+            favicon: null,
+        });
+        assert.deepEqual(
+            parseConfig({ ...MINIMAL, assets, ui: { accent: '#00ff7f', logo: '/logo.svg', favicon: '/favicon.ico' } })
+                .ui,
+            { accent: '#00ff7f', logo: '/logo.svg', favicon: '/favicon.ico' },
+        );
+    });
+
+    test('ui refuses what is not true, false or an object, with a message that says so', () => {
+        for (const bad of ['yes', 1, 0, null, []]) {
             assert.throws(
                 () => parseConfig({ ...MINIMAL, ui: bad }),
-                /^Error: Invalid config: ui must be true or false$/,
+                /^Error: Invalid config: ui must be true, false or an object$/,
             );
+        }
+    });
+
+    test('ui refuses an unknown key, docs included until the docs exist', () => {
+        for (const key of ['docs', 'color', 'Accent']) {
+            assert.throws(
+                () => parseConfig({ ...MINIMAL, ui: { [key]: true } }),
+                new RegExp(`^Error: Invalid config: ui\\.${key} is not a known key$`),
+            );
+        }
+    });
+
+    test('ui.accent must be a color written #rrggbb', () => {
+        for (const bad of [
+            '',
+            'red',
+            '#fff',
+            '#12345g',
+            '#1234567',
+            'ff4a1c',
+            ' #ff4a1c',
+            '#ff4a1c;',
+            0,
+            true,
+            {},
+            [],
+        ]) {
+            assert.throws(
+                () => parseConfig({ ...MINIMAL, ui: { accent: bad } }),
+                /^Error: Invalid config: ui\.accent must be a color written #rrggbb$/,
+            );
+        }
+    });
+
+    test('ui.logo and ui.favicon must be the URL path of an asset of the config', () => {
+        const assets = { '/logo.svg': 'public/logo.svg' };
+
+        for (const key of ['logo', 'favicon']) {
+            for (const bad of [
+                '',
+                '/missing.svg',
+                'logo.svg',
+                'https://cdn.example.com/logo.svg',
+                '/toString',
+                3,
+                true,
+            ]) {
+                assert.throws(
+                    () => parseConfig({ ...MINIMAL, assets, ui: { [key]: bad } }),
+                    new RegExp(`^Error: Invalid config: ui\\.${key} must be the URL path of an asset$`),
+                    `${key} ${String(bad)}`,
+                );
+            }
+        }
+        assert.throws(
+            () => parseConfig({ ...MINIMAL, ui: { logo: '/logo.svg' } }),
+            /^Error: Invalid config: ui\.logo must be the URL path of an asset$/,
+        );
+    });
+
+    test('ui.logo and ui.favicon refuse an asset whose path a page could not use, instead of dropping it silently', () => {
+        const assets = { '/my logo.svg': 'a.svg', "/it's.svg": 'b.svg', '/a"b.svg': 'c.svg', '/p<q>.svg': 'd.svg' };
+
+        for (const key of ['logo', 'favicon']) {
+            for (const path of Object.keys(assets)) {
+                assert.throws(
+                    () => parseConfig({ ...MINIMAL, assets, ui: { [key]: path } }),
+                    new RegExp(`^Error: Invalid config: ui\\.${key} must be the URL path of an asset$`),
+                    `${key} ${path}`,
+                );
+            }
         }
     });
 

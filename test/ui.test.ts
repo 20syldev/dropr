@@ -9,7 +9,7 @@ import { createDocsTree } from './docs.ts';
 import type { DocsTree } from './docs.ts';
 import { createFixture } from './fixture.ts';
 import type { Fixture } from './fixture.ts';
-import { request, startServer } from './server.ts';
+import { PAGES, request, startServer } from './server.ts';
 import type { TestServer } from './server.ts';
 
 // What a browser sends to open a page
@@ -80,7 +80,7 @@ describe('the pages', () => {
     before(async () => {
         fixture = createFixture();
         off = await startServer(fixture.packagesDir);
-        on = await startServer(fixture.packagesDir, { ui: true });
+        on = await startServer(fixture.packagesDir, { ui: PAGES });
     });
 
     after(async () => {
@@ -250,7 +250,7 @@ describe('the pages', () => {
 
     test('count against the rate limit like any other answer', async () => {
         const limited = await startServer(fixture.packagesDir, {
-            ui: true,
+            ui: PAGES,
             rateLimit: { window: 10, client: 2, global: null },
         });
 
@@ -305,7 +305,7 @@ describe('the pages', () => {
     test('leave a README out, and log it, when it is too large or cannot be read', async () => {
         const failing = await startServer(
             fixture.packagesDir,
-            { ui: true },
+            { ui: PAGES },
             { read: () => Promise.reject(new Error('EIO: disk gone')) },
         );
 
@@ -355,7 +355,7 @@ describe('the README on a page', () => {
 
     before(async () => {
         tree = createDocsTree();
-        server = await startServer(tree.packagesDir, { ui: true }, { read: readerOf(tree.packagesDir, reads) });
+        server = await startServer(tree.packagesDir, { ui: PAGES }, { read: readerOf(tree.packagesDir, reads) });
     });
 
     after(async () => {
