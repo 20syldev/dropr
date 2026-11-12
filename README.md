@@ -14,7 +14,8 @@ and needs no database.
 - JSON listings, SHA-256 checksums (`?checksums`), a reproducible `.tar.gz` archive (`?download`), a changelog with
   release dates, a search, a route manifest (`/manifest`) and a health check (`/health`).
 - Optional pages for browsers (`"ui": true`): the packages by type, a project with its versions and the README of the
-  latest one, a version with its files, and a search, on the same paths as the JSON listings.
+  latest one, a version with its files, and a search, on the same paths as the JSON listings, and the docs of dropr
+  itself (`docs/`) at `/-/docs` with `ui.docs`.
 - Deprecated projects (a `.deprecated.json` next to their versions) stay reachable, and every answer of the project
   carries a `Deprecation` header and a `Link` to the successor.
 - Files are served from inside their version folder only: a symlink is followed only when its target stays inside.
@@ -162,6 +163,10 @@ colors the buttons and the focus ring; the links and the ring get the closest sh
 the dark theme, and a button gets a white or a dark label, whichever reads better. The logo is shown before the name,
 which stays the title. An empty object, like `true`, keeps the default look.
 
+`"docs": true` adds the docs of dropr (overview, configuration, routes), written in `docs/`, at `/-/docs`. The path
+starts with a dash, which no type or project can, so it never hides a package. A docs page has no JSON form, so it is
+sent to every client without `Vary`; with the docs off, `/-/docs` answers as any route that does not exist.
+
 | Path                                                          | Page                                                          |
 | ------------------------------------------------------------- | ------------------------------------------------------------- |
 | `/`                                                           | Every type with its first projects, and a search box          |
@@ -180,8 +185,9 @@ and follows only `http`, `https` and `mailto` links; relative addresses resolve 
 shows the file of the version. A README that cannot be read is left out and logged.
 
 A page is one document with its style inline, no script and no font, and carries a `Content-Security-Policy` that allows
-nothing else (images of a README may come from `https`), `nosniff` and `Referrer-Policy: same-origin`. Its look is
-neutral for now: the name from the config is its title, it shows no logo, and its footer links to the home of dropr.
+nothing else (images from the site or from `https`, and the form of the search), `nosniff` and
+`Referrer-Policy: same-origin`. Its look is the default one unless `ui` sets an accent, a logo and a favicon: the name from the config is its title, and its footer
+links to the home of dropr.
 
 ## Use as a library
 
@@ -233,8 +239,8 @@ The second argument is the address of the client. `loadIndex` takes the index th
 file, and `read(path, range?)` is any function that returns a stream of the file; `createReader` is the one over a
 folder. `createResponder` takes the same options and returns the status, headers and body without building a `Response`.
 Add `ui: true` to the options to answer a browser with the pages, the READMEs being read through `read`; the same
-`accent`, `logo` and `favicon` can be given as an object, where a value that is not safe is ignored. `Config.ui` is
-`false` or those three settings. `parseConfig` and the types of the API are exported too.
+`accent`, `logo`, `favicon` and `docs` can be given as an object, where a value that is not safe is ignored. `Config.ui` is
+`false` or those four settings (`docs` being a boolean). `parseConfig` and the types of the API are exported too.
 
 ### Without Node
 
@@ -258,11 +264,12 @@ Node.js, strict TypeScript (ESM), [@moxon/limiter](https://github.com/moxondev/l
 | --------------------- | --------------------------------------------------------------------------------------------- |
 | `npm run dev`         | Dev server, reloaded on change (tsx watch)                                                    |
 | `npm run build`       | Compile TypeScript to `dist/`                                                                 |
+| `npm run docs`        | Write `src/lib/guides.ts` from `docs/*.md`; the other scripts run it first                    |
 | `npm start`           | Production server (`dropr serve`, after `npm run build`) on the port of the config or `$PORT` |
 | `npm run check`       | Type checks (Node-free core included), ESLint, Prettier                                       |
 | `npm test`            | Route snapshots, config, router, core, HTTP rules, CLI, package                               |
 | `npm run test:update` | Record the snapshots again after an intended change                                           |
-| `npm run format`      | Prettier and ESLint fixes on `src/` and `test/`                                               |
+| `npm run format`      | Prettier and ESLint fixes on `src/`, `test/` and `scripts/`                                   |
 
 ## Structure
 
@@ -271,5 +278,6 @@ src/lib/        Node-free core: router, routes, packages, semver, checksums, HTT
 src/            Command line and Node adapter: bin, cli, serve, check, indexer, folder, stored, startup, app, scan, assets, config, disk, index
 src/manifest.ts Route texts of /manifest, also Node-free
 src/core.ts     Entry of the core alone, exported as dropr/core
+docs/           The docs of dropr in Markdown, turned into src/lib/guides.ts (not committed) by scripts/docs.ts
 test/           Snapshots on a generated tree, unit and HTTP tests, the ledger of decided changes of a release
 ```
