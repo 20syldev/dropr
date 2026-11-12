@@ -1,6 +1,14 @@
 import zlib from 'zlib';
 
-import { sha256 } from './server.mjs';
+import { sha256 } from './server.ts';
+
+/**
+ * An entry of an archive read by readArchive: a file with its size and SHA-256, a dir, or a link with its target.
+ */
+export type ArchiveEntry =
+    | { path: string; type: 'file'; size: number; sha256: string }
+    | { path: string; type: 'dir' }
+    | { path: string; type: 'link'; target: string };
 
 /**
  * Reads a NUL-terminated text field of a tar header.
@@ -10,7 +18,7 @@ import { sha256 } from './server.mjs';
  * @param length - Field width in bytes, the value ending at its first NUL byte if any
  * @returns The field value, empty when the field is blank
  */
-function field(header, start, length) {
+function field(header: Buffer, start: number, length: number): string {
     return header
         .subarray(start, start + length)
         .toString('utf8')
@@ -25,11 +33,11 @@ function field(header, start, length) {
  * @param archive - Gzipped tar bytes, throws if they are not valid gzip or hold an entry type not listed above
  * @returns Entries sorted by path: a file with its size and SHA-256, a dir, or a link with its target
  */
-export function readArchive(archive) {
+export function readArchive(archive: Uint8Array): ArchiveEntry[] {
     const tar = zlib.gunzipSync(archive);
-    const entries = [];
-    let longPath = null;
-    let longTarget = null;
+    const entries: ArchiveEntry[] = [];
+    let longPath: string | null = null;
+    let longTarget: string | null = null;
 
     for (let offset = 0; offset + 512 <= tar.length;) {
         const header = tar.subarray(offset, offset + 512);
@@ -68,8 +76,8 @@ export function readArchive(archive) {
  * @param stream - Stream of byte chunks
  * @returns The chunks joined; rejects with the error of the stream
  */
-export async function collect(stream) {
-    const chunks = [];
+export async function collect(stream: AsyncIterable<Uint8Array>): Promise<Buffer> {
+    const chunks: Uint8Array[] = [];
     for await (const chunk of stream) chunks.push(chunk);
 
     return Buffer.concat(chunks);

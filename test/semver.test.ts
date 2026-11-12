@@ -3,7 +3,7 @@ import { describe, test } from 'node:test';
 
 import { compareVersions, isRelease, isVersion } from '../dist/lib/semver.js';
 
-import { ACCEPTED, REFUSED } from './names.mjs';
+import { ACCEPTED, REFUSED } from './names.ts';
 
 describe('isVersion', () => {
     test('accepts X.Y.Z and X.Y.Z-tag as semver.org writes them', () => {

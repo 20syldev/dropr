@@ -1,6 +1,34 @@
 // Model of RFC 9110 sections 13 and 14 for a GET or HEAD of one file, written apart from src/lib/http.ts to check it
 
-const MONTHS = { Jan: 1, Feb: 2, Mar: 3, Apr: 4, May: 5, Jun: 6, Jul: 7, Aug: 8, Sep: 9, Oct: 10, Nov: 11, Dec: 12 };
+// The request that model() answers: the headers are lower-case, trimmed, and '' or undefined stands for absent
+export interface ModelRequest {
+    method: string;
+    size: number;
+    etag: string;
+    lm: number;
+    h: Record<string, string | undefined>;
+}
+
+// The answer of model(): the status and the [first, last] bytes of the body, null when it has none
+export interface ModelResult {
+    status: number;
+    range: [number, number] | null;
+}
+
+const MONTHS: Record<string, number | undefined> = {
+    Jan: 1,
+    Feb: 2,
+    Mar: 3,
+    Apr: 4,
+    May: 5,
+    Jun: 6,
+    Jul: 7,
+    Aug: 8,
+    Sep: 9,
+    Oct: 10,
+    Nov: 11,
+    Dec: 12,
+};
 const WEEKDAYS = new Set(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
 const LONG_WEEKDAYS = new Set(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']);
 
@@ -12,7 +40,7 @@ const LONG_WEEKDAYS = new Set(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Fr
  * @param d - Day of the month from 1, not checked against the month
  * @returns The number of days, negative before the epoch
  */
-function daysFromCivil(y, m, d) {
+function daysFromCivil(y: number, m: number, d: number): number {
     y -= m <= 2 ? 1 : 0;
     const era = Math.floor(y / 400);
     const yoe = y - era * 400;
@@ -27,7 +55,7 @@ function daysFromCivil(y, m, d) {
  * @param y - Full year of the Gregorian calendar
  * @returns True for a multiple of 4 that is not a multiple of 100, and for a multiple of 400
  */
-const isLeap = (y) => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+const isLeap = (y: number): boolean => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
 /**
  * Gives the number of days of a month.
  *
@@ -35,7 +63,8 @@ const isLeap = (y) => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
  * @param m - Month from 1 to 12
  * @returns The length of the month in days
  */
-const monthLength = (y, m) => [31, isLeap(y) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1];
+const monthLength = (y: number, m: number): number =>
+    [31, isLeap(y) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1];
 
 /**
  * Completes a two-digit RFC 850 year with the candidate that lies in the 50 years before and after the reference.
@@ -45,10 +74,12 @@ const monthLength = (y, m) => [31, isLeap(y) ? 29 : 28, 31, 30, 31, 30, 31, 31, 
  * @param ref - Time in milliseconds since the epoch whose year the window is centred on
  * @returns The full year
  */
-function fullYear(yy, ref) {
+function fullYear(yy: number, ref: number): number {
     const around = new Date(ref).getUTCFullYear();
     const century = around - (around % 100);
-    return [century - 100 + yy, century + yy, century + 100 + yy].find((y) => y > around - 50 && y <= around + 50);
+    return [century - 100 + yy, century + yy, century + 100 + yy].find(
+        (y) => y > around - 50 && y <= around + 50,
+    ) as number;
 }
 
 /**
@@ -59,9 +90,9 @@ function fullYear(yy, ref) {
  * @param ref - Time in milliseconds since the epoch that a two-digit year is read around
  * @returns Milliseconds since the epoch, or null when the text is no date or names a day the month does not have
  */
-export function httpDate(text, ref) {
-    let m;
-    let day, month, year, time;
+export function httpDate(text: string, ref: number): number | null {
+    let m: RegExpExecArray | null;
+    let day: number, month: number | undefined, year: number, time: string;
     if (
         (m = /^([A-Za-z]{3}), (\d{2}) ([A-Za-z]{3}) (\d{4}) (\d{2}:\d{2}:\d{2}) GMT$/.exec(text)) &&
         WEEKDAYS.has(m[1])
@@ -95,7 +126,7 @@ const LIST = new RegExp(`^[ \\t,]*(?:${ELEM}(?:[ \\t]*,[ \\t,]*${ELEM})*[ \\t]*(
  * @param list - Header value, where spaces and tabs around the tags and empty list elements are allowed
  * @returns Each tag with its weak flag and its quoted opaque part, or null when the value is not a list of entity tags
  */
-function tags(list) {
+function tags(list: string): { weak: boolean; opaque: string }[] | null {
     if (!LIST.test(list)) return null;
     return [...list.matchAll(/(W\/)?"[^"]*"/g)].map((m) => ({
         weak: m[1] !== undefined,
@@ -112,7 +143,7 @@ function tags(list) {
  * (another unit, a spec that cannot be read, a last position before the first), or 'unsatisfiable' when no spec
  * reaches a byte of the file
  */
-function requested(value, size) {
+function requested(value: string, size: number): Uint8Array | 'ignore' | 'unsatisfiable' {
     const m = /^[Bb][Yy][Tt][Ee][Ss]=(.*)$/.exec(value);
     if (!m) return 'ignore';
     const parts = m[1].split(',').map((p) => p.replace(/^[ \t]+/, '').replace(/[ \t]+$/, ''));
@@ -151,7 +182,8 @@ function requested(value, size) {
  * @param etag - Quoted strong tag of the file
  * @returns True for * or a listed tag that is not weak and equals the tag, false for a value that is not a list of tags
  */
-const ifMatchHolds = (v, etag) => v === '*' || (tags(v) ?? []).some((t) => !t.weak && t.opaque === etag);
+const ifMatchHolds = (v: string, etag: string): boolean =>
+    v === '*' || (tags(v) ?? []).some((t) => !t.weak && t.opaque === etag);
 
 /**
  * Tells whether an If-None-Match value matches a tag, by weak comparison.
@@ -161,7 +193,8 @@ const ifMatchHolds = (v, etag) => v === '*' || (tags(v) ?? []).some((t) => !t.we
  * @returns True for * or a listed tag, weak or not, whose opaque part equals the tag, false for a value that is not a
  * list of tags
  */
-const ifNoneMatchMatches = (v, etag) => v === '*' || (tags(v) ?? []).some((t) => t.opaque === etag);
+const ifNoneMatchMatches = (v: string, etag: string): boolean =>
+    v === '*' || (tags(v) ?? []).some((t) => t.opaque === etag);
 
 /**
  * Tells whether an If-Range value names the current representation.
@@ -171,7 +204,7 @@ const ifNoneMatchMatches = (v, etag) => v === '*' || (tags(v) ?? []).some((t) =>
  * @param lm - Last-Modified of the file in milliseconds since the epoch, which a date must equal to the second
  * @returns True when the tag is the same or the date is the Last-Modified, false for a weak tag and any other value
  */
-const ifRangeHolds = (v, etag, lm) => {
+const ifRangeHolds = (v: string, etag: string, lm: number): boolean => {
     if (/^(W\/)?"/.test(v)) return v === etag;
     const d = httpDate(v, lm);
     return d !== null && d === Math.floor(lm / 1000) * 1000;
@@ -185,10 +218,10 @@ const ifRangeHolds = (v, etag, lm) => {
  * @returns 'ignore' or 'unsatisfiable' as requested() says, [first, last] when the requested bytes form one run, or
  * 'many' when they form several runs
  */
-function rangeOutcome(value, size) {
+function rangeOutcome(value: string, size: number): 'ignore' | 'unsatisfiable' | 'many' | [number, number] {
     const bits = requested(value, size);
     if (bits === 'ignore' || bits === 'unsatisfiable') return bits;
-    const on = [];
+    const on: number[] = [];
     bits.forEach((b, i) => b && on.push(i));
     if (on.length === 0) return 'unsatisfiable';
     return on[on.length - 1] - on[0] + 1 === on.length ? [on[0], on[on.length - 1]] : 'many';
@@ -200,28 +233,28 @@ function rangeOutcome(value, size) {
  * @param req - method, size, etag (quoted strong), lm (ms), h (lower-case header map, values trimmed, '' = absent)
  * @returns { status, range } with range = [first, last] of the body or null
  */
-export function model({ method, size, etag, lm, h }) {
-    const get = (name) => (h[name] === undefined || h[name] === '' ? undefined : h[name]);
+export function model({ method, size, etag, lm, h }: ModelRequest): ModelResult {
+    const get = (name: string): string | undefined => (h[name] === undefined || h[name] === '' ? undefined : h[name]);
     const modified = Math.floor(lm / 1000) * 1000;
-    const whole = size > 0 ? [0, size - 1] : null;
+    const whole: [number, number] | null = size > 0 ? [0, size - 1] : null;
 
     if (get('if-match') !== undefined) {
-        if (!ifMatchHolds(get('if-match'), etag)) return { status: 412, range: null };
+        if (!ifMatchHolds(get('if-match') as string, etag)) return { status: 412, range: null };
     } else if (get('if-unmodified-since') !== undefined) {
-        const d = httpDate(get('if-unmodified-since'), lm);
+        const d = httpDate(get('if-unmodified-since') as string, lm);
         if (d !== null && modified > d) return { status: 412, range: null };
     }
 
     if (get('if-none-match') !== undefined) {
-        if (ifNoneMatchMatches(get('if-none-match'), etag)) return { status: 304, range: null };
+        if (ifNoneMatchMatches(get('if-none-match') as string, etag)) return { status: 304, range: null };
     } else if (get('if-modified-since') !== undefined) {
-        const d = httpDate(get('if-modified-since'), lm);
+        const d = httpDate(get('if-modified-since') as string, lm);
         if (d !== null && modified <= d) return { status: 304, range: null };
     }
 
     if (method === 'GET' && get('range') !== undefined) {
-        if (get('if-range') === undefined || ifRangeHolds(get('if-range'), etag, lm)) {
-            const outcome = rangeOutcome(get('range'), size);
+        if (get('if-range') === undefined || ifRangeHolds(get('if-range') as string, etag, lm)) {
+            const outcome = rangeOutcome(get('range') as string, size);
             if (outcome === 'unsatisfiable') return { status: 416, range: null };
             if (Array.isArray(outcome)) return { status: 206, range: outcome };
         }
@@ -239,7 +272,7 @@ const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Se
  * @param n - Non-negative integer
  * @returns The two-digit text, longer when n has more digits
  */
-const pad = (n) => String(n).padStart(2, '0');
+const pad = (n: number): string => String(n).padStart(2, '0');
 
 /**
  * Writes a time as an IMF-fixdate by hand, so that tests never rely on toUTCString for what they feed to the parser.
@@ -247,7 +280,7 @@ const pad = (n) => String(n).padStart(2, '0');
  * @param ms - Time in milliseconds since the epoch, a whole number of seconds
  * @returns The date as servers send it, such as Thu, 01 May 2025 00:00:00 GMT
  */
-export function imf(ms) {
+export function imf(ms: number): string {
     const d = new Date(ms);
     const date = `${pad(d.getUTCDate())} ${MONTH_NAMES[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 

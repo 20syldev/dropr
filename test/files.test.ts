@@ -5,11 +5,14 @@ import { after, before, describe, test } from 'node:test';
 import { join } from 'path';
 
 import { createReader } from '../dist/disk.js';
+import type { ByteRange, ReadFile } from '../dist/types/index.js';
 
-import { createFixture } from './fixture.mjs';
-import { model } from './model.mjs';
-import { eventually, memoryPort } from './port.mjs';
-import { config, request, startServer } from './server.mjs';
+import { createFixture } from './fixture.ts';
+import type { Fixture } from './fixture.ts';
+import { model } from './model.ts';
+import { eventually, memoryPort } from './port.ts';
+import { config, request, startServer } from './server.ts';
+import type { Reply, TestServer } from './server.ts';
 
 const FILE = '/npm/lib@1.2.0/index.js';
 const CONTENT = 'export default "1.2.0";\n';
@@ -21,7 +24,7 @@ const LAST_MODIFIED = Date.UTC(2025, 4, 1);
  * @param response - Response from request()
  * @returns The header names in alphabetical order, without date, connection, keep-alive and access-control-*
  */
-function names({ headers }) {
+function names({ headers }: Pick<Reply, 'headers'>): string[] {
     return Object.keys(headers)
         .filter((name) => !['date', 'connection', 'keep-alive'].includes(name))
         .filter((name) => !name.startsWith('access-control-'))
@@ -35,8 +38,8 @@ function names({ headers }) {
  * @param keys - Names to leave out
  * @returns A new object
  */
-function without(object, ...keys) {
-    return Object.fromEntries(Object.entries(object).filter(([key]) => !keys.includes(key)));
+function without<T extends object>(object: T, ...keys: string[]): T {
+    return Object.fromEntries(Object.entries(object).filter(([key]) => !keys.includes(key))) as T;
 }
 
 /**
@@ -47,25 +50,35 @@ function without(object, ...keys) {
  * @returns The response, with aborted true when the connection was reset after the headers, or { reset: true } when it
  * was reset before any header
  */
-async function outcome(port, path) {
+async function outcome(port: number, path: string): Promise<Reply | { reset: boolean; aborted: boolean }> {
     try {
         return await request(port, 'GET', path);
     } catch (error) {
-        if (error.code === 'ECONNRESET') return { reset: true, aborted: true };
+        if ((error as NodeJS.ErrnoException).code === 'ECONNRESET') return { reset: true, aborted: true };
 
         throw error;
     }
 }
 
+/**
+ * Reads the first argument of the last error the app logged.
+ *
+ * @param server - Server started by startServer
+ * @returns The arguments of the last logged error
+ */
+function lastError(server: TestServer): string[] {
+    return server.logs.errors.at(-1) as string[];
+}
+
 describe('files over HTTP', () => {
-    let fixture;
-    let server;
-    let etag;
+    let fixture: Fixture;
+    let server: TestServer;
+    let etag: string;
 
     before(async () => {
         fixture = createFixture();
         server = await startServer(fixture.packagesDir);
-        etag = (await request(server.port, 'GET', FILE)).headers.etag;
+        etag = (await request(server.port, 'GET', FILE)).headers.etag as string;
     });
 
     after(async () => {
@@ -73,7 +86,8 @@ describe('files over HTTP', () => {
         fixture?.remove();
     });
 
-    const send = (headers, method = 'GET', path = FILE) => request(server.port, method, path, headers);
+    const send = (headers: Record<string, string>, method = 'GET', path = FILE) =>
+        request(server.port, method, path, headers);
 
     test('a range is a 206 with the bytes, their length and the validators of the file', async () => {
         const response = await send({ range: 'bytes=0-5' });
@@ -112,7 +126,7 @@ describe('files over HTTP', () => {
                 continue;
             }
 
-            const [first, last] = named.range;
+            const [first, last] = named.range as [number, number];
             assert.equal(response.body.toString(), CONTENT.slice(first, last + 1), value);
             assert.equal(
                 response.headers['content-range'],
@@ -131,7 +145,7 @@ describe('files over HTTP', () => {
             ['bytes=23-23', 23, 23],
             ['bytes=0-5,3-8', 0, 8],
             ['BYTES=1-2', 1, 2],
-        ]) {
+        ] as const) {
             const response = await send({ range: value });
 
             assert.equal(response.status, 206, value);
@@ -157,7 +171,7 @@ describe('files over HTTP', () => {
             assert.equal(response.status, 416, value);
             assert.equal(response.headers['content-range'], 'bytes */24');
             assert.deepEqual(names(response), ['content-length', 'content-range', 'content-type']);
-            assert.deepEqual(JSON.parse(response.body), {
+            assert.deepEqual(JSON.parse(response.body.toString()), {
                 status: 416,
                 error: 'Range Not Satisfiable',
                 message: "Range not satisfiable for file 'index.js'.",
@@ -178,7 +192,7 @@ describe('files over HTTP', () => {
 
     test('every 304 has one shape: the validators and the cache lifetime, no body, no type, no length', async () => {
         const date = 'Thu, 01 May 2025 00:00:00 GMT';
-        const asks = [
+        const asks: Record<string, string>[] = [
             { 'if-none-match': etag },
             { 'if-none-match': `W/${etag}` },
             { 'if-none-match': `"other", ${etag}` },
@@ -203,7 +217,7 @@ describe('files over HTTP', () => {
 
         assert.equal(response.status, 412);
         assert.deepEqual(names(response), ['content-length', 'content-type']);
-        assert.equal(JSON.parse(response.body).message, "Precondition failed for file 'index.js'.");
+        assert.equal(JSON.parse(response.body.toString()).message, "Precondition failed for file 'index.js'.");
         assert.equal((await send({ 'if-match': `W/${etag}` })).status, 412);
         assert.equal((await send({ 'if-match': etag })).status, 200);
         assert.equal((await send({ 'if-unmodified-since': 'Wed, 30 Apr 2025 23:59:59 GMT' })).status, 412);
@@ -214,7 +228,7 @@ describe('files over HTTP', () => {
     });
 
     test('HEAD is the GET without its body: same status, same headers, and the length of the body', async () => {
-        const asks = [
+        const asks: [string, Record<string, string>][] = [
             [FILE, {}],
             [FILE, { range: 'bytes=0-5' }],
             [FILE, { range: 'bytes=99-' }],
@@ -270,7 +284,7 @@ describe('files over HTTP', () => {
             { 'if-match': '"x"' },
             { 'if-modified-since': 'Thu, 01 May 2025 00:00:00 GMT' },
             { range: 'bytes=0-5' },
-        ]) {
+        ] as Record<string, string>[]) {
             const response = await send(headers, 'GET', listing);
 
             assert.deepEqual([response.status, response.body], [200, plain.body], JSON.stringify(headers));
@@ -282,14 +296,14 @@ describe('files over HTTP', () => {
             (await send({ range: 'bytes=0-1' }, 'GET', '/npm/lib@1/index.js')).headers['cache-control'],
             'public, max-age=300',
         );
-        assert.match((await send({ range: 'bytes=0-1' })).headers['cache-control'], /immutable/);
+        assert.match((await send({ range: 'bytes=0-1' })).headers['cache-control'] as string, /immutable/);
     });
 });
 
 describe('a file that is not what the index says', () => {
-    let fixture;
-    let server;
-    const target = (fixture) => join(fixture.packagesDir, 'npm', 'lib', '1.0.0', 'package.json');
+    let fixture: Fixture;
+    let server: TestServer;
+    const target = (fixture: Fixture) => join(fixture.packagesDir, 'npm', 'lib', '1.0.0', 'package.json');
     const original = '{ "name": "lib", "version": "1.0.0" }\n';
 
     before(async () => {
@@ -309,11 +323,11 @@ describe('a file that is not what the index says', () => {
 
             assert.equal(response.status, 404);
             assert.equal(
-                JSON.parse(response.body).message,
+                JSON.parse(response.body.toString()).message,
                 "File 'package.json' does not exist in the 1.0.0 version of the 'lib' project.",
             );
             assert.deepEqual(names(response), ['content-length', 'content-type']);
-            assert.match(server.logs.errors.at(-1)[0], /^File error on npm\/lib\/1\.0\.0\/package\.json:/);
+            assert.match(lastError(server)[0], /^File error on npm\/lib\/1\.0\.0\/package\.json:/);
 
             // HEAD trusts the index and opens nothing
             assert.equal((await request(server.port, 'HEAD', '/npm/lib@1.0.0/package.json')).status, 200);
@@ -326,11 +340,11 @@ describe('a file that is not what the index says', () => {
         fs.unlinkSync(target(fixture));
         fs.mkdirSync(target(fixture));
         try {
-            for (const headers of [{}, { range: 'bytes=0-5' }]) {
+            for (const headers of [{}, { range: 'bytes=0-5' }] as Record<string, string>[]) {
                 const response = await request(server.port, 'GET', '/npm/lib@1.0.0/package.json', headers);
 
                 assert.equal(response.status, 404, JSON.stringify(headers));
-                assert.match(server.logs.errors.at(-1)[0], /^File error on npm\/lib\/1\.0\.0\/package\.json:/);
+                assert.match(lastError(server)[0], /^File error on npm\/lib\/1\.0\.0\/package\.json:/);
             }
         } finally {
             fs.rmdirSync(target(fixture));
@@ -374,7 +388,7 @@ describe('a file that is not what the index says', () => {
             const response = await request(server.port, 'GET', '/npm/lib@1.0.0?download');
 
             assert.equal(response.aborted, true);
-            assert.match(server.logs.errors.at(-1)[0], /^Archive error on npm\/lib\/1\.0\.0:/);
+            assert.match(lastError(server)[0], /^Archive error on npm\/lib\/1\.0\.0:/);
         } finally {
             fs.writeFileSync(target(fixture), original);
         }
@@ -382,9 +396,9 @@ describe('a file that is not what the index says', () => {
 });
 
 describe('a file that was empty at startup', () => {
-    let fixture;
-    let server;
-    let empty;
+    let fixture: Fixture;
+    let server: TestServer;
+    let empty: string;
 
     before(async () => {
         fixture = createFixture();
@@ -421,8 +435,8 @@ describe('a file that was empty at startup', () => {
 });
 
 describe('the read port of a file response', () => {
-    let fixture;
-    const servers = [];
+    let fixture: Fixture;
+    const servers: TestServer[] = [];
 
     before(() => {
         fixture = createFixture();
@@ -433,7 +447,7 @@ describe('the read port of a file response', () => {
         fixture?.remove();
     });
 
-    const serve = async (read) => {
+    const serve = async (read: ReadFile) => {
         const server = await startServer(fixture.packagesDir, {}, { read });
         servers.push(server);
 
@@ -441,12 +455,12 @@ describe('the read port of a file response', () => {
     };
 
     test('is asked for the range and the path, once, and never for HEAD, 304, 412 or 416', async () => {
-        const asked = [];
+        const asked: [string, ByteRange | undefined][] = [];
         const port = memoryPort(() => Buffer.from(CONTENT));
-        const read = async (path, range) => (asked.push([path, range]), port(path, range));
+        const read = async (path: string, range?: ByteRange) => (asked.push([path, range]), port(path, range));
         const server = await serve(read);
-        const get = (headers, method = 'GET') => request(server.port, method, FILE, headers);
-        const tag = (await get({})).headers.etag;
+        const get = (headers: Record<string, string>, method = 'GET') => request(server.port, method, FILE, headers);
+        const tag = (await get({})).headers.etag as string;
         asked.length = 0;
 
         await get({ range: 'bytes=2-4' });
@@ -495,20 +509,20 @@ describe('the read port of a file response', () => {
         assert.equal(response.headers['content-length'], '24');
         assert.equal(response.aborted, true);
         assert.ok(response.body.length <= 4);
-        assert.match(server.logs.errors.at(-1)[0], /^File error on npm\/lib\/1\.2\.0\/index\.js:/);
-        assert.match(server.logs.errors.at(-1)[1], /EIO/);
+        assert.match(lastError(server)[0], /^File error on npm\/lib\/1\.2\.0\/index\.js:/);
+        assert.match(lastError(server)[1], /EIO/);
     });
 
     test('that runs short or long cuts the connection, so the body never differs from its length', async () => {
         for (const [bytes, text] of [
             ['export default "1.2.0"', /before the expected 24/],
             ['export default "1.2.0";\n+', /more than the expected 24/],
-        ]) {
+        ] as const) {
             const server = await serve(async () => new Blob([bytes]).stream());
             const response = await outcome(server.port, FILE);
 
             assert.equal(response.aborted, true, bytes);
-            assert.match(server.logs.errors.at(-1)[1], text);
+            assert.match(lastError(server)[1], text);
         }
     });
 
@@ -529,9 +543,14 @@ describe('the read port of a file response', () => {
         const server = await serve(read);
         const scanned = server.logs.errors.length;
 
-        await new Promise((resolve) => {
+        await new Promise<void>((resolve) => {
             const req = http.request(
-                { host: '127.0.0.1', port: server.port, path: FILE, headers: { [config.clientIp.header]: '10.9.9.9' } },
+                {
+                    host: '127.0.0.1',
+                    port: server.port,
+                    path: FILE,
+                    headers: { [config.clientIp.header as string]: '10.9.9.9' },
+                },
                 (res) => {
                     res.once('data', () => (req.destroy(), resolve()));
                 },
@@ -547,10 +566,10 @@ describe('the read port of a file response', () => {
         assert.deepEqual(server.logs.errors.slice(scanned), []);
     });
 
-    const leaveWhileOpening = async (cancel) => {
+    const leaveWhileOpening = async (cancel: () => void | PromiseLike<void>) => {
         const log = { asked: false, cancelled: false };
-        let release;
-        const gate = new Promise((resolve) => (release = resolve));
+        let release!: () => void;
+        const gate = new Promise<void>((resolve) => (release = resolve));
         const read = async () => {
             log.asked = true;
             await gate;
@@ -568,7 +587,7 @@ describe('the read port of a file response', () => {
             host: '127.0.0.1',
             port: server.port,
             path: FILE,
-            headers: { [config.clientIp.header]: '10.9.9.8' },
+            headers: { [config.clientIp.header as string]: '10.9.9.8' },
         });
         req.on('error', () => undefined);
         req.end();
@@ -595,19 +614,19 @@ describe('the read port of a file response', () => {
     });
 
     test('lets an archive send its headers before the first file is read', async () => {
-        let release;
-        const gate = new Promise((resolve) => (release = resolve));
+        let release!: () => void;
+        const gate = new Promise<void>((resolve) => (release = resolve));
         const disk = createReader(fixture.packagesDir);
-        const server = await serve(async (path, range) => (await gate, disk(path, range)));
-        let timer;
-        const response = await new Promise((resolve, reject) => {
+        const server = await serve(async (path: string, range?: ByteRange) => (await gate, disk(path, range)));
+        let timer: NodeJS.Timeout | undefined;
+        const response = await new Promise<http.IncomingMessage>((resolve, reject) => {
             timer = setTimeout(() => reject(new Error('no header before the first file is read')), 3000);
             const req = http.get(
                 {
                     host: '127.0.0.1',
                     port: server.port,
                     path: '/npm/lib@1.0.0?download',
-                    headers: { [config.clientIp.header]: '10.9.9.7' },
+                    headers: { [config.clientIp.header as string]: '10.9.9.7' },
                 },
                 resolve,
             );

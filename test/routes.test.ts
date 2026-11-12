@@ -1,11 +1,14 @@
 import assert from 'assert/strict';
 import fs from 'fs';
 import { after, before, describe, test } from 'node:test';
+import type { TestContext } from 'node:test';
 import { join } from 'path';
 
-import { capture, caseName, CASES } from './cases.mjs';
-import { createFixture, isReadable } from './fixture.mjs';
-import { config, request, rootDir, startServer } from './server.mjs';
+import { capture, caseName, CASES } from './cases.ts';
+import { createFixture, isReadable } from './fixture.ts';
+import type { Fixture } from './fixture.ts';
+import { config, request, rootDir, startServer } from './server.ts';
+import type { TestServer } from './server.ts';
 
 const pkg = JSON.parse(fs.readFileSync(join(rootDir, 'package.json'), 'utf-8'));
 
@@ -16,15 +19,24 @@ const pkg = JSON.parse(fs.readFileSync(join(rootDir, 'package.json'), 'utf-8'));
  * @param t - Context of the test, failed rather than skipped when the CI variable is set to any non-empty value
  * @param reason - What stayed readable, given as the skip reason or in the failure message
  */
-function skipLocked(t, reason) {
+function skipLocked(t: TestContext, reason: string) {
     assert.ok(!process.env.CI, `${reason}, so CI cannot check the locked cases`);
 
     t.skip(reason);
 }
 
+/**
+ * The body of /health once decoded.
+ */
+interface Health {
+    version: string;
+    uptime: string;
+    memory: Record<string, string>;
+}
+
 describe('routes', () => {
-    let fixture;
-    let server;
+    let fixture: Fixture;
+    let server: TestServer;
 
     before(async () => {
         fixture = createFixture();
@@ -48,7 +60,7 @@ describe('routes', () => {
 
     test('GET /health', async (t) => {
         const response = capture(await request(server.port, 'GET', '/health'));
-        const { body } = response;
+        const body = response.body as Health;
 
         assert.equal(body.version, pkg.version);
         assert.match(body.uptime, /^\d+h \d+m \d+s$/);
@@ -64,12 +76,12 @@ describe('routes', () => {
     test('GET /manifest', async (t) => {
         const response = capture(await request(server.port, 'GET', '/manifest'));
 
-        assert.equal(response.body.version, pkg.version);
+        assert.equal((response.body as Health).version, pkg.version);
 
         t.assert.snapshot({
             ...response,
             headers: { ...response.headers, 'content-length': '<length>' },
-            body: { ...response.body, version: '<version>' },
+            body: { ...(response.body as Record<string, unknown>), version: '<version>' },
         });
     });
 
@@ -77,7 +89,11 @@ describe('routes', () => {
         const { headers } = await request(server.port, 'GET', '/npm/lib@1.2.0/index.js');
 
         t.assert.snapshot(
-            capture(await request(server.port, 'GET', '/npm/lib@1.2.0/index.js', { 'if-none-match': headers.etag })),
+            capture(
+                await request(server.port, 'GET', '/npm/lib@1.2.0/index.js', {
+                    'if-none-match': headers.etag as string,
+                }),
+            ),
         );
     });
 
@@ -114,7 +130,7 @@ describe('routes', () => {
     });
 
     test('GET /health (101st request of a client within 10 seconds)', async (t) => {
-        const headers = { [config.clientIp.header]: '192.0.2.1' };
+        const headers = { [config.clientIp.header as string]: '192.0.2.1' };
 
         for (let i = 0; i < 100; i++) assert.equal((await request(server.port, 'GET', '/health', headers)).status, 200);
 
@@ -125,19 +141,19 @@ describe('routes', () => {
         const empty = await startServer(join(fixture.root, 'missing'));
 
         try {
-            assert.match(empty.logs.errors[0][0], /^No packages folder at /);
+            assert.match(empty.logs.errors[0][0] as string, /^No packages folder at /);
 
             const root = await request(empty.port, 'GET', '/');
             assert.equal(root.status, 200);
-            assert.deepEqual(JSON.parse(root.body).packages, {});
+            assert.deepEqual(JSON.parse(root.body.toString('utf-8')).packages, {});
 
             const health = await request(empty.port, 'GET', '/health');
             assert.equal(health.status, 200);
-            assert.equal(JSON.parse(health.body).packages, 0);
+            assert.equal(JSON.parse(health.body.toString('utf-8')).packages, 0);
 
             const type = await request(empty.port, 'GET', '/npm');
             assert.equal(type.status, 404);
-            assert.equal(JSON.parse(type.body).message, "Package type 'npm' does not exist.");
+            assert.equal(JSON.parse(type.body.toString('utf-8')).message, "Package type 'npm' does not exist.");
         } finally {
             await empty.stop();
         }

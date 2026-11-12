@@ -10,17 +10,19 @@ import { loadIndex } from '../dist/lib/packages.js';
 import { route } from '../dist/lib/route.js';
 import { scan } from '../dist/scan.js';
 
-import { isReadable, SITE } from './fixture.mjs';
+import type { Index, IndexFile, JsonBody, Site } from '../dist/types/index.js';
 
-let root;
-let logged;
+import { isReadable, SITE } from './fixture.ts';
+
+let root: string;
+let logged: string[];
 
 /**
  * Writes files into the temporary tree, creating their folders.
  *
  * @param files - Contents by path under the root
  */
-function write(files) {
+function write(files: Record<string, string | Buffer>) {
     for (const [path, content] of Object.entries(files)) {
         fs.mkdirSync(join(root, path, '..'), { recursive: true });
         fs.writeFileSync(join(root, path), content);
@@ -34,7 +36,7 @@ function write(files) {
  * @param versions - Names of the versions that have a date
  * @returns The file as contents by path, to give to write()
  */
-function released(project, ...versions) {
+function released(project: string, ...versions: string[]) {
     const dates = Object.fromEntries(versions.map((version) => [version, { date: '2025-05-01' }]));
 
     return { [`npm/${project}/.versions.json`]: JSON.stringify(dates) };
@@ -45,7 +47,7 @@ function released(project, ...versions) {
  *
  * @param paths - Folders to create under the root
  */
-function folders(...paths) {
+function folders(...paths: string[]) {
     for (const path of paths) fs.mkdirSync(join(root, path), { recursive: true });
 }
 
@@ -54,7 +56,7 @@ function folders(...paths) {
  *
  * @param links - Targets by path of the link under the root, each target as written in the link
  */
-function link(links) {
+function link(links: Record<string, string>) {
     for (const [path, target] of Object.entries(links)) {
         fs.mkdirSync(join(root, path, '..'), { recursive: true });
         fs.symlinkSync(target, join(root, path));
@@ -66,7 +68,7 @@ function link(links) {
  *
  * @returns The index
  */
-function scanned() {
+function scanned(): Index {
     logged = [];
 
     return scan(root, { error: (message) => logged.push(String(message).replaceAll(root, '<root>')) });
@@ -79,10 +81,10 @@ function scanned() {
  * @param project - Project name under the npm type
  * @returns The version names in index order, with their dates as name=date
  */
-function versionsOf(index, project) {
-    const npm = index.types.find(({ name }) => name === 'npm');
+function versionsOf(index: Index, project: string): string[] {
+    const npm = index.types.find(({ name }) => name === 'npm')!;
 
-    return npm.projects.find(({ name }) => name === project).versions.map(({ name, date }) => `${name}=${date}`);
+    return npm.projects.find(({ name }) => name === project)!.versions.map(({ name, date }) => `${name}=${date}`);
 }
 
 /**
@@ -93,11 +95,11 @@ function versionsOf(index, project) {
  * @param headers - Request headers
  * @returns The response of route()
  */
-function get(index, target, headers = {}) {
+function get(index: Index, target: string, headers: Record<string, string> = {}) {
     return route(
         { method: 'GET', url: `http://localhost${target}`, headers: new Headers(headers) },
         loadIndex(index),
-        SITE,
+        SITE as unknown as Site,
     );
 }
 
@@ -107,7 +109,7 @@ beforeEach(() => {
 
 afterEach(() => {
     // Only what these tests write: a locked folder gets its mode back first, then the tree is emptied bottom up
-    const walk = (dir) => {
+    const walk = (dir: string): void => {
         fs.chmodSync(dir, 0o755);
         for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
             const path = join(dir, entry.name);
@@ -121,7 +123,7 @@ afterEach(() => {
 
 describe('release dates', () => {
     test('a real YYYY-MM-DD day up to today is kept, any other entry costs the version', () => {
-        const days = (n) => new Date(Date.now() + n * 86_400_000).toISOString().split('T')[0];
+        const days = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString().split('T')[0];
         const entries = {
             '1.0.0': { date: '2025-05-01', repo: 'a/b' },
             '1.1.0': { date: '2025-02-30' },
@@ -260,8 +262,8 @@ describe('versions', () => {
             '2.0.0-rc.10',
             '2.0.0',
         ]);
-        assert.equal(JSON.parse(get(index, '/npm/p@latest').body.text).version, '2.0.0');
-        assert.equal(JSON.parse(get(index, '/npm/p@1').body.text).version, '1.10.0');
+        assert.equal(JSON.parse((get(index, '/npm/p@latest').body as JsonBody).text).version, '2.0.0');
+        assert.equal(JSON.parse((get(index, '/npm/p@1').body as JsonBody).text).version, '1.10.0');
     });
 
     test('a pre-release is the latest only while the project has no release', () => {
@@ -273,7 +275,7 @@ describe('versions', () => {
 
         const index = scanned();
 
-        assert.equal(JSON.parse(get(index, '/npm/p@latest').body.text).version, '1.0.0-beta.2');
+        assert.equal(JSON.parse((get(index, '/npm/p@latest').body as JsonBody).text).version, '1.0.0-beta.2');
     });
 });
 
@@ -415,7 +417,7 @@ describe('folders of the tree', () => {
 
     test('every list is in UTF-8 byte order, whatever the platform lists, not in the order of a string compare', () => {
         const names = ['b', 'B', '\uff5e', '\u{1f600}', '\u00e9', 'a'];
-        const tree = { 'npm/p/.versions.json': '{ "1.0.0": { "date": "2025-05-01" } }' };
+        const tree: Record<string, string> = { 'npm/p/.versions.json': '{ "1.0.0": { "date": "2025-05-01" } }' };
         for (const name of names) tree[`npm/p/1.0.0/${name}`] = name;
         write(tree);
 
@@ -451,7 +453,7 @@ describe('unreadable content', () => {
         );
         assert.equal(logged[0].split(':')[0], 'Error reading <root>/npm/p/2.0.0/locked.bin');
         assert.ok(logged.includes('Skipping version <root>/npm/p/2.0.0: it could not be read whole.'));
-        assert.equal(JSON.parse(get(index, '/npm/p@latest').body.text).version, '1.0.0');
+        assert.equal(JSON.parse((get(index, '/npm/p@latest').body as JsonBody).text).version, '1.0.0');
         assert.equal(get(index, '/npm/p@2.0.0/a.txt').status, 404);
     });
 
@@ -488,11 +490,11 @@ describe('unreadable content', () => {
         const files = index.types[0].projects[0].versions[0].root.entries;
 
         assert.equal(
-            files.find(({ name }) => name === 'big.bin').sha256,
+            (files.find(({ name }) => name === 'big.bin') as IndexFile).sha256,
             crypto.createHash('sha256').update(bytes).digest('hex'),
         );
         assert.equal(
-            files.find(({ name }) => name === 'empty.bin').sha256,
+            (files.find(({ name }) => name === 'empty.bin') as IndexFile).sha256,
             crypto.createHash('sha256').update('').digest('hex'),
         );
     });

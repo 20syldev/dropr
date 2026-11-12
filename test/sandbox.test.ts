@@ -6,12 +6,13 @@ import { before, describe, test } from 'node:test';
 import { dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';
 
-import { rootDir } from './server.mjs';
-import { readArchive } from './tar.mjs';
+import type { SandboxAnswer, SandboxRejection, SandboxRun } from './sandbox.ts';
+import { rootDir } from './server.ts';
+import { readArchive } from './tar.ts';
 
 const ENTRIES = ['dist/core.js'];
 const LIMITER = fileURLToPath(import.meta.resolve('@moxon/limiter'));
-const HELPER = join(rootDir, 'test', 'sandbox.mjs');
+const HELPER = join(rootDir, 'test', 'sandbox.ts');
 
 /**
  * Reads the specifiers that a compiled module imports or re-exports, and whether it imports dynamically.
@@ -19,7 +20,7 @@ const HELPER = join(rootDir, 'test', 'sandbox.mjs');
  * @param file - Absolute path of a JavaScript module written by tsc, one import or export per statement
  * @returns The static specifiers in order of appearance, and dynamic true when the file holds an import() call
  */
-function importsOf(file) {
+function importsOf(file: string): { specifiers: string[]; dynamic: boolean } {
     const source = fs.readFileSync(file, 'utf-8');
     const statics = /^\s*(?:import|export)\b[^'";]*?\bfrom\s*['"]([^'"]+)['"]|^\s*import\s*['"]([^'"]+)['"]/gm;
     const specifiers = [...source.matchAll(statics)].map((match) => match[1] ?? match[2]);
@@ -33,14 +34,14 @@ function importsOf(file) {
  * @param entries - Paths of compiled modules, relative to the package root
  * @returns The files reached, the packages and Node modules named, and whether any file imports dynamically
  */
-function walk(entries) {
-    const files = new Set();
-    const external = new Set();
+function walk(entries: string[]): { files: Set<string>; external: string[]; dynamic: boolean } {
+    const files = new Set<string>();
+    const external = new Set<string>();
     const queue = entries.map((entry) => resolve(rootDir, entry));
     let dynamic = false;
 
     while (queue.length) {
-        const file = queue.pop();
+        const file = queue.pop()!;
         if (files.has(file)) continue;
 
         files.add(file);
@@ -63,7 +64,9 @@ function walk(entries) {
  * @param entries - Compiled modules the helper loads, relative to the package root
  * @returns What the helper printed, parsed; throws with its error output when it fails
  */
-function sandbox(mode, entries) {
+function sandbox(mode: 'run', entries: string[]): SandboxRun;
+function sandbox(mode: 'reject', entries: string[]): SandboxRejection;
+function sandbox(mode: string, entries: string[]): SandboxRun | SandboxRejection {
     const args = ['--experimental-vm-modules', '--no-warnings', HELPER, mode, ...entries];
     const { status, stdout, stderr } = spawnSync(process.execPath, args, { cwd: rootDir, encoding: 'utf-8' });
     assert.equal(status, 0, stderr);
@@ -77,11 +80,11 @@ function sandbox(mode, entries) {
  * @param answer - Answer with its body as base64
  * @returns The body as bytes
  */
-const bytesOf = ({ body }) => Buffer.from(body, 'base64');
+const bytesOf = ({ body }: SandboxAnswer): Buffer => Buffer.from(body, 'base64');
 
 describe('the core without Node', () => {
     const reach = walk(ENTRIES);
-    let result;
+    let result: SandboxRun;
 
     before(() => {
         result = sandbox('run', ENTRIES);
@@ -90,7 +93,7 @@ describe('the core without Node', () => {
     test('imports no Node module, no package but the limiter, and nothing dynamically', () => {
         assert.deepEqual(reach.external, []);
         assert.equal(reach.dynamic, false);
-        for (const name of builtinModules) assert.ok(!reach.external.includes(name), name);
+        for (const name of builtinModules) assert.ok(!(reach.external as string[]).includes(name), name);
     });
 
     test('reaches the router, the archive writer and the limiter, so the walk sees the whole graph', () => {
@@ -108,7 +111,7 @@ describe('the core without Node', () => {
     });
 
     test('answers the health check without memory, since nothing here can measure it', () => {
-        const health = JSON.parse(bytesOf(result.answers.health));
+        const health = JSON.parse(bytesOf(result.answers.health).toString());
 
         assert.equal(result.answers.health.status, 200);
         assert.deepEqual([health.status, health.version, health.memory], ['ok', '9.9.9', undefined]);
@@ -118,12 +121,12 @@ describe('the core without Node', () => {
         const { listing, search, manifest } = result.answers;
 
         assert.deepEqual([listing.status, search.status, manifest.status], [200, 200, 200]);
-        assert.ok(JSON.parse(bytesOf(listing)).packages.npm);
+        assert.ok(JSON.parse(bytesOf(listing).toString()).packages.npm);
         assert.deepEqual(
-            JSON.parse(bytesOf(search)).results.map(({ name }) => name),
+            JSON.parse(bytesOf(search).toString()).results.map(({ name }: { name: string }) => name),
             ['lib'],
         );
-        assert.equal(JSON.parse(bytesOf(manifest)).baseUrl, 'https://cdn.example.com');
+        assert.equal(JSON.parse(bytesOf(manifest).toString()).baseUrl, 'https://cdn.example.com');
     });
 
     test('serves a file whole, a range of it, a conditional hit and a HEAD', () => {
@@ -158,12 +161,12 @@ describe('the core without Node', () => {
         const { limited } = result.answers;
 
         assert.equal(limited.status, 429);
-        assert.match(limited.headers['retry-after'], /^\d+$/);
+        assert.match(limited.headers['retry-after']!, /^\d+$/);
     });
 
     test('is checked by a loader that does refuse a Node module', () => {
         const { error } = sandbox('reject', ['dist/index.js']);
 
-        assert.match(error, /imports [\w:/]+, a module of Node/);
+        assert.match(error!, /imports [\w:/]+, a module of Node/);
     });
 });

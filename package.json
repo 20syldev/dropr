@@ -28,9 +28,9 @@
         "build": "tsc",
         "prepack": "tsc",
         "prepublishOnly": "npm run check && npm test",
-        "test": "tsc && node --test \"test/*.test.mjs\"",
-        "test:update": "tsc && node --test --test-update-snapshots test/routes.test.mjs",
-        "check": "tsc --noEmit && tsc --noEmit -p tsconfig.core.json && eslint src/ test/ && prettier --check src/ test/",
+        "test": "tsc && node --test \"test/*.test.ts\"",
+        "test:update": "tsc && node --test --test-update-snapshots test/routes.test.ts",
+        "check": "tsc && tsc --noEmit -p tsconfig.core.json && tsc -p tsconfig.test.json && eslint src/ test/ && prettier --check src/ test/",
         "format": "prettier --write src/ test/ && eslint --fix src/ test/",
         "upgrade:minor": "npm upgrade",
         "upgrade:major": "npx npm-check-updates -u && npm install"

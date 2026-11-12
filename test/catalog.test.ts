@@ -2,8 +2,38 @@ import assert from 'assert/strict';
 import { describe, test } from 'node:test';
 
 import { countPackages, getProject, loadIndex, resolveVersion, searchPackages } from '../dist/lib/packages.js';
+import type {
+    CatalogDir,
+    CatalogProject,
+    Index,
+    IndexFile,
+    IndexNode,
+    IndexProject,
+    IndexVersion,
+} from '../dist/types/index.js';
 
 const SHA = 'a'.repeat(64);
+
+/**
+ * A node of the index as the fault cases edit it: every field optional and loosely typed.
+ */
+interface SpoilableEntry {
+    kind?: string;
+    name?: string;
+    size?: number;
+    exec?: boolean;
+    sha256?: string | null;
+    target?: string;
+    real?: string;
+}
+
+/**
+ * A version of the index as the fault cases edit it, with two entries at least.
+ */
+interface Spoilable {
+    date: string;
+    root: { name: string; entries: [SpoilableEntry, SpoilableEntry, ...SpoilableEntry[]] };
+}
 
 /**
  * Builds a file node.
@@ -12,7 +42,7 @@ const SHA = 'a'.repeat(64);
  * @param size - Size in bytes, 1 by default
  * @returns The file node
  */
-function file(name, size = 1) {
+function file(name: string, size = 1): IndexFile {
     return { kind: 'file', name, size, exec: false, sha256: SHA };
 }
 
@@ -23,7 +53,7 @@ function file(name, size = 1) {
  * @param entries - Nodes of the version folder in byte order, one file by default
  * @returns The version node
  */
-function version(name, entries = [file('a.txt')]) {
+function version(name: string, entries: IndexNode[] = [file('a.txt')]): IndexVersion {
     return { name, date: '2025-05-01', root: { kind: 'dir', name, entries } };
 }
 
@@ -33,7 +63,7 @@ function version(name, entries = [file('a.txt')]) {
  * @param projects - Projects as the index holds them, one project p with the version 1.0.0 by default
  * @returns The index
  */
-function indexOf(projects = [{ name: 'p', versions: [version('1.0.0')] }]) {
+function indexOf(projects: IndexProject[] = [{ name: 'p', versions: [version('1.0.0')] }]): Index {
     return { format: 2, types: [{ name: 'npm', projects }] };
 }
 
@@ -43,16 +73,16 @@ function indexOf(projects = [{ name: 'p', versions: [version('1.0.0')] }]) {
  * @param change - Called with the version 1.0.0 of p, to edit in place
  * @returns The index
  */
-function spoiled(change) {
+function spoiled(change: (v: Spoilable) => unknown): Index {
     const v = version('1.0.0', [file('a.txt'), file('b.txt')]);
-    change(v);
+    change(v as unknown as Spoilable);
 
     return indexOf([{ name: 'p', versions: [v] }]);
 }
 
 describe('loadIndex', () => {
     test('builds the types, the projects and the versions in index order, with the latest of each project', () => {
-        const projects = [
+        const projects: IndexProject[] = [
             { name: 'a', versions: [version('1.0.0'), version('1.2.0'), version('2.0.0-pre')] },
             { name: 'b', versions: [version('0.1.0-beta.2'), version('0.1.0-beta.10')] },
         ];
@@ -63,19 +93,23 @@ describe('loadIndex', () => {
                 { name: 'npm', projects },
             ],
         });
-        const a = getProject(catalog, 'npm', 'a');
+        const a = getProject(catalog, 'npm', 'a') as CatalogProject;
 
         assert.deepEqual([...catalog.types.keys()], ['bash', 'npm']);
         assert.deepEqual([...a.versions.keys()], ['1.0.0', '1.2.0', '2.0.0-pre']);
         assert.equal(a.latest.name, '1.2.0', 'the newest release wins over a newer pre-release');
-        assert.equal(getProject(catalog, 'npm', 'b').latest.name, '0.1.0-beta.10', 'a project of pre-releases');
+        assert.equal(
+            (getProject(catalog, 'npm', 'b') as CatalogProject).latest.name,
+            '0.1.0-beta.10',
+            'a project of pre-releases',
+        );
         assert.equal(getProject(catalog, 'npm', 'nope'), undefined);
         assert.equal(getProject(catalog, 'nope', 'a'), undefined);
         assert.equal(countPackages(catalog), 4);
     });
 
     test('derives the size of each folder, a link to a file counting as its target and a link to a folder as nothing', () => {
-        const root = [
+        const root: IndexNode[] = [
             { kind: 'link', name: 'alias', target: 'dist/a.js', real: 'dist/a.js' },
             { kind: 'link', name: 'dangling', target: 'missing' },
             {
@@ -87,16 +121,16 @@ describe('loadIndex', () => {
             file('index.js', 3),
         ];
         const catalog = loadIndex(indexOf([{ name: 'p', versions: [version('1.0.0', root)] }]));
-        const { nodes } = getProject(catalog, 'npm', 'p').latest;
+        const { nodes } = (getProject(catalog, 'npm', 'p') as CatalogProject).latest;
 
-        assert.equal(nodes.get('dist').size, 12);
-        assert.equal(nodes.get('').size, 5 + 12 + 3);
-        assert.equal(nodes.get('').kind, 'dir');
-        assert.equal(nodes.get('dist/up').kind, 'link');
+        assert.equal((nodes.get('dist') as CatalogDir).size, 12);
+        assert.equal((nodes.get('') as CatalogDir).size, 5 + 12 + 3);
+        assert.equal(nodes.get('')?.kind, 'dir');
+        assert.equal(nodes.get('dist/up')?.kind, 'link');
     });
 
     test('derives the release day in milliseconds and keeps the date as the index writes it', () => {
-        const v = getProject(loadIndex(indexOf()), 'npm', 'p').latest;
+        const v = (getProject(loadIndex(indexOf()), 'npm', 'p') as CatalogProject).latest;
 
         assert.equal(v.date, '2025-05-01');
         assert.equal(v.released, Date.UTC(2025, 4, 1));
@@ -107,7 +141,7 @@ describe('loadIndex', () => {
         const deprecated = { date: '2026-10-17', message: 'Renamed.', successor: '/npm/q' };
         const catalog = loadIndex(indexOf([{ name: 'p', deprecated, versions: [version('1.0.0')] }]));
 
-        assert.deepEqual(getProject(catalog, 'npm', 'p').deprecated, deprecated);
+        assert.deepEqual(getProject(catalog, 'npm', 'p')?.deprecated, deprecated);
     });
 
     test('loads an index that went through JSON, an empty index included', () => {
@@ -118,13 +152,13 @@ describe('loadIndex', () => {
     });
 
     test('refuses another format, and what is no index', () => {
-        for (const bad of [{ format: 1, types: [] }, { format: '2', types: [] }, {}, null]) {
-            assert.throws(() => loadIndex(bad), /Unsupported packages index format/, JSON.stringify(bad));
+        for (const bad of [{ format: 1, types: [] }, { format: '2', types: [] }, {}, null] as unknown[]) {
+            assert.throws(() => loadIndex(bad as Index), /Unsupported packages index format/, JSON.stringify(bad));
         }
     });
 
     test('refuses what the core relies on, naming the place of the fault', () => {
-        const faults = [
+        const faults: [Index, RegExp][] = [
             [indexOf([{ name: 'list', versions: [version('1.0.0')] }]), /npm holds the name "list"/],
             [indexOf([{ name: 'a@b', versions: [version('1.0.0')] }]), /npm holds the name "a@b"/],
             [indexOf([{ name: '.hidden', versions: [version('1.0.0')] }]), /npm holds the name "\.hidden"/],
@@ -215,8 +249,8 @@ describe('resolveVersion', () => {
         ),
         'npm',
         'p',
-    );
-    const pick = (pattern) => resolveVersion(pattern, project)?.name;
+    ) as CatalogProject;
+    const pick = (pattern: string) => resolveVersion(pattern, project)?.name;
 
     test('resolves a leading part to the newest version that starts with it, a release before a pre-release', () => {
         assert.equal(pick('1'), '1.10.0');

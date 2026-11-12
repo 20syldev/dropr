@@ -10,8 +10,18 @@ import { archiveEntries, archiveStream } from '../dist/lib/archive.js';
 import { loadIndex } from '../dist/lib/packages.js';
 import { exact, watch } from '../dist/lib/stream.js';
 
-import { chunked, eventually, memoryPort } from './port.mjs';
-import { collect, readArchive } from './tar.mjs';
+import type { ByteRange, Index, IndexDir, IndexFile, IndexNode, TarEntry } from '../dist/types/index.js';
+
+import { chunked, eventually, memoryPort } from './port.ts';
+import { collect, readArchive } from './tar.ts';
+
+/**
+ * What a recorded stream tells about its end: the chunks pulled so far and whether it was cancelled.
+ */
+interface StreamLog {
+    pulled: number;
+    cancelled: boolean;
+}
 
 /**
  * Builds a byte stream that records how it ends.
@@ -19,8 +29,8 @@ import { collect, readArchive } from './tar.mjs';
  * @param chunks - Chunks to enqueue, one per pull; an Error is thrown when its turn comes
  * @returns The stream and its log: how many chunks were pulled and whether it was cancelled
  */
-function recorded(chunks) {
-    const log = { pulled: 0, cancelled: false };
+function recorded(chunks: (number[] | Error)[]): { stream: ReadableStream<Uint8Array<ArrayBuffer>>; log: StreamLog } {
+    const log: StreamLog = { pulled: 0, cancelled: false };
     const stream = new ReadableStream(
         {
             pull(controller) {
@@ -107,7 +117,7 @@ describe('exact', () => {
 
 describe('watch', () => {
     test('passes the bytes of the source on, and reports nothing when it ends', async () => {
-        const reported = [];
+        const reported: Error[] = [];
         const { stream } = recorded([[1, 2], [3]]);
 
         assert.deepEqual([...(await collect(watch(stream, (error) => reported.push(error))))], [1, 2, 3]);
@@ -115,7 +125,7 @@ describe('watch', () => {
     });
 
     test('reports the error of the source once, and fails with the same error', async () => {
-        const reported = [];
+        const reported: Error[] = [];
         const failure = new Error('disk');
         const { stream } = recorded([[1], failure]);
 
@@ -124,7 +134,7 @@ describe('watch', () => {
     });
 
     test('reports the error of a stream that exact refuses', async () => {
-        const reported = [];
+        const reported: Error[] = [];
 
         await assert.rejects(collect(watch(exact(chunked(Buffer.from('abc')), 5), (error) => reported.push(error))));
         assert.equal(reported.length, 1);
@@ -132,8 +142,8 @@ describe('watch', () => {
     });
 
     test('cancels the source with the reason when the result is cancelled, and reports nothing', async () => {
-        const reported = [];
-        const reasons = [];
+        const reported: Error[] = [];
+        const reasons: unknown[] = [];
         const source = new ReadableStream(
             {
                 pull: (controller) => controller.enqueue(new Uint8Array(1)),
@@ -151,14 +161,14 @@ describe('watch', () => {
     });
 
     test('reports nothing for a read that was pending when the result was cancelled', async () => {
-        const reported = [];
-        let release;
+        const reported: Error[] = [];
+        let release!: () => void;
         let started = false;
         const source = new ReadableStream(
             {
                 pull: async (controller) => {
                     started = true;
-                    await new Promise((resolve) => (release = resolve));
+                    await new Promise<void>((resolve) => (release = resolve));
                     controller.enqueue(new Uint8Array(1));
                 },
             },
@@ -188,15 +198,21 @@ describe('watch', () => {
 });
 
 describe('archiveStream through a read port', () => {
-    const file = (name, size) => ({ kind: 'file', name, size, exec: false, sha256: '0'.repeat(64) });
-    const folder = (name, entries) => ({ kind: 'dir', name, entries });
-    const content = (path) => Buffer.from(`${path}:`.repeat(40)).subarray(0, 100 + (path.length % 7));
+    const file = (name: string, size: number): IndexFile => ({
+        kind: 'file',
+        name,
+        size,
+        exec: false,
+        sha256: '0'.repeat(64),
+    });
+    const folder = (name: string, entries: IndexNode[]): IndexDir => ({ kind: 'dir', name, entries });
+    const content = (path: string) => Buffer.from(`${path}:`.repeat(40)).subarray(0, 100 + (path.length % 7));
     const tree = [
         file('b.bin', content('b.bin').length),
         folder('d', [file('a.txt', content('d/a.txt').length)]),
         file('empty', 0),
     ];
-    const index = {
+    const index: Index = {
         format: 2,
         types: [
             {
@@ -207,8 +223,9 @@ describe('archiveStream through a read port', () => {
             },
         ],
     };
-    const entries = archiveEntries(loadIndex(index).types.get('npm').projects.get('p').versions.get('1.0.0'));
-    const bytesOf = (source) =>
+    const entries = archiveEntries(loadIndex(index).types.get('npm')!.projects.get('p')!.versions.get('1.0.0')!);
+    const first = entries[0] as TarEntry;
+    const bytesOf = (source: string) =>
         source === 'npm/p/1.0.0/empty' ? Buffer.alloc(0) : content(source.slice('npm/p/1.0.0/'.length));
 
     test('gives the same bytes whatever the chunks of the port, and the entries read back', async () => {
@@ -234,8 +251,11 @@ describe('archiveStream through a read port', () => {
     });
 
     test('opens every file, an empty one included, with no range', async () => {
-        const asked = [];
-        const spy = async (path, range) => (asked.push([path, range]), memoryPort(bytesOf)(path, range));
+        const asked: [string, ByteRange | undefined][] = [];
+        const spy = async (path: string, range?: ByteRange) => (
+            asked.push([path, range]),
+            memoryPort(bytesOf)(path, range)
+        );
         await collect(archiveStream(entries, spy));
 
         assert.deepEqual(
@@ -247,19 +267,19 @@ describe('archiveStream through a read port', () => {
 
     test('never stalls on empty files or files that fill whole blocks, whatever the pace of the reader', async () => {
         const sizes = [0, 512, 0, 1024, 513, 0, 10_240, 511, 0, 0];
-        const many = Array.from({ length: 30 }, (_, at) => ({
-            ...entries[0],
+        const many = Array.from({ length: 30 }, (_, at): TarEntry => ({
+            ...first,
             kind: 'file',
             path: `1.0.0/f${at}`,
-            size: sizes[at % sizes.length],
+            size: sizes[at % sizes.length]!,
             source: `f${at}`,
         }));
         const sizeOf = new Map(many.map((entry) => [entry.source, entry.size]));
         const reader = archiveStream(
             many,
-            memoryPort((source) => Buffer.alloc(sizeOf.get(source), 1), { size: 100 }),
+            memoryPort((source) => Buffer.alloc(sizeOf.get(source)!, 1), { size: 100 }),
         ).getReader();
-        const chunks = [];
+        const chunks: Uint8Array[] = [];
         const drained = (async () => {
             for (;;) {
                 const { done, value } = await reader.read();
@@ -269,8 +289,8 @@ describe('archiveStream through a read port', () => {
                 await new Promise((resolve) => setTimeout(resolve, 1));
             }
         })();
-        let timer;
-        const patience = new Promise((resolve) => (timer = setTimeout(() => resolve(false), 5000)));
+        let timer: NodeJS.Timeout | undefined;
+        const patience = new Promise<boolean>((resolve) => (timer = setTimeout(() => resolve(false), 5000)));
         const finished = await Promise.race([drained, patience]);
         clearTimeout(timer);
 
@@ -285,7 +305,7 @@ describe('archiveStream through a read port', () => {
 
     test('errors when a port fails to open, fails midway, falls short or runs long', async () => {
         const open = () => Promise.reject(new Error('EACCES: permission denied'));
-        const midway = async (path) =>
+        const midway = async (path: string) =>
             recorded([[...bytesOf(path).subarray(0, 10)], new Error('EIO: read failed')]).stream;
         const short = memoryPort((path) => bytesOf(path).subarray(1));
         const long = memoryPort((path) => Buffer.concat([bytesOf(path), Buffer.from('+')]));
@@ -297,7 +317,7 @@ describe('archiveStream through a read port', () => {
     });
 
     test('holds one chunk of a file at a time: a stalled reader leaves the port nearly unread', async () => {
-        const big = { ...entries[0], kind: 'file', path: 'big', size: 10_000 * 65_536, source: 'big' };
+        const big: TarEntry = { ...first, kind: 'file', path: 'big', size: 10_000 * 65_536, source: 'big' };
         // Random bytes, which gzip cannot shrink: zeros would let the compressor swallow megabytes before it emits one chunk
         const noise = crypto.randomBytes(65_536);
         let pulled = 0;
@@ -322,33 +342,33 @@ describe('archiveStream through a read port', () => {
     });
 
     test('cancelling the archive cancels the file being read', async () => {
-        const open = [];
+        const open: StreamLog[] = [];
         const port = async () => {
             const { stream, log } = recorded(Array.from({ length: 1000 }, () => new Array(1000).fill(1)));
             open.push(log);
 
             return stream;
         };
-        const big = { ...entries[0], kind: 'file', path: 'big', size: 1_000_000, source: 'big' };
+        const big: TarEntry = { ...first, kind: 'file', path: 'big', size: 1_000_000, source: 'big' };
         const reader = archiveStream([big], port).getReader();
         await reader.read();
         await reader.cancel();
 
         assert.equal(open.length, 1);
-        assert.ok(await eventually(() => open[0].cancelled), 'the file stream was not cancelled');
+        assert.ok(await eventually(() => open[0]!.cancelled), 'the file stream was not cancelled');
     });
 
     test('cancelling the archive while a file is being opened cancels that file once it is open', async () => {
         const log = { asked: false, cancelled: false };
-        let release;
-        const gate = new Promise((resolve) => (release = resolve));
+        let release!: () => void;
+        const gate = new Promise<void>((resolve) => (release = resolve));
         const port = async () => {
             log.asked = true;
             await gate;
 
             return new ReadableStream({ cancel: () => void (log.cancelled = true) });
         };
-        const one = { ...entries[0], kind: 'file', path: 'one', size: 4, source: 'one' };
+        const one: TarEntry = { ...first, kind: 'file', path: 'one', size: 4, source: 'one' };
         const reader = archiveStream([one], port).getReader();
         reader.read().catch(() => undefined);
 
@@ -362,7 +382,7 @@ describe('archiveStream through a read port', () => {
     });
 
     test('streams a file of more than 2 GiB a chunk at a time', async () => {
-        const big = { ...entries[0], kind: 'file', path: 'big', size: 3 * 1024 ** 3, source: 'big' };
+        const big: TarEntry = { ...first, kind: 'file', path: 'big', size: 3 * 1024 ** 3, source: 'big' };
         // Random bytes, which gzip cannot shrink, so that it emits as the file comes
         const noise = crypto.randomBytes(65_536);
         let pulled = 0;
@@ -377,32 +397,32 @@ describe('archiveStream through a read port', () => {
                 { highWaterMark: 0 },
             );
         const reader = archiveStream([big], port).getReader();
-        for (let i = 0; i < 3; i++) assert.ok((await reader.read()).value.length > 0);
+        for (let i = 0; i < 3; i++) assert.ok((await reader.read()).value!.length > 0);
         await reader.cancel();
 
         assert.ok(pulled >= 1 && pulled < 50, `${pulled} chunks pulled`);
     });
 
     test('cancels the file that runs long', async () => {
-        const open = [];
+        const open: StreamLog[] = [];
         const port = async () => {
             const { stream, log } = recorded([[1, 2, 3, 4, 5, 6, 7, 8, 9]]);
             open.push(log);
 
             return stream;
         };
-        const short = { ...entries[0], kind: 'file', path: 'short', size: 4, source: 'short' };
+        const short: TarEntry = { ...first, kind: 'file', path: 'short', size: 4, source: 'short' };
 
         await assert.rejects(collect(archiveStream([short], port)), /more than the expected 4 bytes/);
         assert.equal(open.length, 1);
-        assert.equal(open[0].cancelled, true);
+        assert.equal(open[0]!.cancelled, true);
     });
 });
 
 describe('createReader on a folder of files', () => {
     const folder = fs.mkdtempSync(join(os.tmpdir(), 'dropr-disk-'));
-    const created = [];
-    const write = (name, data) => {
+    const created: string[] = [];
+    const write = (name: string, data: Uint8Array) => {
         fs.writeFileSync(join(folder, name), data);
         created.push(join(folder, name));
     };
@@ -467,7 +487,7 @@ describe('createReader on a folder of files', () => {
         await reader.read();
         fs.truncateSync(join(folder, 'cut'), 70_000);
 
-        assert.equal((await reader.read()).value.length, 70_000 - 65_536, 'a short read delivers what it read');
+        assert.equal((await reader.read()).value!.length, 70_000 - 65_536, 'a short read delivers what it read');
         await assert.rejects(async () => {
             for (;;) if ((await reader.read()).done) return;
         }, /ended at byte 70000/);

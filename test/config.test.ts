@@ -8,12 +8,14 @@ import { loadConfig } from '../dist/config.js';
 import { parseConfig } from '../dist/lib/config.js';
 import { buildManifest } from '../dist/manifest.js';
 
-import { config } from './server.mjs';
+import type { Manifest, ManifestConfig, ManifestRoute } from '../dist/types/index.js';
+
+import { config } from './server.ts';
 
 const MINIMAL = { manifest: { baseUrl: 'https://cdn.example.com' } };
 
 // Configs that parseConfig refuses, each with the key its message must name
-const INVALID = [
+const INVALID: [string, unknown, string][] = [
     ['the file', [], 'the file'],
     ['name', { ...MINIMAL, name: '' }, 'name'],
     ['port', { ...MINIMAL, port: 1.5 }, 'port'],
@@ -93,7 +95,7 @@ describe('parseConfig', () => {
     });
 
     test('the rate limit is read key by key, a null global cap leaving the global cap out', () => {
-        const limit = (rateLimit) => parseConfig({ ...MINIMAL, rateLimit }).rateLimit;
+        const limit = (rateLimit: unknown) => parseConfig({ ...MINIMAL, rateLimit }).rateLimit;
 
         assert.deepEqual(limit({ client: 5 }), { window: 10, client: 5, global: 1000 });
         assert.deepEqual(limit({ window: 60, client: 1000, global: 50_000 }), {
@@ -122,15 +124,16 @@ describe('parseConfig', () => {
         test(`refuses ${label}`, () => {
             assert.throws(
                 () => parseConfig(input),
-                (error) => error.message.startsWith('Invalid config: ') && error.message.includes(key),
+                (error: Error) => error.message.startsWith('Invalid config: ') && error.message.includes(key),
             );
         });
     }
 });
 
 describe('buildManifest', () => {
-    const build = (manifest = MINIMAL.manifest) => buildManifest(parseConfig({ manifest }).manifest, 'dropr', '1.0.0');
-    const find = (manifest, id) => manifest.routes.find((route) => route.id === id);
+    const build = (manifest: Partial<ManifestConfig> = MINIMAL.manifest) =>
+        buildManifest(parseConfig({ manifest }).manifest, 'dropr', '1.0.0');
+    const find = (manifest: Manifest, id: string) => manifest.routes.find((route) => route.id === id) as ManifestRoute;
 
     test('the defaults are English, in reading order, and carry the placeholder names of the paths', () => {
         const manifest = build();

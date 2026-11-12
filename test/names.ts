@@ -1,4 +1,4 @@
-// Names that the server indexes and names that it leaves out, the table of the semver, fetch.sh and versions.mjs tests
+// Names that the server indexes and names that it leaves out, the table of the semver tests
 export const ACCEPTED = [
     '0.0.0',
     '1.0.0',

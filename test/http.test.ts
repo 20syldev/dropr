@@ -2,8 +2,15 @@ import assert from 'assert/strict';
 import { describe, test } from 'node:test';
 
 import { conditionsOf, decide, parseHttpDate } from '../dist/lib/http.js';
+import type { ByteRange, Conditions, Decision } from '../dist/types/index.js';
 
-import { httpDate, imf, model } from './model.mjs';
+import { httpDate, imf, model } from './model.ts';
+import type { ModelResult } from './model.ts';
+
+/**
+ * Request headers by lower case name.
+ */
+type HeaderMap = Record<string, string>;
 
 // Release day of the files below, 00:00:00 GMT
 const LAST_MODIFIED = Date.UTC(2025, 4, 1);
@@ -16,8 +23,8 @@ const TAG = `"${'ab'.repeat(32)}"`;
  * @param headers - Lower case request headers
  * @returns The conditions, an empty value counting as absent as conditionsOf does
  */
-function conditions(method, headers = {}) {
-    const read = (name) => headers[name] || null;
+function conditions(method: string, headers: HeaderMap = {}): Conditions {
+    const read = (name: string) => headers[name] || null;
 
     return {
         method,
@@ -38,7 +45,7 @@ function conditions(method, headers = {}) {
  * @param method - GET by default
  * @returns The decision of decide()
  */
-function decision(headers, size = 24, method = 'GET') {
+function decision(headers: HeaderMap, size = 24, method = 'GET'): Decision {
     return decide(conditions(method, headers), { etag: TAG, lastModified: LAST_MODIFIED, size });
 }
 
@@ -48,7 +55,7 @@ function decision(headers, size = 24, method = 'GET') {
  * @param entry - Decision of decide()
  * @returns The status and the first and last byte of the body, null for no body
  */
-function summary({ status, range }) {
+function summary({ status, range }: Decision): ModelResult {
     return { status, range: range ? [range.start, range.end] : null };
 }
 
@@ -60,12 +67,12 @@ function summary({ status, range }) {
  * @param method - GET or HEAD
  * @returns The status and body range of the model
  */
-function expected(headers, size, method) {
+function expected(headers: HeaderMap, size: number, method: string): ModelResult {
     return model({ method, size, etag: TAG, lm: LAST_MODIFIED, h: headers });
 }
 
 describe('parseHttpDate', () => {
-    const read = (text, reference = LAST_MODIFIED) => parseHttpDate(text, reference);
+    const read = (text: string, reference = LAST_MODIFIED) => parseHttpDate(text, reference);
 
     test('reads the three formats of RFC 9110 as UTC', () => {
         const day = Date.UTC(1994, 10, 6, 8, 49, 37);
@@ -99,8 +106,8 @@ describe('parseHttpDate', () => {
     });
 
     test('reads a two-digit year in the 50 years around the reference, as RFC 9110 5.6.7 asks without a clock', () => {
-        const may = (yy, reference) => read(`Thursday, 01-May-${yy} 00:00:00 GMT`, reference);
-        const years = (yy, reference) => new Date(may(yy, reference)).getUTCFullYear();
+        const may = (yy: string, reference?: number) => read(`Thursday, 01-May-${yy} 00:00:00 GMT`, reference);
+        const years = (yy: string, reference?: number) => new Date(may(yy, reference) as number).getUTCFullYear();
 
         assert.equal(may('25'), Date.UTC(2025, 4, 1));
         assert.equal(may('94'), Date.UTC(1994, 4, 1));
@@ -144,7 +151,11 @@ describe('parseHttpDate', () => {
             const first = new Date(0);
             first.setUTCFullYear(year, 0, 1);
 
-            assert.equal(read(`Mon, 01 Jan ${String(year).padStart(4, '0')} 00:00:00 GMT`), first.getTime(), year);
+            assert.equal(
+                read(`Mon, 01 Jan ${String(year).padStart(4, '0')} 00:00:00 GMT`),
+                first.getTime(),
+                String(year),
+            );
         }
     });
 
@@ -240,7 +251,7 @@ describe('decide: RFC 9110 section 13.2.2', () => {
 });
 
 describe('decide: ranges of RFC 9110 section 14', () => {
-    const range = (value, size = 24, extra = {}) => decision({ range: value, ...extra }, size);
+    const range = (value: string, size = 24, extra: HeaderMap = {}) => decision({ range: value, ...extra }, size);
 
     test('a byte range is a 206 with its Content-Range and Content-Length', () => {
         const { status, headers, range: body } = range('bytes=2-5');
@@ -380,7 +391,7 @@ describe('decide: ranges of RFC 9110 section 14', () => {
 
 describe('decide: HEAD', () => {
     test('answers as GET would without Range and If-Range, conditions included', () => {
-        for (const headers of [
+        const requests: HeaderMap[] = [
             {},
             { range: 'bytes=0-5' },
             { range: 'bytes=99-' },
@@ -388,7 +399,8 @@ describe('decide: HEAD', () => {
             { 'if-none-match': TAG },
             { 'if-match': '"other"' },
             { 'if-modified-since': imf(LAST_MODIFIED) },
-        ]) {
+        ];
+        for (const headers of requests) {
             const plain = Object.fromEntries(
                 Object.entries(headers).filter(([name]) => !['range', 'if-range'].includes(name)),
             );
@@ -467,7 +479,7 @@ describe('decide against the independent model of RFC 9110', () => {
     ];
 
     test('agree on every single header and every pair of headers, for four sizes and both methods', () => {
-        const fields = {
+        const fields: Record<string, string[]> = {
             'if-match': TAGS,
             'if-none-match': TAGS,
             'if-range': [...TAGS, ...DATES],
@@ -480,7 +492,7 @@ describe('decide against the independent model of RFC 9110', () => {
 
         for (const size of [0, 1, 24, 1000]) {
             for (const method of ['GET', 'HEAD']) {
-                const requests = [{}];
+                const requests: HeaderMap[] = [{}];
                 for (const [i, a] of names.entries()) {
                     for (const x of fields[a]) {
                         requests.push({ [a]: x });
@@ -558,7 +570,7 @@ describe('decide against the independent model of RFC 9110', () => {
             );
 
         for (let i = 0; i < 30_000; i++) {
-            const headers = {};
+            const headers: HeaderMap = {};
             for (const name of [
                 'if-match',
                 'if-none-match',
@@ -596,8 +608,10 @@ describe('decide: properties', () => {
     test('a 206 holds in the file, its Content-Length is its length and its Content-Range names it', () => {
         for (const size of [1, 2, 24, 1000]) {
             for (const value of RANGES) {
-                const { status, headers, range } = decision({ range: value }, size);
+                const { status, headers, range: found } = decision({ range: value }, size);
                 if (status !== 206) continue;
+
+                const range = found as ByteRange;
 
                 assert.ok(0 <= range.start && range.start <= range.end && range.end < size, `${size} ${value}`);
                 assert.equal(headers['Content-Length'], String(range.end - range.start + 1));
@@ -612,7 +626,8 @@ describe('decide: properties', () => {
             assert.deepEqual(ok.range, size > 0 ? { start: 0, end: size - 1 } : null);
             assert.equal(ok.headers['Content-Length'], String(size));
         }
-        for (const headers of [{ 'if-none-match': TAG }, { 'if-match': '"x"' }, { range: 'bytes=99-' }]) {
+        const requests: HeaderMap[] = [{ 'if-none-match': TAG }, { 'if-match': '"x"' }, { range: 'bytes=99-' }];
+        for (const headers of requests) {
             const { status, range, headers: sent } = decision(headers);
 
             assert.ok([304, 412, 416].includes(status));
@@ -625,7 +640,7 @@ describe('decide: properties', () => {
         const size = 12;
         for (const value of ['bytes=0-3,2-5', 'bytes=0-3,4-7', 'bytes=-4,0-7', 'bytes=8-,6-9', 'bytes=0-3,5-6,4-4']) {
             const { status, range } = decision({ range: value }, size);
-            const wanted = new Set();
+            const wanted = new Set<number>();
             for (const spec of value.slice(6).split(',')) {
                 const [a, b] = spec.split('-');
                 const start = a === '' ? Math.max(0, size - Number(b)) : Number(a);
@@ -637,7 +652,11 @@ describe('decide: properties', () => {
 
             assert.equal(status, contiguous ? 206 : 200, value);
             if (status === 206)
-                assert.deepEqual([range.start, range.end], [sorted[0], sorted[sorted.length - 1]], value);
+                assert.deepEqual(
+                    [(range as ByteRange).start, (range as ByteRange).end],
+                    [sorted[0], sorted[sorted.length - 1]],
+                    value,
+                );
         }
     });
 

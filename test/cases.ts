@@ -1,10 +1,37 @@
 import assert from 'assert/strict';
+import type { IncomingHttpHeaders } from 'http';
 
-import { sha256 } from './server.mjs';
-import { readArchive } from './tar.mjs';
+import { sha256 } from './server.ts';
+import { readArchive } from './tar.ts';
+
+// A request replayed against the generated tree, with the markers that select or tag it
+export interface Case {
+    path: string;
+    method?: string;
+    headers?: Record<string, string>;
+    checkout?: boolean;
+    locked?: boolean;
+    change?: string;
+}
+
+// The parts of a response that capture() reads, which is what request() resolves with
+export interface CapturedResponse {
+    status: number;
+    headers: IncomingHttpHeaders;
+    body: Buffer;
+    aborted?: boolean;
+}
+
+// The recorded form of a response: the body is left out when the server cut the response short
+export interface Snapshot {
+    status: number;
+    headers: Record<string, string | string[] | undefined>;
+    body?: unknown;
+    aborted?: boolean;
+}
 
 // Response headers recorded in the snapshots; CORS headers are added for the requests that send an Origin
-export const HEADERS = [
+export const HEADERS: string[] = [
     'accept-ranges',
     'allow',
     'cache-control',
@@ -21,10 +48,10 @@ export const HEADERS = [
 
 /**
  * Requests replayed against the generated tree, GET by default.
- * checkout marks a repository file, locked a case that needs files of mode 000, and change the id, in changes.mjs, of
+ * checkout marks a repository file, locked a case that needs files of mode 000, and change the id, in changes.ts, of
  * the decision that moved or added the case; a case without change records the contract.
  */
-export const CASES = [
+export const CASES: Case[] = [
     { path: '/' },
     { path: '/favicon.ico', checkout: true },
     { path: '/favicon.svg', checkout: true },
@@ -201,7 +228,7 @@ export const CASES = [
  * @param response - Response from request(), read for its status, Content-Type and X-Content-Type-Options
  * @returns True for a JSON Content-Type on a server answer, whether its body is empty or not
  */
-function isServerJson({ status, headers }) {
+function isServerJson({ status, headers }: CapturedResponse): boolean {
     const type = headers['content-type'] ?? '';
 
     return type.startsWith('application/json') && (status >= 400 || !headers['x-content-type-options']);
@@ -216,7 +243,7 @@ function isServerJson({ status, headers }) {
  * @returns The JSON of a server response in its own order, the entries of an archive, the text of a UTF-8 or SVG
  * file, or the length and SHA-256 of any other file
  */
-export function readBody(response) {
+export function readBody(response: CapturedResponse): unknown {
     const { headers, body } = response;
     const type = headers['content-type'] ?? '';
 
@@ -241,7 +268,10 @@ export function readBody(response) {
  * Last-Modified of a repository file (the icons), which follows the date of the clone
  * @returns Status, recorded headers, and the decoded body, or aborted when the server cut the body short
  */
-export function capture(response, { cors = false, checkout = false } = {}) {
+export function capture(
+    response: CapturedResponse,
+    { cors = false, checkout = false }: { cors?: boolean; checkout?: boolean } = {},
+): Snapshot {
     const names = Object.keys(response.headers).filter(
         (name) => HEADERS.includes(name) || (cors && name.startsWith('access-control-')),
     );
@@ -259,7 +289,7 @@ export function capture(response, { cors = false, checkout = false } = {}) {
  * @param request - Case from CASES, its method defaulting to GET
  * @returns The method and path, followed by the request headers in parentheses when the case sends any
  */
-export function caseName({ path, method = 'GET', headers = {} }) {
+export function caseName({ path, method = 'GET', headers = {} }: Case): string {
     const sent = Object.entries(headers).map(([name, value]) => `${name}: ${value}`);
 
     return `${method} ${path}${sent.length > 0 ? ` (${sent.join(', ')})` : ''}`;

@@ -3,17 +3,39 @@ import fs from 'fs';
 import { after, before, describe, mock, test } from 'node:test';
 import { join } from 'path';
 
+import type {
+    Catalog,
+    CatalogType,
+    CatalogVersion,
+    Deprecation,
+    FileEntry,
+    Index,
+    IndexDir,
+    IndexFile,
+    IndexLink,
+    IndexNode,
+    IndexProject,
+    IndexVersion,
+    JsonBody,
+    RouteInput,
+    RouteResponse,
+    SearchResult,
+    Site,
+    TarEntry,
+} from '../dist/types/index.js';
 import { archiveEntries, archiveStream } from '../dist/lib/archive.js';
 import { loadIndex } from '../dist/lib/packages.js';
 import { route } from '../dist/lib/route.js';
 import { exact } from '../dist/lib/stream.js';
 import { scan } from '../dist/scan.js';
 
-import { caseName, CASES, HEADERS, readBody } from './cases.mjs';
-import { createFixture, SITE } from './fixture.mjs';
-import { memoryPort } from './port.mjs';
-import { rootDir } from './server.mjs';
-import { collect } from './tar.mjs';
+import type { Case, Snapshot } from './cases.ts';
+import { caseName, CASES, HEADERS, readBody } from './cases.ts';
+import type { Fixture } from './fixture.ts';
+import { createFixture, SITE } from './fixture.ts';
+import { memoryPort } from './port.ts';
+import { rootDir } from './server.ts';
+import { collect } from './tar.ts';
 
 // SHA-256 of an empty file, the hash of every synthetic file
 const EMPTY_SHA256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
@@ -21,13 +43,16 @@ const EMPTY_SHA256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b78
 // Names that a plain object treats apart (integer-like keys, the prototype setter, an inherited key), in byte order
 const NAMES = ['10', '9', '__proto__', 'constructor'];
 
-// Entries recorded by routes.test.mjs, which route() reproduces for the cases it decides alone
-const snapshot = loadSnapshot(join(rootDir, 'test', 'routes.test.mjs.snapshot'));
+// The site of the shared fixture, which only lacks the declared type
+const site = SITE as unknown as Site;
 
-let fixture;
-let index;
-let catalog;
-let logged;
+// Entries recorded by routes.test.ts, which route() reproduces for the cases it decides alone
+const snapshot = loadSnapshot(join(rootDir, 'test', 'routes.test.ts.snapshot'));
+
+let fixture: Fixture;
+let index: Index;
+let catalog: Catalog;
+let logged: unknown[];
 
 /**
  * Loads a snapshot file of node:test, which assigns each serialized value to exports under its key.
@@ -35,11 +60,11 @@ let logged;
  * @param file - Snapshot file of the repository, run as code
  * @returns Map of snapshot keys to their values, parsed back from JSON
  */
-function loadSnapshot(file) {
-    const exports = {};
+function loadSnapshot(file: string): Map<string, Snapshot> {
+    const exports: Record<string, string> = {};
     new Function('exports', fs.readFileSync(file, 'utf-8'))(exports);
 
-    return new Map(Object.entries(exports).map(([key, value]) => [key, JSON.parse(value)]));
+    return new Map(Object.entries(exports).map(([key, value]) => [key, JSON.parse(value) as Snapshot]));
 }
 
 /**
@@ -49,7 +74,7 @@ function loadSnapshot(file) {
  * @param entry - Case whose path is the raw request target, GET and without request headers by default
  * @returns The method, the URL of the target on http://localhost, and the headers as a Headers object
  */
-function toRequest({ path: target, method = 'GET', headers = {} }) {
+function toRequest({ path: target, method = 'GET', headers = {} }: Case): RouteInput {
     return { method, url: `http://localhost${target}`, headers: new Headers(headers) };
 }
 
@@ -59,7 +84,7 @@ function toRequest({ path: target, method = 'GET', headers = {} }) {
  * @param entry - Case from CASES
  * @returns False for a static file, OPTIONS and a locked case
  */
-function isCoreCase({ method, locked, checkout }) {
+function isCoreCase({ method, locked, checkout }: Case): boolean {
     return !checkout && !locked && method !== 'OPTIONS';
 }
 
@@ -71,7 +96,7 @@ function isCoreCase({ method, locked, checkout }) {
  * @returns The JSON text, the file read from disk, nothing for an empty body, or the archive from the tar writer;
  * null when the archive stream errors, which the adapter turns into a reset
  */
-async function sentBytes({ body, headers }, packagesDir) {
+async function sentBytes({ body, headers }: RouteResponse, packagesDir: string): Promise<Buffer | null> {
     if (body.kind === 'json') return Buffer.from(body.text);
     if (body.kind === 'empty') return Buffer.alloc(0);
 
@@ -93,8 +118,8 @@ async function sentBytes({ body, headers }, packagesDir) {
  * @returns Status, the headers of the core in lower case, and the body decoded by readBody, empty for HEAD, or
  * aborted when the archive stream errors
  */
-async function respond(entry) {
-    const response = route(toRequest(entry), catalog, SITE);
+async function respond(entry: Case): Promise<Snapshot> {
+    const response = route(toRequest(entry), catalog, site);
     const { status } = response;
     const headers = Object.fromEntries(
         Object.entries(response.headers).map(([name, value]) => [name.toLowerCase(), value]),
@@ -113,10 +138,10 @@ async function respond(entry) {
  * @param key - Snapshot key, the suite and test names followed by the entry number
  * @returns Status, the recorded headers and the body or aborted; throws when the snapshot has no such entry
  */
-function recorded(key) {
+function recorded(key: string): Snapshot {
     assert.ok(snapshot.has(key), `the snapshot has no entry ${key}`);
 
-    const { headers, ...rest } = snapshot.get(key);
+    const { headers, ...rest } = snapshot.get(key) as Snapshot;
     const owned = Object.entries(headers).filter(([name]) => HEADERS.includes(name));
 
     return { ...rest, headers: Object.fromEntries(owned) };
@@ -128,7 +153,7 @@ function recorded(key) {
  * @param name - File name
  * @returns The file node, hashed as an empty file
  */
-function file(name) {
+function file(name: string): IndexFile {
     return { kind: 'file', name, size: 0, exec: false, sha256: EMPTY_SHA256 };
 }
 
@@ -139,7 +164,7 @@ function file(name) {
  * @param entries - Nodes of the folder in byte order
  * @returns The folder node
  */
-function folder(name, entries) {
+function folder(name: string, entries: IndexNode[]): IndexDir {
     return { kind: 'dir', name, entries };
 }
 
@@ -152,7 +177,7 @@ function folder(name, entries) {
  * loops or escapes
  * @returns The link node
  */
-function link(name, target, real) {
+function link(name: string, target: string, real?: string): IndexLink {
     return real === undefined ? { kind: 'link', name, target } : { kind: 'link', name, target, real };
 }
 
@@ -163,7 +188,7 @@ function link(name, target, real) {
  * @param entries - Nodes of the version folder in byte order
  * @returns The version node
  */
-function version(name, entries) {
+function version(name: string, entries: IndexNode[]): IndexVersion {
     return { name, date: '2025-01-01', root: folder(name, entries) };
 }
 
@@ -174,8 +199,8 @@ function version(name, entries) {
  * @param deprecated - Notice given to every project, none by default
  * @returns The index
  */
-function indexOf(projects, deprecated) {
-    const nodes = projects.map(([name, entries]) => ({
+function indexOf(projects: [string, IndexNode[]][], deprecated?: Deprecation): Index {
+    const nodes: IndexProject[] = projects.map(([name, entries]) => ({
         name,
         ...(deprecated ? { deprecated } : {}),
         versions: [version('1.0.0', entries)],
@@ -191,7 +216,7 @@ function indexOf(projects, deprecated) {
  * @param deprecated - Notice given to every project, none by default
  * @returns The catalog of the index
  */
-function catalogOf(projects, deprecated) {
+function catalogOf(projects: [string, IndexNode[]][], deprecated?: Deprecation): Catalog {
     return loadIndex(indexOf(projects, deprecated));
 }
 
@@ -202,7 +227,7 @@ function catalogOf(projects, deprecated) {
  * @param path - Version as type/project/version
  * @returns The catalog version, or undefined when a part of the path is missing
  */
-function versionOf(from, path) {
+function versionOf(from: Catalog, path: string): CatalogVersion | undefined {
     const [type, project, name] = path.split('/');
 
     return from.types.get(type)?.projects.get(project)?.versions.get(name);
@@ -215,8 +240,8 @@ function versionOf(from, path) {
  * @param from - Catalog to answer from
  * @returns Status, headers as the core set them, and the JSON body parsed, or the body itself when it is not JSON
  */
-function get(target, from) {
-    const { status, headers, body } = route(toRequest({ path: target }), from, SITE);
+function get(target: string, from: Catalog) {
+    const { status, headers, body } = route(toRequest({ path: target }), from, site);
 
     return { status, headers, body: body.kind === 'json' ? JSON.parse(body.text) : body };
 }
@@ -247,7 +272,7 @@ describe('scan', () => {
 
     test('a version that cannot be read is logged and left out, and so is the project that it leaves empty', () => {
         const base = fixture.packagesDir;
-        const failed = (project, read) => [
+        const failed = (project: string, read: string) => [
             `Error reading ${join(base, 'npm', project, '1.0.0', read)}:`,
             `Skipping version ${join(base, 'npm', project, '1.0.0')}: it could not be read whole.`,
             `Skipping project ${join(base, 'npm', project)}: none of its versions could be indexed.`,
@@ -260,12 +285,12 @@ describe('scan', () => {
             ...(fixture.locked ? failed('sealed', 'vault') : []),
         ]);
         for (const project of ['broken', 'sealed']) {
-            assert.equal(catalog.types.get('npm').projects.has(project), !fixture.locked, project);
+            assert.equal((catalog.types.get('npm') as CatalogType).projects.has(project), !fixture.locked, project);
         }
     });
 
     test('a file with the owner execute bit is archived with mode 0755, any other file with 0644', () => {
-        const entries = archiveEntries(versionOf(catalog, 'bash/gft/1.2.0'));
+        const entries = archiveEntries(versionOf(catalog, 'bash/gft/1.2.0') as CatalogVersion);
 
         assert.deepEqual(
             entries.map(({ path, mode }) => [path, mode]),
@@ -278,11 +303,14 @@ describe('scan', () => {
     });
 
     test('loadIndex refuses an index of another format', () => {
-        assert.throws(() => loadIndex({ format: 1, types: [] }), /Unsupported packages index format: 1/);
+        assert.throws(
+            () => loadIndex({ format: 1, types: [] } as unknown as Index),
+            /Unsupported packages index format: 1/,
+        );
     });
 });
 
-describe('route() against routes.test.mjs.snapshot', () => {
+describe('route() against routes.test.ts.snapshot', () => {
     for (const entry of CASES.filter(isCoreCase)) {
         test(caseName(entry), async () => {
             assert.deepEqual(await respond(entry), recorded(`routes > ${caseName(entry)} 1`));
@@ -291,7 +319,7 @@ describe('route() against routes.test.mjs.snapshot', () => {
 
     test('GET /npm/lib@1.2.0/index.js (if-none-match: its etag)', async (t) => {
         const path = '/npm/lib@1.2.0/index.js';
-        const etag = route(toRequest({ path }), catalog, SITE).headers.ETag;
+        const etag = route(toRequest({ path }), catalog, site).headers.ETag;
 
         assert.deepEqual(await respond({ path, headers: { 'if-none-match': etag } }), recorded(`routes > ${t.name} 1`));
     });
@@ -328,7 +356,7 @@ describe('route() on synthetic indexes', () => {
         assert.deepEqual(Object.keys(get('/9/10', odd).body.versions), ['latest', '1.0.0']);
         assert.equal(get('/9/10@latest', odd).body.current, '10@1.0.0');
 
-        const listing = get('/9/10@1.0.0', odd).body.files.map(({ name }) => name);
+        const listing = get('/9/10@1.0.0', odd).body.files.map(({ name }: FileEntry) => name);
         assert.deepEqual(listing, NAMES);
         const sums = get('/9/10@1.0.0?checksums', odd).body.checksums;
         assert.deepEqual(Object.keys(sums), ['9', '10', '__proto__', 'constructor']);
@@ -337,7 +365,7 @@ describe('route() on synthetic indexes', () => {
 
         // A list that is not a JSON object keeps the byte order of the index: name matches, then the projects of type 9
         assert.deepEqual(
-            get('/search?q=9', odd).body.results.map(({ type, name }) => `${type}/${name}`),
+            get('/search?q=9', odd).body.results.map(({ type, name }: SearchResult) => `${type}/${name}`),
             ['10/9', '9/9', '__proto__/9', 'constructor/9', '9/10', '9/__proto__', '9/constructor'],
         );
     });
@@ -361,12 +389,12 @@ describe('route() on synthetic indexes', () => {
         assert.equal(get('/npm/p@1.0.0/first', chain).body.path, 'npm/p/1.0.0/file.js');
         assert.equal(get('/npm/p@1.0.0/self', chain).status, 404);
         assert.deepEqual(
-            get('/npm/p@1.0.0', chain).body.files.map(({ name }) => name),
+            get('/npm/p@1.0.0', chain).body.files.map(({ name }: FileEntry) => name),
             ['file.js', 'first', 'second'],
         );
         assert.deepEqual(get('/npm/p@1.0.0?checksums', chain).body.checksums, files);
         assert.deepEqual(
-            get('/npm/p@1.0.0?download', chain).body.entries.map(({ path, target }) => [path, target]),
+            get('/npm/p@1.0.0?download', chain).body.entries.map(({ path, target }: TarEntry) => [path, target]),
             [
                 ['1.0.0/', null],
                 ['1.0.0/file.js', null],
@@ -396,7 +424,7 @@ describe('route() on synthetic indexes', () => {
             path: `/npm/p@1.0.0/${loop.repeat(41)}index.js`,
             headers: { 'if-none-match': tag },
         });
-        assert.equal(route(request, loops, SITE).status, 404);
+        assert.equal(route(request, loops, site).status, 404);
     });
 
     test('a path that climbs above the root stops there, and one that climbs into another project names it', () => {
@@ -455,10 +483,10 @@ describe('route() on synthetic indexes', () => {
 
     test('a request URL that does not parse, or is not http or https, gives 400', () => {
         for (const url of ['not a url', 'data:text/plain,x', 'mailto:x', 'ftp://host/npm/lib', 'file:///npm/lib']) {
-            const response = route({ method: 'GET', url, headers: new Headers() }, catalog, SITE);
+            const response = route({ method: 'GET', url, headers: new Headers() }, catalog, site);
 
             assert.equal(response.status, 400, url);
-            assert.equal(JSON.parse(response.body.text).message, 'The request URL is not valid.', url);
+            assert.equal(JSON.parse((response.body as JsonBody).text).message, 'The request URL is not valid.', url);
         }
     });
 

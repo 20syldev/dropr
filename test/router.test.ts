@@ -7,13 +7,29 @@ import { matchPath, RESERVED } from '../dist/lib/router.js';
 import { ROUTES } from '../dist/manifest.js';
 import { scan } from '../dist/scan.js';
 
-import { createFixture, SITE } from './fixture.mjs';
+import type { Catalog, CatalogProject, Match, Site } from '../dist/types/index.js';
+
+import { createFixture, SITE } from './fixture.ts';
+
+// Fields that some matches carry, read together by decodedParts
+interface DecodedFields {
+    type?: string;
+    name?: string;
+    version?: string | null;
+    path?: string;
+}
+
+// The match of a file, which alone carries a path
+type FileMatch = Extract<Match, { id: 'file' }>;
+
+// SITE holds an empty manifest that route() never reads, which is not a whole Site
+const ANSWERING = SITE as unknown as Site;
 
 // Seed of every random test, printed in the message of a failure so that it can be replayed
 const SEED = 350;
 
 // Match id that each route of the manifest has, the manifest and health routes being answered before the router
-const MATCH_OF = {
+const MATCH_OF: Record<string, string> = {
     file: 'file',
     version: 'version',
     checksums: 'version',
@@ -59,7 +75,7 @@ const WORDS = [
  * @param seed - Integer that fixes the whole sequence
  * @returns A function that gives the next number from 0 included to 1 excluded
  */
-function mulberry32(seed) {
+function mulberry32(seed: number): () => number {
     let state = seed;
 
     return () => {
@@ -78,7 +94,7 @@ function mulberry32(seed) {
  * @param items - List to draw from, which must hold at least one item
  * @returns An item of the list, undefined when it is empty
  */
-function pick(random, items) {
+function pick<T>(random: () => number, items: T[]): T {
     return items[Math.floor(random() * items.length)];
 }
 
@@ -88,8 +104,8 @@ function pick(random, items) {
  * @param match - Match from matchPath, whose type, name, version and path fields exist only for the ids that carry them
  * @returns The type, the name, the version and each segment of the file path, those the match has
  */
-function decodedParts(match) {
-    const { type, name, version, path } = match;
+function decodedParts(match: Match): (string | null)[] {
+    const { type, name, version, path } = match as DecodedFields;
 
     return [type, name, version, ...(path === undefined ? [] : path.split('/'))].filter((part) => part !== undefined);
 }
@@ -100,7 +116,7 @@ function decodedParts(match) {
  * @param packagesDir - Folder of a generated fixture
  * @returns The catalog, without the projects that the scan left out
  */
-function readableCatalog(packagesDir) {
+function readableCatalog(packagesDir: string): Catalog {
     return loadIndex(scan(packagesDir, { error: () => {} }));
 }
 
@@ -113,17 +129,17 @@ function readableCatalog(packagesDir) {
  * @returns True when its first three segments are the type, the project and the version that the target resolves to,
  * and no segment after them is '..'
  */
-function servesAskedVersion(catalog, target, served) {
+function servesAskedVersion(catalog: Catalog, target: string, served: string): boolean {
     const match = matchPath(new URL(`http://localhost${target}`).pathname);
     if (match.id !== 'file') return false;
 
-    const project = catalog.types.get(match.type)?.projects.get(match.name);
+    const project = catalog.types.get(match.type)?.projects.get(match.name) as CatalogProject;
     const asked = match.version;
     const version =
         asked === 'latest' ? project.latest : (project.versions.get(asked) ?? resolveVersion(asked, project));
     const [type, name, resolved, ...rest] = served.split('/');
 
-    return type === match.type && name === match.name && resolved === version.name && !rest.includes('..');
+    return type === match.type && name === match.name && resolved === version!.name && !rest.includes('..');
 }
 
 /**
@@ -134,12 +150,12 @@ function servesAskedVersion(catalog, target, served) {
  * @param version - Decoded version or partial version, null when the path names none
  * @returns The three fields of a match, to spread next to its id
  */
-function row(type, name, version) {
+function row(type: string, name: string, version: string | null) {
     return { type, name, version };
 }
 
 describe('matchPath', () => {
-    const ROWS = [
+    const ROWS: [string, Record<string, unknown>][] = [
         ['/', { id: 'root' }],
         ['/search', { id: 'search' }],
         ['/search/', { id: 'unknown' }],
@@ -257,7 +273,10 @@ describe('matchPath', () => {
             const pathname = `/${Array.from({ length }, () => pick(random, alphabet)).join('')}`;
 
             for (const part of decodedParts(matchPath(pathname))) {
-                assert.ok(part !== '' && !/[\\/]|\p{Cc}/u.test(part), `seed ${SEED}: ${JSON.stringify(pathname)}`);
+                assert.ok(
+                    part !== '' && !/[\\/]|\p{Cc}/u.test(String(part)),
+                    `seed ${SEED}: ${JSON.stringify(pathname)}`,
+                );
             }
         }
     });
@@ -310,7 +329,7 @@ describe('matchPath', () => {
 describe('URL and router together', () => {
     test('no spelling of . or .. reaches a decoded part', () => {
         let count = 0;
-        const walk = (prefix, depth) => {
+        const walk = (prefix: string, depth: number): void => {
             for (const symbol of SYMBOLS) {
                 const url = `${prefix}/${symbol}`;
                 const match = matchPath(new URL(url, 'http://localhost').pathname);
@@ -328,10 +347,10 @@ describe('URL and router together', () => {
     });
 
     test('a backslash reads as a slash, a fragment is cut and an encoded backslash stays one segment', () => {
-        const pathname = (target) => new URL(`http://localhost${target}`).pathname;
+        const pathname = (target: string) => new URL(`http://localhost${target}`).pathname;
 
         assert.equal(matchPath(pathname('/npm\\lib')).id, 'versions');
-        assert.equal(matchPath(pathname('/npm/lib@1/dist\\index.mjs#x')).path, 'dist/index.mjs');
+        assert.equal((matchPath(pathname('/npm/lib@1/dist\\index.mjs#x')) as FileMatch).path, 'dist/index.mjs');
         assert.equal(matchPath(pathname('/npm/lib@1/dist%5Cindex.mjs')).id, 'unknown');
     });
 });
@@ -356,7 +375,7 @@ describe('route() on random targets', () => {
                     response = route(
                         { method, url: `http://localhost${target}`, headers: new Headers() },
                         catalog,
-                        SITE,
+                        ANSWERING,
                     );
                 } catch (error) {
                     bad.push(`${target} throws ${error}`);

@@ -2,6 +2,16 @@ import fs from 'fs';
 import os from 'os';
 import { dirname, join } from 'path';
 
+/**
+ * A generated packages tree: remove() undoes exactly what createFixture wrote.
+ */
+export interface Fixture {
+    root: string;
+    packagesDir: string;
+    locked: boolean;
+    remove: () => void;
+}
+
 // What /health and /manifest answer in the tests that call route() alone, which the packages tree does not decide
 export const SITE = { health: () => ({ status: 'ok' }), manifest: { routes: [] } };
 
@@ -82,7 +92,7 @@ const VAULT = 'packages/npm/sealed/1.0.0/vault';
  * @param path - File or folder to check
  * @returns False when reading it fails with any error, EACCES included
  */
-export function isReadable(path) {
+export function isReadable(path: string): boolean {
     try {
         fs.accessSync(path, fs.constants.R_OK);
         return true;
@@ -97,7 +107,7 @@ export function isReadable(path) {
  * @param path - Folder to create, left as is when it already exists
  * @param created - Paths created so far in creation order, appended to
  */
-function makeDir(path, created) {
+function makeDir(path: string, created: string[]): void {
     if (fs.existsSync(path)) return;
 
     makeDir(dirname(path), created);
@@ -111,7 +121,7 @@ function makeDir(path, created) {
  *
  * @param created - Paths in creation order, as recorded by createFixture
  */
-function removeEntries(created) {
+function removeEntries(created: string[]): void {
     for (const path of [...created].reverse()) {
         if (fs.lstatSync(path).isDirectory()) fs.rmdirSync(path);
         else fs.unlinkSync(path);
@@ -124,7 +134,7 @@ function removeEntries(created) {
  * @returns The fixture root, its packages folder, locked set to false when LOCKED or VAULT stays readable (as for
  * root), and remove() which gives VAULT its mode back, then deletes exactly the entries written here
  */
-export function createFixture() {
+export function createFixture(): Fixture {
     const root = fs.mkdtempSync(join(os.tmpdir(), 'dropr-test-'));
     const created = [root];
 

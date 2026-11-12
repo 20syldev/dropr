@@ -4,9 +4,25 @@ import fs from 'fs';
 import { describe, test } from 'node:test';
 import { join } from 'path';
 
-import { rootDir } from './server.mjs';
+import { rootDir } from './server.ts';
 
-const manifest = JSON.parse(fs.readFileSync(join(rootDir, 'package.json'), 'utf-8'));
+interface Manifest {
+    name: string;
+    main: string;
+    types: string;
+    bin: Record<string, string>;
+    exports: Record<string, Record<string, string>>;
+    publishConfig: { access: string };
+    engines: { node: string };
+    dependencies: Record<string, string>;
+}
+
+// A file listed by npm pack
+interface PackedFile {
+    path: string;
+}
+
+const manifest = JSON.parse(fs.readFileSync(join(rootDir, 'package.json'), 'utf-8')) as Manifest;
 
 // Exports of the package, which the command line and the README promise
 const API = [
@@ -30,14 +46,14 @@ const CORE = ['buildManifest', 'createHandler', 'createResponder', 'loadIndex', 
  *
  * @returns The paths of the files of the tarball, relative to the package root
  */
-function packed() {
+function packed(): string[] {
     const output = execFileSync('npm', ['pack', '--dry-run', '--json', '--ignore-scripts'], {
         cwd: rootDir,
         encoding: 'utf-8',
         stdio: ['ignore', 'pipe', 'ignore'],
     });
 
-    return JSON.parse(output)[0].files.map(({ path }) => path);
+    return (JSON.parse(output) as { files: PackedFile[] }[])[0].files.map(({ path }) => path);
 }
 
 describe('the package', () => {
@@ -109,7 +125,8 @@ describe('the package', () => {
         const main = await import('../dist/index.js');
 
         assert.deepEqual(Object.keys(core).sort(), CORE);
-        for (const name of CORE) assert.equal(core[name], main[name], name);
+        for (const name of CORE)
+            assert.equal((core as Record<string, unknown>)[name], (main as Record<string, unknown>)[name], name);
     });
 
     test('builds a fetch handler from its exports alone', async () => {

@@ -41,7 +41,7 @@ describe('compareBytes', () => {
 
     test('agrees with Buffer.compare on 20000 seeded random pairs', () => {
         let seed = 42;
-        const next = (n) => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff), seed % n);
+        const next = (n: number) => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff), seed % n);
         const text = () => Array.from({ length: next(5) }, () => UNITS[next(UNITS.length)]).join('');
 
         for (let i = 0; i < 20_000; i++) {

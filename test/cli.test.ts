@@ -7,8 +7,9 @@ import { join } from 'path';
 import { main } from '../dist/cli.js';
 import { choosePort, configure } from '../dist/startup.js';
 
-import { createFixture } from './fixture.mjs';
-import { version } from './server.mjs';
+import { createFixture } from './fixture.ts';
+import type { Fixture } from './fixture.ts';
+import { version } from './server.ts';
 
 /**
  * Runs the command line against a working folder, with its outputs recorded.
@@ -18,9 +19,9 @@ import { version } from './server.mjs';
  * @param env - Env of the command
  * @returns The exit code, and the lines written to the output and to the error output
  */
-async function run(argv, cwd, env = {}) {
-    const out = [];
-    const err = [];
+async function run(argv: string[], cwd: string, env: Record<string, string | undefined> = {}) {
+    const out: string[] = [];
+    const err: string[] = [];
     const code = await main(argv, { env, cwd, out: (text) => out.push(text), err: (text) => err.push(text) });
 
     return { code, out, err };
@@ -33,7 +34,7 @@ async function run(argv, cwd, env = {}) {
  * @param target - Target of a link to make instead of the file, which then points nowhere
  * @returns The folder, the path of the config file and remove(), which deletes exactly what was made, never recursively
  */
-function configFolder(config, target = undefined) {
+function configFolder(config?: unknown, target: string | undefined = undefined) {
     const root = fs.mkdtempSync(join(os.tmpdir(), 'dropr-cli-'));
     const file = join(root, 'dropr.config.json');
     if (target !== undefined) fs.symlinkSync(target, file);
@@ -50,8 +51,8 @@ function configFolder(config, target = undefined) {
 }
 
 describe('the command line', () => {
-    let fixture;
-    let packages;
+    let fixture: Fixture;
+    let packages: string;
 
     before(() => {
         fixture = createFixture();
@@ -76,7 +77,7 @@ describe('the command line', () => {
     });
 
     test('refuses a missing command, an unknown one, an unknown option and extra arguments with the usage and 2', async () => {
-        const cases = [
+        const cases: [string[], RegExp][] = [
             [[], /^A command is needed\.\n\nUsage: /],
             [['build'], /^Unknown command 'build'\.\n\nUsage: /],
             [['serve', '--nope'], /--nope[\s\S]*\n\nUsage: /],
@@ -94,7 +95,7 @@ describe('the command line', () => {
     });
 
     test('refuses a port that is not an integer from 1 to 65535, from the option or from PORT, with 1', async () => {
-        const cases = [
+        const cases: [string[], Record<string, string>, RegExp][] = [
             [['serve', '--port', 'abc'], {}, /^--port must be an integer from 1 to 65535, not 'abc'\.$/],
             [['serve', '--port', '70000'], {}, /^--port must be .* not '70000'\.$/],
             [['serve', '--port', '0'], {}, /^--port must be .* not '0'\.$/],

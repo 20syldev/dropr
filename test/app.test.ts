@@ -3,6 +3,7 @@ import { spawn } from 'child_process';
 import fs from 'fs';
 import http from 'http';
 import net from 'net';
+import type { AddressInfo } from 'net';
 import { after, before, describe, test } from 'node:test';
 import os from 'os';
 import { dirname, join } from 'path';
@@ -13,12 +14,34 @@ import { reservedNames } from '../dist/config.js';
 import { parseConfig } from '../dist/lib/config.js';
 import { ROUTES } from '../dist/manifest.js';
 import { scan } from '../dist/scan.js';
+import type { Index, Logger, Manifest, ManifestRoute } from '../dist/types/index.js';
 
-import { createFixture } from './fixture.mjs';
-import { eventually } from './port.mjs';
-import { config, freePort, listen, request, rootDir, startServer } from './server.mjs';
+import { createFixture } from './fixture.ts';
+import type { Fixture } from './fixture.ts';
+import { eventually } from './port.ts';
+import { config, freePort, listen, request, rootDir, startServer } from './server.ts';
+import type { ServerLogs, TestServer } from './server.ts';
 
-const EMPTY = { format: 2, types: [] };
+const EMPTY: Index = { format: 2, types: [] };
+
+/**
+ * A response read by send(): the headers are plain strings and the body is text.
+ */
+interface Sent {
+    status: number;
+    headers: Record<string, string>;
+    body: string;
+}
+
+/**
+ * What run() reports once the child process has closed.
+ */
+interface Ran<T> {
+    code: number | null;
+    stdout: string;
+    stderr: string;
+    probed: T;
+}
 
 // The release day that makeTree gives to every .versions.json it writes, since a version needs one to be indexed
 const DATES = '{ "1.0.0": { "date": "2025-01-01" } }\n';
@@ -30,9 +53,12 @@ const DATES = '{ "1.0.0": { "date": "2025-01-01" } }\n';
  * @param packagesDir - Folder the package files are read from
  * @returns The port, stop() and the recorded logs
  */
-async function start(change = {}, packagesDir = rootDir) {
-    const logs = { requests: [], errors: [] };
-    const logger = { request: (entry) => logs.requests.push(entry), error: (...args) => logs.errors.push(args) };
+async function start(change: Record<string, unknown> = {}, packagesDir: string = rootDir): Promise<TestServer> {
+    const logs: ServerLogs = { requests: [], errors: [] };
+    const logger: Logger = {
+        request: (entry) => logs.requests.push(entry),
+        error: (...args) => logs.errors.push(args),
+    };
     const parsed = parseConfig({ manifest: { baseUrl: 'https://cdn.example.com' }, ...change });
     const assets = scanAssets(parsed.assets, logger);
     const app = createApp(parsed, { index: EMPTY, packagesDir, version: '9.9.9', logger, assets });
@@ -48,8 +74,12 @@ async function start(change = {}, packagesDir = rootDir) {
  * @param headers - Headers of every request, or a function of the request number
  * @returns The status of the last request
  */
-async function repeat(server, count, headers) {
-    let status;
+async function repeat(
+    server: TestServer,
+    count: number,
+    headers?: Record<string, string> | ((i: number) => Record<string, string>),
+): Promise<number | undefined> {
+    let status: number | undefined;
     for (let i = 0; i < count; i++) {
         const extra = typeof headers === 'function' ? headers(i) : headers;
         ({ status } = await request(server.port, 'GET', '/health', extra));
@@ -68,15 +98,15 @@ async function repeat(server, count, headers) {
  * @returns Status, headers with their names in lower case and the last value of a repeated one, and the body as text;
  * the strings are read as latin1, so each byte is one character, and a server silent for 5 seconds rejects
  */
-function send(port, line, headers = []) {
+function send(port: number, line: string, headers: string[] = []): Promise<Sent> {
     const lines = [`${line} HTTP/1.1`, ...(headers.some((h) => /^host:/i.test(h)) ? [] : ['Host: localhost'])];
     const text = `${[...lines, ...headers, 'Connection: close'].join('\r\n')}\r\n\r\n`;
 
-    return new Promise((resolve, reject) => {
+    return new Promise<Sent>((resolve, reject) => {
         const socket = net.connect(port, '127.0.0.1', () => socket.write(text, 'latin1'));
-        const chunks = [];
+        const chunks: Buffer[] = [];
         socket.setTimeout(5000, () => socket.destroy(new Error('The server did not answer within 5 seconds.')));
-        socket.on('data', (chunk) => chunks.push(chunk));
+        socket.on('data', (chunk: Buffer) => chunks.push(chunk));
         socket.on('error', reject);
         socket.on('close', () => {
             const [head, ...rest] = Buffer.concat(chunks).toString('latin1').split('\r\n\r\n');
@@ -102,9 +132,9 @@ function send(port, line, headers = []) {
  * @param contents - Text of the files that must not hold the short content, by path; a .versions.json dates 1.0.0
  * @returns The root, and remove() which deletes exactly the entries written here, folders last, never recursively
  */
-function makeTree(paths, contents = {}) {
+function makeTree(paths: string[], contents: Record<string, string> = {}) {
     const root = fs.mkdtempSync(join(os.tmpdir(), 'dropr-reserved-'));
-    const created = [];
+    const created: string[] = [];
 
     for (const path of paths) {
         const file = join(root, path);
@@ -133,12 +163,12 @@ function makeTree(paths, contents = {}) {
  * @param assets - First path segments of the assets, none by default
  * @returns The names of the types that were indexed, sorted, and the messages that were logged, sorted
  */
-function scanned(names, assets = []) {
+function scanned(names: string[], assets: string[] = []) {
     const tree = makeTree(names.flatMap((name) => [`${name}/tool/1.0.0/a.txt`, `${name}/tool/.versions.json`]));
-    const logged = [];
+    const logged: string[] = [];
 
     try {
-        const index = scan(tree.root, { error: (message) => logged.push(message) }, assets);
+        const index = scan(tree.root, { error: (message: string) => logged.push(message) }, assets);
 
         const skips = logged.filter((line) => line.startsWith('Skipping'));
 
@@ -154,12 +184,12 @@ function scanned(names, assets = []) {
  * @param name - Folder name exactly as scanned, in the case it has on disk
  * @returns The error line of the scan, with the name quoted and the period at the end
  */
-function skipped(name) {
+function skipped(name: string): string {
     return `Skipping type '${name}': reserved name.`;
 }
 
 describe('createApp', () => {
-    let fixture;
+    let fixture: Fixture;
 
     before(() => (fixture = createFixture()));
     after(() => fixture?.remove());
@@ -168,7 +198,7 @@ describe('createApp', () => {
         const server = await start();
         try {
             const response = await request(server.port, 'GET', '/manifest');
-            const manifest = JSON.parse(response.body);
+            const manifest: Manifest = JSON.parse(response.body.toString());
 
             assert.equal(response.headers['cache-control'], 'public, max-age=300');
             assert.deepEqual(
@@ -203,10 +233,10 @@ describe('createApp', () => {
         };
         const server = await start({ name: 'other', manifest });
         try {
-            const { routes } = JSON.parse((await request(server.port, 'GET', '/manifest')).body);
-            const route = routes.find((r) => r.id === 'project');
-            const download = routes.find((r) => r.id === 'download');
-            const health = JSON.parse((await request(server.port, 'GET', '/health')).body);
+            const { routes }: Manifest = JSON.parse((await request(server.port, 'GET', '/manifest')).body.toString());
+            const route = routes.find((r) => r.id === 'project') as ManifestRoute;
+            const download = routes.find((r) => r.id === 'download') as ManifestRoute;
+            const health = JSON.parse((await request(server.port, 'GET', '/health')).body.toString());
 
             assert.deepEqual(
                 [route.path, route.title, route.notes, route.example],
@@ -268,8 +298,8 @@ describe('createApp', () => {
 
     test('tells the clients apart by the address of the connection when no header names them', async (t) => {
         const server = await start();
-        const from = (localAddress) =>
-            new Promise((resolve, reject) => {
+        const from = (localAddress: string) =>
+            new Promise<number | undefined>((resolve, reject) => {
                 const req = http.get(
                     { host: '127.0.0.1', port: server.port, path: '/health', localAddress, agent: false },
                     (res) => {
@@ -287,7 +317,7 @@ describe('createApp', () => {
             try {
                 assert.equal(await from('127.0.0.2'), 200);
             } catch (error) {
-                if (error.code !== 'EADDRNOTAVAIL') throw error;
+                if ((error as NodeJS.ErrnoException).code !== 'EADDRNOTAVAIL') throw error;
 
                 t.skip('127.0.0.2 is not a loopback address here');
             }
@@ -322,8 +352,11 @@ describe('createApp', () => {
             const { status, headers, body } = await request(server.port, 'GET', '/health');
 
             assert.equal(status, 429);
-            assert.match(headers['retry-after'], /^\d+$/);
-            assert.equal(JSON.parse(body).message, 'You have exceeded the limit of 2 requests per 10 seconds.');
+            assert.match(headers['retry-after'] as string, /^\d+$/);
+            assert.equal(
+                JSON.parse(body.toString()).message,
+                'You have exceeded the limit of 2 requests per 10 seconds.',
+            );
         } finally {
             await server.stop();
         }
@@ -370,7 +403,7 @@ describe('createApp', () => {
             await request(server.port, 'GET', '/npm');
 
             assert.equal(await eventually(() => server.logs.requests.length === 1), true);
-            assert.match(server.logs.errors[0][0], /^No packages folder at /);
+            assert.match(server.logs.errors[0][0] as string, /^No packages folder at /);
             assert.deepEqual(
                 server.logs.requests.map(({ method, url, status }) => ({ method, url, status })),
                 [{ method: 'GET', url: '/npm', status: 404 }],
@@ -383,7 +416,7 @@ describe('createApp', () => {
 });
 
 describe('dist/bin.js serve', () => {
-    let fixture;
+    let fixture: Fixture;
 
     before(() => (fixture = createFixture()));
     after(() => fixture?.remove());
@@ -398,15 +431,20 @@ describe('dist/bin.js serve', () => {
      * @returns Exit code, stdout, stderr and the value of probe; a child still listening is killed and reports a null
      * code, and one that neither exits nor listens within 10 seconds is killed and rejects with its stderr
      */
-    function run(args = [], env = {}, probe = undefined, cwd = undefined) {
-        return new Promise((resolve, reject) => {
+    function run<T = undefined>(
+        args: string[] = [],
+        env: Record<string, string> = {},
+        probe: (() => T | Promise<T>) | undefined = undefined,
+        cwd: string | undefined = undefined,
+    ): Promise<Ran<T>> {
+        return new Promise<Ran<T>>((resolve, reject) => {
             const child = spawn(process.execPath, [join(rootDir, 'dist', 'bin.js'), 'serve', ...args], {
                 cwd,
                 env: { ...process.env, PORT: '', PACKAGES_DIR: '', ...env },
             });
             let stdout = '';
             let stderr = '';
-            let probed;
+            let probed: Promise<unknown> | undefined;
             const timer = setTimeout(() => {
                 child.kill();
                 reject(new Error(`bin.js neither exited nor listened within 10 seconds: ${stderr}`));
@@ -422,7 +460,7 @@ describe('dist/bin.js serve', () => {
             });
             child.on('close', async (code) => {
                 clearTimeout(timer);
-                resolve({ code, stdout, stderr, probed: await probed });
+                resolve({ code, stdout, stderr, probed: (await probed) as T });
             });
         });
     }
@@ -431,7 +469,7 @@ describe('dist/bin.js serve', () => {
         const port = await freePort();
         const env = { PORT: String(port) };
         const { stdout, probed } = await run(['--packages', join(fixture.root, 'packages')], env, async () => ({
-            health: JSON.parse((await request(port, 'GET', '/health')).body),
+            health: JSON.parse((await request(port, 'GET', '/health')).body.toString()),
             file: await request(port, 'GET', '/npm/lib@1.2.0/index.js'),
         }));
 
@@ -486,7 +524,7 @@ describe('dist/bin.js serve', () => {
             assert.equal(stderr.split('\n')[0], "Skipping type 'static': reserved name.");
             assert.equal(probed.asset.status, 200);
             assert.equal(probed.skipped.status, 404);
-            assert.equal(JSON.parse(probed.skipped.body).message, "Package type 'static' does not exist.");
+            assert.equal(JSON.parse(probed.skipped.body.toString()).message, "Package type 'static' does not exist.");
             assert.equal(probed.kept.status, 200);
         } finally {
             tree.remove();
@@ -545,7 +583,7 @@ describe('dist/bin.js serve', () => {
             const defaults = await run(
                 [],
                 { PORT: String(port) },
-                async () => JSON.parse((await request(port, 'GET', '/health')).body),
+                async () => JSON.parse((await request(port, 'GET', '/health')).body.toString()),
                 bare.root,
             );
             assert.match(defaults.stdout, /^dropr is running on\n/);
@@ -562,20 +600,20 @@ describe('dist/bin.js serve', () => {
 
     test('fails without the banner when the port is taken', async () => {
         const taken = net.createServer();
-        await new Promise((resolve) => taken.listen(0, resolve));
+        await new Promise<void>((resolve) => taken.listen(0, resolve));
 
         try {
-            const { port } = taken.address();
+            const { port } = taken.address() as AddressInfo;
             const { code, stdout, stderr } = await run(['--packages', join(fixture.root, 'packages')], {
                 PORT: String(port),
             });
 
             assert.equal(code, 1);
             assert.equal(stdout, '');
-            assert.match(stderr.trim().split('\n').at(-1), /^listen EADDRINUSE/);
+            assert.match(stderr.trim().split('\n').at(-1) as string, /^listen EADDRINUSE/);
             assert.doesNotMatch(stderr, /throw error/);
         } finally {
-            await new Promise((resolve) => taken.close(resolve));
+            await new Promise<void>((resolve) => taken.close(() => resolve()));
         }
     });
 
@@ -599,9 +637,9 @@ describe('dist/bin.js serve', () => {
 });
 
 describe('request shapes of the adapter', () => {
-    let fixture;
-    let server;
-    let errors;
+    let fixture: Fixture;
+    let server: TestServer;
+    let errors: number;
 
     before(async () => {
         fixture = createFixture();
@@ -746,22 +784,23 @@ describe('reserved names', () => {
     test('the first segment of every asset URL is reserved, an asset served at the root reserves nothing', () => {
         const assets = { '/favicon.ico': 'a', '/static/logo.svg': 'b', '/': 'c' };
 
-        assert.deepEqual(reservedNames({ assets }), ['favicon.ico', 'static']);
+        assert.deepEqual(reservedNames({ ...config, assets }), ['favicon.ico', 'static']);
     });
 });
 
 describe('streamed bodies', () => {
-    let fixture;
+    let fixture: Fixture;
 
     before(() => (fixture = createFixture()));
     after(() => fixture?.remove());
 
     test('the headers of a file reach the client before its first byte is read', async () => {
-        const stalled = async () => new ReadableStream({ pull: () => new Promise(() => {}) });
+        const stalled = async () =>
+            new ReadableStream<Uint8Array<ArrayBuffer>>({ pull: () => new Promise<void>(() => {}) });
         const server = await startServer(fixture.packagesDir, {}, { read: stalled });
 
         try {
-            const status = await new Promise((resolve, reject) => {
+            const status = await new Promise<number | string | undefined>((resolve, reject) => {
                 const req = http.get(
                     { host: '127.0.0.1', port: server.port, path: '/npm/lib@1.2.0/index.js', agent: false },
                     (res) => {
@@ -783,7 +822,7 @@ describe('streamed bodies', () => {
         const cut = async () => {
             let pulled = 0;
 
-            return new ReadableStream(
+            return new ReadableStream<Uint8Array<ArrayBuffer>>(
                 {
                     pull(controller) {
                         if (pulled++ === 0) controller.enqueue(new Uint8Array(4));
@@ -796,12 +835,12 @@ describe('streamed bodies', () => {
         const server = await startServer(fixture.packagesDir, {}, { read: cut });
 
         try {
-            const outcome = await new Promise((resolve) => {
+            const outcome = await new Promise<string | undefined>((resolve) => {
                 const socket = net.connect(server.port, '127.0.0.1', () => {
                     socket.write('GET /npm/lib@1.2.0?download HTTP/1.0\r\n\r\n');
                 });
                 socket.on('data', () => {});
-                socket.on('error', (error) => resolve(error.code));
+                socket.on('error', (error: NodeJS.ErrnoException) => resolve(error.code));
                 socket.on('end', () => resolve('ended'));
             });
 
@@ -816,7 +855,7 @@ describe('streamed bodies', () => {
         let sent = false;
         let left = false;
         const late = async () =>
-            new ReadableStream({
+            new ReadableStream<Uint8Array<ArrayBuffer>>({
                 pull: (controller) => {
                     if (!sent) {
                         sent = true;
@@ -824,7 +863,7 @@ describe('streamed bodies', () => {
                         return controller.enqueue(new Uint8Array(text));
                     }
 
-                    return new Promise((resolve) =>
+                    return new Promise<void>((resolve) =>
                         setTimeout(() => {
                             if (!left) controller.close();
                             resolve();
@@ -836,7 +875,7 @@ describe('streamed bodies', () => {
         const server = await startServer(fixture.packagesDir, {}, { read: late });
 
         try {
-            await new Promise((resolve, reject) => {
+            await new Promise<void>((resolve, reject) => {
                 const req = http.get(
                     { host: '127.0.0.1', port: server.port, path: '/npm/lib@1.2.0/index.js', agent: false },
                     (res) => {
@@ -867,21 +906,21 @@ describe('streamed bodies', () => {
     test('a failure after the headers closes a connection that cannot be reset, and the server goes on', async () => {
         const path = join(fixture.root, 'dropr.sock');
         const cut = async () =>
-            new ReadableStream({
+            new ReadableStream<Uint8Array<ArrayBuffer>>({
                 pull(controller) {
                     controller.error(new Error('disk'));
                 },
             });
-        const logs = { errors: [] };
-        const logger = { request() {}, error: (...args) => logs.errors.push(args) };
+        const logs: { errors: unknown[][] } = { errors: [] };
+        const logger: Logger = { request() {}, error: (...args) => logs.errors.push(args) };
         const index = scan(fixture.packagesDir, { error() {} });
         const server = http.createServer(
             createApp(config, { index, packagesDir: fixture.packagesDir, version: '9.9.9', logger, read: cut }),
         );
-        await new Promise((resolve) => server.listen(path, resolve));
+        await new Promise<void>((resolve) => server.listen(path, resolve));
 
         try {
-            const outcome = await new Promise((resolve) => {
+            const outcome = await new Promise<string>((resolve) => {
                 const req = http.get({ socketPath: path, path: '/npm/lib@1.2.0/index.js', agent: false }, (res) => {
                     res.on('error', () => resolve('aborted'));
                     res.on('close', () => resolve(res.complete ? 'complete' : 'aborted'));
@@ -894,7 +933,7 @@ describe('streamed bodies', () => {
             assert.equal(outcome, 'aborted');
             assert.deepEqual(logs.errors, [['File error on npm/lib/1.2.0/index.js:', 'disk']]);
         } finally {
-            await new Promise((resolve) => (server.close(resolve), server.closeAllConnections()));
+            await new Promise<void>((resolve) => (server.close(() => resolve()), server.closeAllConnections()));
         }
     });
 });

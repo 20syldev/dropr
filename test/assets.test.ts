@@ -6,12 +6,12 @@ import { join } from 'path';
 
 import { scanAssets } from '../dist/assets.js';
 
-import { sha256 } from './server.mjs';
-import { collect } from './tar.mjs';
+import { sha256 } from './server.ts';
+import { collect } from './tar.ts';
 
 const MODIFIED = new Date('2025-05-01T00:00:00Z');
 
-let root;
+let root: string;
 
 beforeEach(() => {
     root = fs.mkdtempSync(join(os.tmpdir(), 'dropr-assets-'));
@@ -33,7 +33,7 @@ afterEach(() => {
  * @param content - Bytes of the file
  * @returns The absolute path of the file
  */
-function write(name, content) {
+function write(name: string, content: string | Buffer): string {
     const file = join(root, name);
     fs.writeFileSync(file, content);
     fs.utimesSync(file, MODIFIED, MODIFIED);
@@ -89,14 +89,14 @@ describe('scanAssets', () => {
 
     test('logs and leaves out a file that is missing and a folder, and keeps the others', () => {
         fs.mkdirSync(join(root, 'folder'));
-        const logged = [];
+        const logged: string[] = [];
         const assets = scanAssets(
             {
                 '/missing': join(root, 'missing.txt'),
                 '/folder': join(root, 'folder'),
                 '/ok': write('ok.txt', 'ok'),
             },
-            { error: (message) => logged.push(message) },
+            { error: (message: string) => logged.push(message) },
         );
 
         assert.deepEqual(Object.keys(assets), ['/ok']);

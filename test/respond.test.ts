@@ -7,17 +7,19 @@ import { buildManifest } from '../dist/manifest.js';
 import { loadIndex } from '../dist/lib/packages.js';
 import { createHandler, createResponder } from '../dist/lib/respond.js';
 import { scan } from '../dist/scan.js';
+import type { Answer, ByteRange, Catalog, ReadFile, Respond, ResponderOptions } from '../dist/types/index.js';
 
-import { createFixture } from './fixture.mjs';
-import { chunked, eventually, memoryPort } from './port.mjs';
-import { sha256 } from './server.mjs';
-import { collect } from './tar.mjs';
+import { createFixture } from './fixture.ts';
+import type { Fixture } from './fixture.ts';
+import { chunked, eventually, memoryPort } from './port.ts';
+import { sha256 } from './server.ts';
+import { collect } from './tar.ts';
 
 const FILE = '/npm/lib@1.2.0/index.js';
 const MANIFEST = buildManifest({ baseUrl: 'https://cdn.example.com', params: {}, routes: {} }, 'dropr', '9.9.9');
 
-let fixture;
-let catalog;
+let fixture: Fixture;
+let catalog: Catalog;
 
 before(() => {
     fixture = createFixture();
@@ -34,7 +36,7 @@ after(() => fixture.remove());
  * @param headers - Request headers
  * @returns The method, the URL on http://localhost and the headers
  */
-function ask(path, method = 'GET', headers = {}) {
+function ask(path: string, method = 'GET', headers: Record<string, string> = {}) {
     return { method, url: `http://localhost${path}`, headers: new Headers(headers) };
 }
 
@@ -45,7 +47,7 @@ function ask(path, method = 'GET', headers = {}) {
  * @param contentType - Type that the extension of its file gives, plain text by default
  * @returns The asset, with its SHA-256 as strong tag, a fixed modification time, and opened counting its opens
  */
-function asset(text, contentType = 'text/plain; charset=utf-8') {
+function asset(text: string, contentType = 'text/plain; charset=utf-8') {
     const bytes = Buffer.from(text);
     const made = {
         etag: `"${sha256(bytes)}"`,
@@ -53,7 +55,7 @@ function asset(text, contentType = 'text/plain; charset=utf-8') {
         size: bytes.length,
         contentType,
         opened: 0,
-        open: async (range) => {
+        open: async (range?: ByteRange) => {
             made.opened++;
 
             return chunked(range ? bytes.subarray(range.start, range.end + 1) : bytes);
@@ -69,8 +71,8 @@ function asset(text, contentType = 'text/plain; charset=utf-8') {
  * @param change - Options that replace the default ones
  * @returns The responder, the logged errors and the options it was made with
  */
-function build(change = {}) {
-    const errors = [];
+function build(change: Partial<ResponderOptions> = {}) {
+    const errors: unknown[][] = [];
     const options = {
         catalog,
         name: 'dropr',
@@ -80,7 +82,7 @@ function build(change = {}) {
         assets: {},
         clientHeader: null,
         rateLimit: { window: 10, client: 100, global: 1000 },
-        logger: { error: (...args) => errors.push(args) },
+        logger: { error: (...args: unknown[]) => errors.push(args) },
         ...change,
     };
 
@@ -93,7 +95,7 @@ function build(change = {}) {
  * @param message - Message of the error that ends the stream
  * @returns A stream whose first pull gives 4 bytes and whose second pull errors
  */
-function cutAfterFour(message) {
+function cutAfterFour(message: string) {
     let pulled = 0;
 
     return new ReadableStream(
@@ -113,7 +115,7 @@ function cutAfterFour(message) {
  * @param answer - Answer whose body is a string, a stream or null
  * @returns The text of the body, empty for null
  */
-async function textOf({ body }) {
+async function textOf({ body }: Answer) {
     if (body === null) return '';
 
     return typeof body === 'string' ? body : (await collect(body)).toString();
@@ -122,7 +124,7 @@ async function textOf({ body }) {
 describe('createResponder', () => {
     test('answers every OPTIONS with the preflight, before the rate limit, on any path', async () => {
         const { respond } = build();
-        let answer;
+        let answer!: Answer;
 
         for (let i = 0; i < 150; i++) answer = await respond(ask('/health', 'OPTIONS'), 'a');
 
@@ -137,7 +139,7 @@ describe('createResponder', () => {
     test('allows GET, HEAD and the range headers, and exposes the validators [change: cors]', async () => {
         const { respond } = build();
         const { headers } = await respond(ask('/', 'OPTIONS'), 'a');
-        const list = (name) => headers[name].split(', ');
+        const list = (name: string) => headers[name].split(', ');
 
         assert.equal(headers['Access-Control-Allow-Origin'], '*');
         assert.deepEqual(list('Access-Control-Allow-Headers'), [
@@ -168,7 +170,7 @@ describe('createResponder', () => {
     test('puts the CORS headers on every answer about an asset', async () => {
         const robots = asset('0123456789');
         const { respond } = build({ assets: { '/robots.txt': robots } });
-        const sent = [
+        const sent: [string, Record<string, string>, number][] = [
             ['GET', {}, 200],
             ['HEAD', {}, 200],
             ['GET', { 'if-none-match': robots.etag }, 304],
@@ -189,10 +191,10 @@ describe('createResponder', () => {
         const memory = () => ({ rss: 1048576, heapUsed: 2097152, heapTotal: 3670016 });
         const { respond } = build({ memory });
         const answer = await respond(ask('/health'), 'a');
-        const health = JSON.parse(answer.body);
+        const health = JSON.parse(answer.body as string);
 
         assert.equal(answer.status, 200);
-        assert.equal(answer.headers['Content-Length'], String(Buffer.byteLength(answer.body)));
+        assert.equal(answer.headers['Content-Length'], String(Buffer.byteLength(answer.body as string)));
         assert.deepEqual(Object.keys(health), ['name', 'status', 'version', 'uptime', 'packages', 'memory']);
         assert.deepEqual([health.name, health.status, health.version], ['dropr', 'ok', '9.9.9']);
         assert.match(health.uptime, /^0h 0m \d+s$/);
@@ -205,7 +207,7 @@ describe('createResponder', () => {
 
     test('leaves the memory out of /health when no reader is given', async () => {
         const { respond } = build();
-        const health = JSON.parse((await respond(ask('/health'), 'a')).body);
+        const health = JSON.parse((await respond(ask('/health'), 'a')).body as string);
 
         assert.equal('memory' in health, false);
     });
@@ -216,12 +218,12 @@ describe('createResponder', () => {
 
         assert.equal(answer.status, 200);
         assert.equal(answer.headers['Cache-Control'], 'public, max-age=300');
-        assert.deepEqual(JSON.parse(answer.body), JSON.parse(JSON.stringify(MANIFEST)));
+        assert.deepEqual(JSON.parse(answer.body as string), JSON.parse(JSON.stringify(MANIFEST)));
     });
 
     test('matches /health and /manifest in lower case only [change: casefold]', async () => {
         const { respond } = build();
-        const status = async (path) => (await respond(ask(path), 'a')).status;
+        const status = async (path: string) => (await respond(ask(path), 'a')).status;
 
         for (const path of ['/HEALTH', '/Health', '/MANIFEST', '/Manifest'])
             assert.equal(await status(path), 404, path);
@@ -235,7 +237,7 @@ describe('createResponder', () => {
         for (const path of ['/health/', '/manifest/', '/health//', '/health/x']) {
             const answer = await respond(ask(path), 'a');
             assert.equal(answer.status, 404, path);
-            assert.equal(JSON.parse(answer.body).message, `Route '${path}' does not exist.`);
+            assert.equal(JSON.parse(answer.body as string).message, `Route '${path}' does not exist.`);
         }
     });
 
@@ -259,7 +261,8 @@ describe('createResponder', () => {
 
     test('names the client by the IP header first and by the address when it is absent or empty', async () => {
         const { respond } = build({ clientHeader: 'x-client' });
-        const last = async (headers) => (await respond(ask('/health', 'GET', headers), 'address')).status;
+        const last = async (headers: Record<string, string>) =>
+            (await respond(ask('/health', 'GET', headers), 'address')).status;
 
         for (let i = 0; i < 101; i++) assert.equal(await last({ 'x-client': `10.0.0.${i}` }), 200);
         for (let i = 0; i < 100; i++) assert.equal(await last({ 'x-client': 'same' }), 200);
@@ -272,7 +275,7 @@ describe('createResponder', () => {
 
     test('counts the address when no header is set, whatever else is forwarded [change: trust]', async () => {
         const { respond } = build();
-        let status;
+        let status: number | undefined;
 
         for (let i = 0; i < 101; i++) {
             const headers = { 'x-forwarded-for': `10.0.0.${i}`, 'x-real-ip': `10.1.0.${i}` };
@@ -285,13 +288,13 @@ describe('createResponder', () => {
 
     test('refuses with the JSON 429 of the limiter, CORS headers included', async () => {
         const { respond } = build();
-        let answer;
+        let answer!: Answer;
 
         for (let i = 0; i < 101; i++) answer = await respond(ask('/health'), 'a');
 
         assert.equal(answer.status, 429);
         assert.equal(answer.headers['Access-Control-Allow-Origin'], '*');
-        assert.equal(JSON.parse(answer.body).error, 'Too Many Requests');
+        assert.equal(JSON.parse(answer.body as string).error, 'Too Many Requests');
     });
 
     test('lets a client through again when its window holds fewer requests than the cap [change: refused]', async (t) => {
@@ -317,7 +320,7 @@ describe('createResponder', () => {
     test('sends Retry-After with a 429, for the client and for the global cap [change: retry]', async (t) => {
         t.mock.timers.enable({ apis: ['Date'], now: 1_000_000 });
         const { respond } = build({ rateLimit: { window: 10, client: 1, global: 3 } });
-        const send = (client) => respond(ask('/health'), client);
+        const send = (client: string) => respond(ask('/health'), client);
 
         const first = await send('a');
         assert.equal(first.status, 200);
@@ -328,7 +331,10 @@ describe('createResponder', () => {
         assert.equal(refused.status, 429);
         assert.equal(refused.headers['Retry-After'], '8');
         assert.match(refused.headers['Access-Control-Expose-Headers'], /(^|, )Retry-After(,|$)/);
-        assert.equal(JSON.parse(refused.body).message, 'You have exceeded the limit of 1 request per 10 seconds.');
+        assert.equal(
+            JSON.parse(refused.body as string).message,
+            'You have exceeded the limit of 1 request per 10 seconds.',
+        );
 
         assert.equal((await send('b')).status, 200);
         assert.equal((await send('c')).status, 200);
@@ -336,7 +342,7 @@ describe('createResponder', () => {
         const full = await send('d');
         assert.equal(full.status, 429);
         assert.equal(full.headers['Retry-After'], '7');
-        assert.equal(JSON.parse(full.body).message, 'Global rate limit exceeded.');
+        assert.equal(JSON.parse(full.body as string).message, 'Global rate limit exceeded.');
     });
 
     test('names a window of one second in the singular and leaves the global cap out when it is null', async () => {
@@ -344,7 +350,10 @@ describe('createResponder', () => {
 
         assert.equal((await respond(ask('/health'), 'a')).status, 200);
         const refused = await respond(ask('/health'), 'a');
-        assert.equal(JSON.parse(refused.body).message, 'You have exceeded the limit of 1 request per second.');
+        assert.equal(
+            JSON.parse(refused.body as string).message,
+            'You have exceeded the limit of 1 request per second.',
+        );
         for (let i = 0; i < 2000; i++) assert.equal((await respond(ask('/health'), `c${i}`)).status, 200);
     });
 
@@ -368,9 +377,9 @@ describe('createResponder', () => {
 
         assert.equal(answer.status, 500);
         assert.equal(answer.headers['Access-Control-Allow-Origin'], '*');
-        assert.equal(JSON.parse(answer.body).message, 'An unexpected error occurred.');
+        assert.equal(JSON.parse(answer.body as string).message, 'An unexpected error occurred.');
         assert.equal(errors.length, 1);
-        assert.match(errors[0][0], /^Error: boom\n/);
+        assert.match(errors[0][0] as string, /^Error: boom\n/);
     });
 
     test('keeps each limiter and start time to its own responder', async () => {
@@ -389,7 +398,8 @@ describe('createResponder', () => {
         t.mock.timers.tick(3_600_000 + 120_000 + 3_000);
         const second = build().respond;
         t.mock.timers.tick(5_000);
-        const uptime = async (respond) => JSON.parse((await respond(ask('/health'), 'a')).body).uptime;
+        const uptime = async (respond: Respond) =>
+            JSON.parse((await respond(ask('/health'), 'a')).body as string).uptime;
 
         assert.equal(await uptime(first), '1h 2m 8s');
         assert.equal(await uptime(second), '0h 0m 5s');
@@ -432,7 +442,7 @@ describe('createResponder, assets', () => {
     test('answers 304 to its tag, 412 to another If-Match, 206 to a range and 416 past the end', async () => {
         const robots = asset('0123456789');
         const { respond } = build({ assets: { [PATH]: robots } });
-        const answerTo = (headers) => respond(ask(PATH, 'GET', headers), 'a');
+        const answerTo = (headers: Record<string, string>) => respond(ask(PATH, 'GET', headers), 'a');
 
         const same = await answerTo({ 'if-none-match': robots.etag });
         assert.deepEqual([same.status, same.body, same.headers['Content-Length']], [304, null, undefined]);
@@ -478,7 +488,7 @@ describe('createResponder, assets', () => {
 
     test('matches the pathname of an asset exactly [change: assetcase]', async () => {
         const { respond } = build({ assets: { [PATH]: asset('ok\n') } });
-        const status = async (path) => (await respond(ask(path), 'a')).status;
+        const status = async (path: string) => (await respond(ask(path), 'a')).status;
 
         assert.equal(await status('/robots.txt?x=1'), 200);
         for (const path of ['/ROBOTS.TXT', '/Robots.txt', '/robots.txt/', '/%72obots.txt', '//robots.txt']) {
@@ -500,7 +510,7 @@ describe('createResponder, assets', () => {
         const answer = await respond(ask(PATH), 'a');
 
         assert.equal(answer.status, 404);
-        assert.equal(JSON.parse(answer.body).message, "Route '/robots.txt' does not exist.");
+        assert.equal(JSON.parse(answer.body as string).message, "Route '/robots.txt' does not exist.");
         assert.deepEqual(errors, [['Asset error on /robots.txt:', 'gone']]);
     });
 
@@ -516,10 +526,10 @@ describe('createResponder, assets', () => {
 
 describe('createResponder, files and archives', () => {
     // Wraps a read port and records the paths and ranges it is asked for
-    const counting = (port) => {
-        const calls = [];
+    const counting = (port: ReadFile) => {
+        const calls: [string, ByteRange | undefined][] = [];
 
-        return { calls, read: (path, range) => (calls.push([path, range]), port(path, range)) };
+        return { calls, read: (path: string, range?: ByteRange) => (calls.push([path, range]), port(path, range)) };
     };
 
     const disk = memoryPort((path) => fs.readFileSync(join(fixture.packagesDir, path)));
@@ -553,7 +563,7 @@ describe('createResponder, files and archives', () => {
         assert.match(answer.headers.Deprecation, /^@\d+$/);
         assert.equal(answer.headers['Access-Control-Allow-Origin'], '*');
         assert.equal(
-            JSON.parse(answer.body).message,
+            JSON.parse(answer.body as string).message,
             "File 'index.js' does not exist in the 1.0.0 version of the 'old' project.",
         );
         assert.deepEqual(errors, [['File error on npm/old/1.0.0/index.js:', 'vanished']]);
@@ -574,7 +584,7 @@ describe('createResponder, files and archives', () => {
         const answer = await respond(ask(FILE), 'a');
 
         await assert.rejects(textOf(answer));
-        assert.match(errors[0][1], /ended 19 bytes before the expected 24$/);
+        assert.match(errors[0][1] as string, /ended 19 bytes before the expected 24$/);
     });
 
     test('logs an archive that fails, under the key of its version', async () => {
@@ -597,7 +607,7 @@ describe('createResponder, files and archives', () => {
                 });
             const { respond, errors } = build({ read: open });
             const answer = await respond(ask(FILE), 'a');
-            const reader = answer.body.getReader();
+            const reader = (answer.body as ReadableStream<Uint8Array>).getReader();
 
             if (pending) void reader.read().catch(() => undefined);
             await eventually(() => false, 20);
@@ -619,7 +629,7 @@ describe('createHandler', () => {
         assert.equal(await response.text(), 'export default "1.2.0";\n');
         assert.equal(response.headers.get('content-type'), 'text/javascript; charset=utf-8');
         assert.equal(response.headers.get('access-control-allow-origin'), '*');
-        assert.match(response.headers.get('etag'), /^"[0-9a-f]{64}"$/);
+        assert.match(response.headers.get('etag') as string, /^"[0-9a-f]{64}"$/);
     });
 
     test('answers a range, a JSON listing, a preflight and a HEAD', async () => {
@@ -640,7 +650,8 @@ describe('createHandler', () => {
 
     test('counts the address given as the client, and the IP header before it', async () => {
         const handler = createHandler({ ...build().options, clientHeader: 'x-client' });
-        const send = (headers) => handler(new Request('http://localhost/health', { headers }), 'address');
+        const send = (headers: Record<string, string>) =>
+            handler(new Request('http://localhost/health', { headers }), 'address');
 
         for (let i = 0; i < 100; i++) await send({});
         assert.equal((await send({})).status, 429);

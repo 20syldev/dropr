@@ -3,9 +3,9 @@ import fs from 'fs';
 import { describe, test } from 'node:test';
 import { join } from 'path';
 
-import { caseName, CASES } from './cases.mjs';
-import { CHANGES } from './changes.mjs';
-import { rootDir } from './server.mjs';
+import { caseName, CASES } from './cases.ts';
+import { CHANGES } from './changes.ts';
+import { rootDir } from './server.ts';
 
 const ids = CHANGES.map(({ id }) => id);
 
@@ -21,7 +21,10 @@ describe('changes ledger', () => {
 
     test('every tagged case names an id of the ledger', () => {
         for (const entry of CASES.filter(({ change }) => change !== undefined)) {
-            assert.ok(ids.includes(entry.change), `${caseName(entry)} has the unknown change ${entry.change}`);
+            assert.ok(
+                ids.includes(entry.change as string),
+                `${caseName(entry)} has the unknown change ${entry.change}`,
+            );
         }
     });
 
@@ -51,7 +54,7 @@ describe('changes ledger', () => {
     });
 
     test('no case is tagged with a decision that keeps the old behaviour', () => {
-        const kept = CHANGES.filter(({ decision }) => decision === 'keep').map(({ id }) => id);
+        const kept: (string | undefined)[] = CHANGES.filter(({ decision }) => decision === 'keep').map(({ id }) => id);
 
         assert.deepEqual(CASES.filter(({ change }) => kept.includes(change)).map(caseName), []);
     });

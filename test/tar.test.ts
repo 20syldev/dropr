@@ -8,10 +8,11 @@ import zlib from 'zlib';
 
 import { archiveEntries, archiveStream } from '../dist/lib/archive.js';
 import { loadIndex } from '../dist/lib/packages.js';
+import type { IndexDir, IndexFile, IndexLink, IndexVersion, TarEntry } from '../dist/types/index.js';
 
-import { memoryPort } from './port.mjs';
-import { sha256 } from './server.mjs';
-import { collect, readArchive } from './tar.mjs';
+import { memoryPort } from './port.ts';
+import { sha256 } from './server.ts';
+import { collect, readArchive } from './tar.ts';
 
 // Release date of the archived version, which every entry carries whatever the dates of its files
 const RELEASE = '2025-03-01';
@@ -47,9 +48,9 @@ const version = loadIndex({
     format: 2,
     types: [{ name: 'npm', projects: [{ name: 'tool', versions: [release(RELEASE)] }] }],
 })
-    .types.get('npm')
-    .projects.get('tool')
-    .versions.get('1.0.0');
+    .types.get('npm')!
+    .projects.get('tool')!
+    .versions.get('1.0.0')!;
 
 // Entries of the archive of the version, as the download routes stream them
 const entries = archiveEntries(version);
@@ -60,7 +61,7 @@ const entries = archiveEntries(version);
  * @param path - Path of the file under the version folder
  * @returns Nothing for the file named empty, else the path followed by a newline
  */
-function contentOf(path) {
+function contentOf(path: string): Buffer {
     return Buffer.from(path === 'empty' ? '' : `${path}\n`);
 }
 
@@ -71,12 +72,12 @@ function contentOf(path) {
  * @param exec - Whether the owner may execute it, false by default
  * @returns The file node
  */
-function file(path, exec = false) {
+function file(path: string, exec = false): IndexFile {
     const content = contentOf(path);
 
     return {
         kind: 'file',
-        name: path.split('/').at(-1),
+        name: path.split('/').at(-1) as string,
         size: content.length,
         exec,
         sha256: sha256(content),
@@ -90,7 +91,7 @@ function file(path, exec = false) {
  * @param entries - Nodes of the folder in byte order
  * @returns The folder node
  */
-function folder(name, entries) {
+function folder(name: string, entries: IndexDir['entries']): IndexDir {
     return { kind: 'dir', name, entries };
 }
 
@@ -102,7 +103,7 @@ function folder(name, entries) {
  * @param real - Real target relative to the version folder, left out when it leads nowhere
  * @returns The link node
  */
-function link(name, target, real) {
+function link(name: string, target: string, real?: string): IndexLink {
     return real === undefined ? { kind: 'link', name, target } : { kind: 'link', name, target, real };
 }
 
@@ -112,7 +113,7 @@ function link(name, target, real) {
  * @param date - Release date, a YYYY-MM-DD day
  * @returns The version node
  */
-function release(date) {
+function release(date: string): IndexVersion {
     return { name: '1.0.0', date, root: folder('1.0.0', ROOT) };
 }
 
@@ -126,6 +127,27 @@ function release(date) {
 const read = memoryPort((source) => contentOf(source.slice('npm/tool/1.0.0/'.length)));
 
 /**
+ * A header block of an uncompressed archive as headers() lists it.
+ */
+interface Header {
+    type: string;
+    name: Buffer;
+    prefix: Buffer;
+    owner: string;
+    names: string;
+    mtime: number;
+}
+
+/**
+ * What the system tar printed and its exit status.
+ */
+interface TarRun {
+    status: number | null;
+    stdout: string;
+    stderr: string;
+}
+
+/**
  * Reads a NUL-terminated field of a tar header as raw bytes.
  *
  * @param block - 512-byte header block
@@ -133,7 +155,7 @@ const read = memoryPort((source) => contentOf(source.slice('npm/tool/1.0.0/'.len
  * @param length - Field width in bytes
  * @returns The bytes before the first NUL, the whole field when it has none
  */
-function field(block, start, length) {
+function field(block: Buffer, start: number, length: number): Buffer {
     const value = block.subarray(start, start + length);
     const end = value.indexOf(0);
 
@@ -148,7 +170,7 @@ function field(block, start, length) {
  * @param length - Field width in bytes
  * @returns The octal digits of the field as a number, NaN when the field is blank
  */
-function octal(block, start, length) {
+function octal(block: Buffer, start: number, length: number): number {
     return parseInt(field(block, start, length).toString(), 8);
 }
 
@@ -159,13 +181,13 @@ function octal(block, start, length) {
  * @returns Per header its typeflag, its name and prefix fields as raw bytes, its uid/gid and uname/gname pairs and
  * its mtime in seconds
  */
-function headers(bytes) {
-    const found = [];
+function headers(bytes: Buffer): Header[] {
+    const found: Header[] = [];
     for (let offset = 0; offset < bytes.length && bytes[offset] !== 0;) {
         const block = bytes.subarray(offset, offset + 512);
 
         found.push({
-            type: String.fromCharCode(block[156]),
+            type: String.fromCharCode(block[156]!),
             name: field(block, 0, 100),
             prefix: field(block, 345, 155),
             owner: `${octal(block, 108, 8)}/${octal(block, 116, 8)}`,
@@ -184,7 +206,7 @@ function headers(bytes) {
  * @param entry - Archive entry, its kind giving the leading letter
  * @returns Ten characters, such as drwxr-xr-x or -rw-r--r--
  */
-function permissions({ kind, mode }) {
+function permissions({ kind, mode }: TarEntry): string {
     const bits = [...mode.toString(2).padStart(9, '0')].map((bit, i) => (bit === '1' ? 'rwx'[i % 3] : '-'));
 
     return `${{ dir: 'd', file: '-', link: 'l' }[kind]}${bits.join('')}`;
@@ -197,7 +219,7 @@ function permissions({ kind, mode }) {
  * @param archive - Gzipped tar bytes given on stdin
  * @returns The exit status, stdout and stderr as UTF-8 text
  */
-function systemTar(args, archive) {
+function systemTar(args: string[], archive: Buffer): TarRun {
     const env = { ...process.env, TZ: 'UTC', LC_ALL: 'C.UTF-8' };
     const { status, stdout, stderr } = spawnSync('tar', args, { input: archive, env, encoding: 'utf-8' });
 
@@ -211,7 +233,7 @@ function systemTar(args, archive) {
  * @param dir - Extraction folder
  * @param written - Entries of the archive, in archive order; the ones missing on disk are passed over
  */
-function removeExtracted(dir, written) {
+function removeExtracted(dir: string, written: TarEntry[]): void {
     for (const { path } of [...written].reverse()) {
         const target = join(dir, path);
         const stat = fs.lstatSync(target, { throwIfNoEntry: false });
@@ -291,12 +313,12 @@ describe('archiveStream', () => {
         assert.equal(found.length - ustar.length, 5);
 
         const split = ustar.find(({ name }) => name.toString() === 'e'.repeat(100));
-        assert.equal(split.prefix.toString(), `1.0.0/${SPLIT}`);
-        assert.equal(ustar.find(({ name }) => name.toString() === 'c'.repeat(95)).prefix.toString(), '1.0.0');
+        assert.equal(split!.prefix.toString(), `1.0.0/${SPLIT}`);
+        assert.equal(ustar.find(({ name }) => name.toString() === 'c'.repeat(95))!.prefix.toString(), '1.0.0');
 
         const accented = ustar.find(({ name }) => name.toString().startsWith('1.0.0/x'));
-        const kept = new TextDecoder('utf-8', { fatal: true }).decode(accented.name);
-        assert.equal(accented.name.length, 99);
+        const kept = new TextDecoder('utf-8', { fatal: true }).decode(accented!.name);
+        assert.equal(accented!.name.length, 99);
         assert.ok(`1.0.0/x${'\u00e9'.repeat(60)}`.startsWith(kept));
     });
 
@@ -324,7 +346,7 @@ describe('archiveStream', () => {
         const listed = stdout
             .trimEnd()
             .split('\n')
-            .map((line) => /^(\S{10}) (\S+) +(\d+) (\S+ \S+) (.*)$/.exec(line).slice(1));
+            .map((line) => /^(\S{10}) (\S+) +(\d+) (\S+ \S+) (.*)$/.exec(line)!.slice(1));
         const expected = entries.map((entry) => {
             const name = entry.kind === 'link' ? `${entry.path} -> ${entry.target}` : entry.path;
             return [permissions(entry), '0/0', String(entry.size), `${RELEASE} 00:00:00`, name];
@@ -374,7 +396,15 @@ describe('archiveStream', () => {
 
     test('a file of 8 GiB or more errors the stream before it is read', async () => {
         const size = 8 * 1024 ** 3;
-        const huge = { kind: 'file', path: 'huge.bin', mode: 0o644, mtime: 0, size, target: null, source: 'huge.bin' };
+        const huge: TarEntry = {
+            kind: 'file',
+            path: 'huge.bin',
+            mode: 0o644,
+            mtime: 0,
+            size,
+            target: null,
+            source: 'huge.bin',
+        };
 
         await assert.rejects(collect(archiveStream([huge], () => assert.fail('nothing is read'))), RangeError);
     });

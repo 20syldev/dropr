@@ -3,12 +3,14 @@ import fs from 'fs';
 import { after, before, describe, test } from 'node:test';
 import { join } from 'path';
 
-import { createFixture } from './fixture.mjs';
-import { request, sha256, startServer } from './server.mjs';
+import { createFixture } from './fixture.ts';
+import type { Fixture } from './fixture.ts';
+import { request, sha256, startServer } from './server.ts';
+import type { TestServer } from './server.ts';
 
 describe('ETag of a file', () => {
-    let fixture;
-    let server;
+    let fixture: Fixture;
+    let server: TestServer;
 
     /**
      * Fetches the ETag header of a file of the fixture.
@@ -16,12 +18,12 @@ describe('ETag of a file', () => {
      * @param path - Request target of the file, which must answer 200
      * @returns The header as sent, quotes included
      */
-    async function etagOf(path) {
+    async function etagOf(path: string): Promise<string> {
         const response = await request(server.port, 'GET', path);
 
         assert.equal(response.status, 200, path);
 
-        return response.headers.etag;
+        return response.headers.etag as string;
     }
 
     before(async () => {
@@ -44,7 +46,8 @@ describe('ETag of a file', () => {
 
     test('equals the checksum of ?checksums for every file of a version', async () => {
         for (const path of ['/npm/lib@1.2.0', '/npm/lib@1.0.0', '/npm/links@1.0.0', '/bash/gft@1.2.0']) {
-            const sums = JSON.parse((await request(server.port, 'GET', `${path}?checksums`)).body).checksums;
+            const sums = JSON.parse((await request(server.port, 'GET', `${path}?checksums`)).body.toString())
+                .checksums as Record<string, string>;
             const files = Object.entries(sums);
 
             assert.ok(files.length > 0, path);
@@ -78,7 +81,8 @@ describe('ETag of a file', () => {
     test('answers 304 to its own tag, a list or a weak copy, and 200 to another tag', async () => {
         const path = '/npm/lib@1.2.0/index.js';
         const etag = await etagOf(path);
-        const status = async (value) => (await request(server.port, 'GET', path, { 'if-none-match': value })).status;
+        const status = async (value: string) =>
+            (await request(server.port, 'GET', path, { 'if-none-match': value })).status;
 
         assert.equal(await status(etag), 304);
         assert.equal(await status(`"other", ${etag}`), 304);
@@ -101,7 +105,7 @@ describe('ETag of a file', () => {
     test('works as the validator of If-Match and If-Range', async () => {
         const path = '/npm/lib@1.2.0/index.js';
         const etag = await etagOf(path);
-        const send = (headers) => request(server.port, 'GET', path, headers);
+        const send = (headers: Record<string, string>) => request(server.port, 'GET', path, headers);
 
         assert.equal((await send({ 'if-match': etag })).status, 200);
         assert.equal((await send({ 'if-match': '"other"' })).status, 412);
@@ -116,8 +120,8 @@ describe('ETag of a file', () => {
 describe('Last-Modified of a file', () => {
     const path = '/npm/lib@1.2.0/index.js';
     const released = 'Thu, 01 May 2025 00:00:00 GMT';
-    let fixture;
-    let server;
+    let fixture: Fixture;
+    let server: TestServer;
 
     before(async () => {
         fixture = createFixture();
@@ -130,19 +134,21 @@ describe('Last-Modified of a file', () => {
     });
 
     test('is the release day of the version at 00:00:00 GMT, whatever the date of the file', async () => {
-        const send = (method, headers) => request(server.port, method, path, headers);
+        const send = (method: string, headers?: Record<string, string>) => request(server.port, method, path, headers);
 
         assert.equal((await send('GET')).headers['last-modified'], released);
         assert.equal((await send('HEAD')).headers['last-modified'], released);
         assert.equal((await send('GET', { range: 'bytes=0-5' })).headers['last-modified'], released);
         assert.equal(
-            (await send('GET', { 'if-none-match': (await send('GET')).headers.etag })).headers['last-modified'],
+            (await send('GET', { 'if-none-match': (await send('GET')).headers.etag as string })).headers[
+                'last-modified'
+            ],
             released,
         );
     });
 
     test('is the validator of If-Modified-Since and If-Unmodified-Since', async () => {
-        const send = (headers) => request(server.port, 'GET', path, headers);
+        const send = (headers: Record<string, string>) => request(server.port, 'GET', path, headers);
 
         assert.equal((await send({ 'if-modified-since': released })).status, 304);
         assert.equal((await send({ 'if-modified-since': 'Wed, 30 Apr 2025 23:59:59 GMT' })).status, 200);

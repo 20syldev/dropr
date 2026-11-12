@@ -1,3 +1,5 @@
+import type { ByteRange, ReadFile } from '../dist/types/index.js';
+
 /**
  * Streams bytes in chunks, as a read port does.
  *
@@ -5,10 +7,10 @@
  * @param size - Chunk length, 5 bytes by default so that a read crosses many chunks
  * @returns A byte stream that ends after the last chunk
  */
-export function chunked(bytes, size = 5) {
+export function chunked(bytes: Uint8Array, size = 5): ReadableStream<Uint8Array<ArrayBuffer>> {
     let at = 0;
 
-    return new ReadableStream({
+    return new ReadableStream<Uint8Array<ArrayBuffer>>({
         pull(controller) {
             if (at >= bytes.length) return controller.close();
 
@@ -25,8 +27,8 @@ export function chunked(bytes, size = 5) {
  * @param options - size, the chunk length given to chunked()
  * @returns The port, which rejects with a RangeError for a range past the end of the file
  */
-export function memoryPort(read, { size } = {}) {
-    return async (path, range) => {
+export function memoryPort(read: (path: string) => Uint8Array, { size }: { size?: number } = {}): ReadFile {
+    return async (path: string, range?: ByteRange) => {
         const bytes = read(path);
         if (range && range.end >= bytes.length) throw new RangeError(`${path} has ${bytes.length} bytes`);
 
@@ -41,7 +43,7 @@ export function memoryPort(read, { size } = {}) {
  * @param limit - Longest wait in milliseconds, 5 seconds by default, so that a loaded machine does not fail it
  * @returns True when the condition held in time, false otherwise
  */
-export async function eventually(check, limit = 5000) {
+export async function eventually(check: () => boolean, limit = 5000): Promise<boolean> {
     const end = Date.now() + limit;
     while (!check()) {
         if (Date.now() > end) return false;
