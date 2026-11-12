@@ -38,7 +38,7 @@ export default tseslint.config(
         },
     },
     {
-        files: ['src/lib/**/*.ts', 'src/manifest.ts', 'src/types/index.ts'],
+        files: ['src/core.ts', 'src/lib/**/*.ts', 'src/manifest.ts', 'src/types/index.ts'],
         rules: {
             'no-restricted-imports': ['error', { paths: SERVER_MODULES, patterns: ['node:*'] }],
             'no-restricted-globals': ['error', ...SERVER_GLOBALS, ...BROWSER_GLOBALS],

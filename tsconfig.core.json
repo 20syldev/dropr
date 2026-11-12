@@ -5,5 +5,5 @@
         "types": [],
         "noEmit": true
     },
-    "include": ["src/lib/**/*.ts", "src/manifest.ts", "src/types/index.ts"]
+    "include": ["src/core.ts", "src/lib/**/*.ts", "src/manifest.ts", "src/types/index.ts"]
 }
