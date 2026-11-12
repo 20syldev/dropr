@@ -81,7 +81,20 @@ describe('parseConfig', () => {
             rateLimit: { window: 10, client: 100, global: 1000 },
             manifest: { baseUrl: 'https://cdn.example.com', params: {}, routes: {} },
             assets: {},
+            ui: false,
         });
+    });
+
+    test('the pages are off unless ui is true or false, and nothing else is accepted for it', () => {
+        assert.equal(parseConfig({ ...MINIMAL, ui: true }).ui, true);
+        assert.equal(parseConfig({ ...MINIMAL, ui: false }).ui, false);
+
+        for (const bad of ['yes', 1, 0, null, {}, []]) {
+            assert.throws(
+                () => parseConfig({ ...MINIMAL, ui: bad }),
+                /^Error: Invalid config: ui must be true or false$/,
+            );
+        }
     });
 
     test('manifest overrides are kept as written, the English defaults being merged in by buildManifest', () => {

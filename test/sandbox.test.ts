@@ -99,7 +99,14 @@ describe('the core without Node', () => {
     test('reaches the router, the archive writer and the limiter, so the walk sees the whole graph', () => {
         const paths = [...reach.files];
 
-        for (const path of ['dist/lib/route.js', 'dist/lib/archive.js', 'dist/lib/respond.js']) {
+        for (const path of [
+            'dist/lib/route.js',
+            'dist/lib/archive.js',
+            'dist/lib/respond.js',
+            'dist/lib/ui.js',
+            'dist/lib/pages.js',
+            'dist/lib/markdown.js',
+        ]) {
             assert.ok(paths.includes(join(rootDir, path)), path);
         }
         assert.ok(paths.includes(LIMITER));
@@ -127,6 +134,23 @@ describe('the core without Node', () => {
             ['lib'],
         );
         assert.equal(JSON.parse(bytesOf(manifest).toString()).baseUrl, 'https://cdn.example.com');
+    });
+
+    test('answers a browser with pages, the README rendered, and the data to a client that wants it', () => {
+        const { home, project, folder, missing, data } = result.answers;
+
+        assert.deepEqual([home.status, project.status, folder.status, missing.status], [200, 200, 200, 404]);
+        for (const answer of [home, project, folder, missing]) {
+            assert.equal(answer.headers['content-type'], 'text/html; charset=utf-8');
+            assert.equal(answer.headers.vary, 'Accept');
+            assert.equal(answer.headers['content-length'], String(bytesOf(answer).length));
+        }
+        assert.match(bytesOf(home).toString(), /<h2><a href="\/npm">npm<\/a><\/h2>/);
+        assert.match(bytesOf(project).toString(), /<h2>README<\/h2>\n<h3 id="gft">gft<\/h3>/);
+        assert.match(bytesOf(folder).toString(), /<h1>lib@1\.2\.0\/dist<\/h1>/);
+        assert.match(bytesOf(missing).toString(), /Package type &#39;nope&#39; does not exist\./);
+        assert.match(String(data.headers['content-type']), /^application\/json/);
+        assert.equal(data.headers.vary, 'Accept');
     });
 
     test('serves a file whole, a range of it, a conditional hit and a HEAD', () => {

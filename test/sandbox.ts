@@ -26,6 +26,7 @@ export interface SandboxHeaders {
     'content-range': string | null;
     'retry-after': string | null;
     allow: string | null;
+    vary: string | null;
 }
 
 /**
@@ -53,6 +54,11 @@ export interface SandboxAnswers {
     archive: SandboxAnswer;
     absent: SandboxAnswer;
     limited: SandboxAnswer;
+    home: SandboxAnswer;
+    project: SandboxAnswer;
+    folder: SandboxAnswer;
+    missing: SandboxAnswer;
+    data: SandboxAnswer;
 }
 
 /**
@@ -181,7 +187,7 @@ async function ask(
     address: string = ADDRESS,
 ): Promise<SandboxAnswer> {
     const response = await handler(new Request(`http://localhost${path}`, init), address);
-    const names = ['content-type', 'content-length', 'etag', 'content-range', 'retry-after', 'allow'];
+    const names = ['content-type', 'content-length', 'etag', 'content-range', 'retry-after', 'allow', 'vary'];
     const headers = Object.fromEntries(
         names.map((name) => [name, response.headers.get(name)]),
     ) as unknown as SandboxHeaders;
@@ -244,11 +250,20 @@ async function run(entries: string[]): Promise<SandboxRun> {
                 FILE,
             ),
         };
+        const pages = core.createHandler({ ...options, ui: true });
+        const browser = { headers: { accept: 'text/html' } };
+        const ui = {
+            home: await ask(pages, '/', browser),
+            project: await ask(pages, '/bash/gft', browser),
+            folder: await ask(pages, '/npm/lib@1.2.0/dist/', browser),
+            missing: await ask(pages, '/nope', browser),
+            data: await ask(pages, '/npm/lib', { headers: { accept: 'application/json' } }),
+        };
         const strict = core.createHandler({ ...options, rateLimit: { window: 10, client: 2, global: null } });
         for (let count = 0; count < 2; count++) await ask(strict, '/health');
         const limited = await ask(strict, '/health');
 
-        return { missing, answers: { ...answers, limited } };
+        return { missing, answers: { ...answers, limited, ...ui } };
     } finally {
         fixture.remove();
     }
