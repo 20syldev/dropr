@@ -122,6 +122,7 @@ export function createApp(config: Config, deps: AppDeps): RequestListener {
         rateLimit: config.rateLimit,
         memory: process.memoryUsage,
         logger,
+        ui: config.ui,
     });
 
     return (req, res) => {
