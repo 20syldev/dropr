@@ -47,11 +47,12 @@ pre { background: var(--surface); border: 1px solid var(--line); border-radius: 
 pre code { background: none; border: 0; padding: 0; }
 .top { display: flex; flex-wrap: wrap; gap: 0.75rem 1.5rem; align-items: center; justify-content: space-between; max-width: 46rem; margin: 0 auto; padding: 1.25rem 1rem 0; }
 .brand { font-weight: 800; font-size: 1.35rem; letter-spacing: -0.03em; color: var(--ink); text-decoration: none; }
+.logo { height: 1.5em; width: auto; max-width: 8em; vertical-align: -0.3em; margin-right: 0.5rem; }
 .search { position: relative; flex: 0 1 15rem; min-width: 0; }
 .search input { width: 100%; padding: 0.3rem 2.2rem 0.3rem 0.85rem; font-size: 0.9rem; line-height: 1.4; border-radius: 999px; -webkit-appearance: none; appearance: none; }
 .search input::placeholder { color: var(--muted); }
 .search input::-webkit-search-cancel-button { -webkit-appearance: none; }
-.search input:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+.search input:focus { outline: 2px solid var(--ring, var(--accent)); outline-offset: 1px; border-color: transparent; }
 @media (pointer: coarse) { .search input { font-size: 1rem; } }
 .search button { position: absolute; top: 50%; right: 0.2rem; transform: translateY(-50%); display: grid; place-items: center; width: 1.65rem; height: 1.65rem; padding: 0; border-radius: 50%; background: none; color: var(--muted); transition: color 0.15s, background-color 0.15s; }
 .search button:hover, .search button:focus-visible { color: var(--accent-ink); background: var(--accent); }

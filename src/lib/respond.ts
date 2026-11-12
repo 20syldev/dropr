@@ -20,6 +20,7 @@ import { conditionsOf, decide } from './http.js';
 import { countPackages } from './packages.js';
 import { failure, INTERNAL, route } from './route.js';
 import { exact, watch } from './stream.js';
+import { styleOf, uiOf } from './theme.js';
 import { uiResult } from './ui.js';
 
 type Source = ReadableStream<Uint8Array<ArrayBuffer>>;
@@ -268,8 +269,21 @@ export function createResponder(options: ResponderOptions): Respond {
     };
 
     const baseUrl = options.manifest.baseUrl;
-    const pages = options.ui
-        ? { catalog, site: { name: options.name, version: options.version, baseUrl }, read, logger }
+    const ui = uiOf(options.ui);
+    const pages = ui
+        ? {
+              catalog,
+              site: {
+                  name: options.name,
+                  version: options.version,
+                  baseUrl,
+                  style: styleOf(ui.accent),
+                  logo: ui.logo,
+                  favicon: ui.favicon,
+              },
+              read,
+              logger,
+          }
         : null;
 
     return async (request, address) => {

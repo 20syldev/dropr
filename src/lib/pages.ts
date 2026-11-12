@@ -18,6 +18,9 @@ export interface SiteInfo {
     name: string;
     version: string;
     baseUrl: string;
+    style?: string;
+    logo?: string | null;
+    favicon?: string | null;
 }
 
 // Where the footer sends the reader: the home of dropr
@@ -72,7 +75,7 @@ function mark(kind: 'dep' | 'pre' | 'latest', text: string): string {
 /**
  * Writes a whole page around some content.
  *
- * @param site - Name and version of the server
+ * @param site - Name, version and look of the server
  * @param title - Title of the page, which the name of the server follows
  * @param body - HTML of the main part, already escaped
  * @param query - Text of the search box
@@ -88,11 +91,11 @@ function layout(site: SiteInfo, title: string, body: string, query = ''): string
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${heading}</title>
-<style>${STYLE}</style>
-</head>
+<style>${site.style ?? STYLE}</style>
+${site.favicon ? `<link rel="icon" href="${escapeHtml(site.favicon)}">\n` : ''}</head>
 <body>
 <header class="top">
-<a class="brand" href="/">${name}</a>
+<a class="brand" href="/">${site.logo ? `<img class="logo" src="${escapeHtml(site.logo)}" alt="">` : ''}${name}</a>
 <form class="search" action="/search" method="get" role="search">
 <input type="search" name="q" value="${escapeHtml(query)}" placeholder="Search packages" aria-label="Search packages">
 <button type="submit" aria-label="Search">${LENS}</button>
