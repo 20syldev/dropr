@@ -13,6 +13,8 @@ and needs no database.
   or a partial version for 5 minutes.
 - JSON listings, SHA-256 checksums (`?checksums`), a reproducible `.tar.gz` archive (`?download`), a changelog with
   release dates, a search, a route manifest (`/manifest`) and a health check (`/health`).
+- Optional pages for browsers (`"ui": true`): the packages by type, a project with its versions and the README of the
+  latest one, a version with its files, and a search, on the same paths as the JSON listings.
 - Deprecated projects (a `.deprecated.json` next to their versions) stay reachable, and every answer of the project
   carries a `Deprecation` header and a `Link` to the successor.
 - Files are served from inside their version folder only: a symlink is followed only when its target stays inside.
@@ -87,7 +89,8 @@ dropr index [config] [--packages ./packages] [--out file]                   # pr
     "clientIp": { "header": "x-real-ip" },
     "rateLimit": { "window": 10, "client": 100, "global": 1000 },
     "manifest": { "baseUrl": "https://dropr.example.com" },
-    "assets": { "/robots.txt": "robots.txt" }
+    "assets": { "/robots.txt": "robots.txt" },
+    "ui": false
 }
 ```
 
@@ -103,6 +106,7 @@ dropr index [config] [--packages ./packages] [--out file]                   # pr
 | `manifest.baseUrl` | required     | Base URL of the instance, `http` or `https`, with no trailing slash; without a config file, `http://localhost:<port>` |
 | `manifest.params`  | `{}`         | Overrides of the texts of `/manifest` (`manifest.routes` does the same per route)                                     |
 | `assets`           | `{}`         | A URL path mapped to the file served there, read at startup                                                           |
+| `ui`               | `false`      | `true` to answer a browser with pages (see Pages); the JSON stays what every other client gets                        |
 
 Unknown keys are refused. Without `clientIp.header` the client is the socket address, and `X-Forwarded-For` is never
 read. A refused request does not count against the limit, and a `429` tells in `Retry-After` how many seconds to wait.
@@ -144,6 +148,34 @@ Assets and `OPTIONS` preflights are answered before the limit and never count ag
 | `/manifest`                             | Description of every route                                        |
 | `/health`                               | Name, status, version, uptime, package count and memory           |
 | Any path listed in `assets`             | The configured file (`GET` and `HEAD`), served before the routes  |
+
+## Pages
+
+With `"ui": true`, a browser gets a page where every other client gets the JSON, from the same URL. The server reads the
+`Accept` header: a page is sent when `text/html` (or `application/xhtml+xml`) is named with a higher quality than
+`application/json`, so `curl`, `fetch()` and scripts, which send `*/*` or no `Accept`, keep the JSON they always had.
+The answers of those paths carry `Vary: Accept`.
+
+| Path                                                          | Page                                                          |
+| ------------------------------------------------------------- | ------------------------------------------------------------- |
+| `/`                                                           | Every type with its first projects, and a search box          |
+| `/search?q=<term>`                                            | The results; an empty search is a page, not a `400`           |
+| `/<type>`                                                     | The projects of the type                                      |
+| `/<type>/<project>`                                           | How to use it, its versions, the deprecation and the README   |
+| `/<type>/<project>@<version>`                                 | The files of the version, its archive and checksums, README   |
+| `/<type>/<project>@<version>/<folder>/`                       | The files of a folder                                         |
+| A missing route, type, project or version, a bad percent code | A page with the same message as the JSON error and its status |
+
+Files are never pages: a file, a missing file, `?checksums`, `?download`, `/manifest`, `/health` and `/download` answer
+as before, and a file keeps one form and one cache entry. The pages of a deprecated project carry its `Deprecation` and
+`Link` headers, as its JSON does. The README is the `README.md` (or `README.markdown`) at the
+root of a version, up to 256 KiB, rendered by a Markdown reader of its own that writes raw HTML as text, drops comments
+and follows only `http`, `https` and `mailto` links; relative addresses resolve against the version, so a relative image
+shows the file of the version. A README that cannot be read is left out and logged.
+
+A page is one document with its style inline, no script and no font, and carries a `Content-Security-Policy` that allows
+nothing else (images of a README may come from `https`), `nosniff` and `Referrer-Policy: same-origin`. Its look is
+neutral for now: the name from the config is its title, and it shows no logo.
 
 ## Use as a library
 
@@ -194,7 +226,8 @@ const response = await handler(new Request('http://localhost/health'), '127.0.0.
 The second argument is the address of the client. `loadIndex` takes the index that `scan` builds or one read from a JSON
 file, and `read(path, range?)` is any function that returns a stream of the file; `createReader` is the one over a
 folder. `createResponder` takes the same options and returns the status, headers and body without building a `Response`.
-`parseConfig` and the types of the API are exported too.
+Add `ui: true` to the options to answer a browser with the pages, the READMEs being read through `read`. `parseConfig` and
+the types of the API are exported too.
 
 ### Without Node
 
@@ -227,7 +260,7 @@ Node.js, strict TypeScript (ESM), [@moxon/limiter](https://github.com/moxondev/l
 ## Structure
 
 ```
-src/lib/        Node-free core: router, routes, packages, semver, checksums, HTTP rules, CORS, tar archive, responder
+src/lib/        Node-free core: router, routes, packages, semver, checksums, HTTP rules, CORS, tar archive, responder, pages, Markdown
 src/            Command line and Node adapter: bin, cli, serve, check, indexer, folder, stored, startup, app, scan, assets, config, disk, index
 src/manifest.ts Route texts of /manifest, also Node-free
 src/core.ts     Entry of the core alone, exported as dropr/core
