@@ -55,9 +55,9 @@ curl -OJ http://localhost:4000/download/bash/hello@1.0.6  # the whole version, a
 ## Command line
 
 ```bash
-dropr serve [config] [--port 4000] [--packages ./packages]   # index the packages and listen
-dropr check [config] [--packages ./packages]                 # check the config and the packages
-dropr index [config] [--packages ./packages] [--out file]    # print the index of the packages as JSON
+dropr serve [config] [--port 4000] [--packages ./packages] [--index file]   # index the packages and listen
+dropr check [config] [--packages ./packages]                                # check the config and the packages
+dropr index [config] [--packages ./packages] [--out file]                   # print the index of the packages as JSON
 ```
 
 - The config is the file named, else `dropr.config.json` of the working folder, else the defaults. A named file must
@@ -69,6 +69,10 @@ dropr index [config] [--packages ./packages] [--out file]    # print the index o
   is not a folder or cannot be read, while `serve` only logs `No packages folder at ...` and starts with an empty index;
   entries `check` skips are only reported. `index` exits with `1` in those two cases too, and when `--out` cannot be
   written; `--port` belongs to `serve` and `--out` to `index`.
+- `serve --index file` serves an index written by `dropr index` instead of scanning at startup. Each file of the index
+  is looked at once, without being read, and the server refuses to start (exit `1`, the first problems named) when a file
+  is missing, is not a regular file or has another size. A change of content that keeps the size, and a file the index
+  does not list, go unnoticed: write the index again after any change of the folder.
 - `index` prints the index that `serve` builds at startup, or writes it to `--out` (relative to the working folder, its
   folders made when missing, outside the packages folder). What the scan skips goes to the error output and stays out of the index, which is read back
   through `loadIndex` before it is printed, so the same tree gives the same bytes.
@@ -224,7 +228,7 @@ Node.js, strict TypeScript (ESM), [@moxon/limiter](https://github.com/moxondev/l
 
 ```
 src/lib/        Node-free core: router, routes, packages, semver, checksums, HTTP rules, CORS, tar archive, responder
-src/            Command line and Node adapter: bin, cli, serve, check, indexer, folder, startup, app, scan, assets, config, disk, index
+src/            Command line and Node adapter: bin, cli, serve, check, indexer, folder, stored, startup, app, scan, assets, config, disk, index
 src/manifest.ts Route texts of /manifest, also Node-free
 src/core.ts     Entry of the core alone, exported as dropr/core
 test/           Snapshots on a generated tree, unit and HTTP tests, the ledger of decided changes of a release
