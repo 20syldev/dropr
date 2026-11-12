@@ -10,6 +10,7 @@ import { scan } from '../dist/scan.js';
 import type { Catalog, CatalogProject, Match, Site } from '../dist/types/index.js';
 
 import { createFixture, SITE } from './fixture.ts';
+import { mulberry32 } from './random.ts';
 
 // Fields that some matches carry, read together by decodedParts
 interface DecodedFields {
@@ -68,24 +69,6 @@ const WORDS = [
     ...['', '.', '..', '%2e', '%2e%2e', '%2F', '%5C', '%00', '%0A', '%E0', '%', '@', 'lib@', '@1.0.0', 'x@y@z', 'NPM'],
     ...['folder', 'loop', 'inside', 'outside', 'dangling', 'file.js', 'a%2Fb', '%252e', '\\', 'a\\b', '#x', '?x'],
 ];
-
-/**
- * Builds a seeded random generator, so that a failure of a random test can be replayed.
- *
- * @param seed - Integer that fixes the whole sequence
- * @returns A function that gives the next number from 0 included to 1 excluded
- */
-function mulberry32(seed: number): () => number {
-    let state = seed;
-
-    return () => {
-        state = (state + 0x6d2b79f5) | 0;
-        let t = Math.imul(state ^ (state >>> 15), 1 | state);
-        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-
-        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
-}
 
 /**
  * Picks one item of a list.
