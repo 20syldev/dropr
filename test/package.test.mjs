@@ -22,6 +22,9 @@ const API = [
     'scanAssets',
 ];
 
+// Exports of the entry that needs no Node, all of them also exported by the main entry
+const CORE = ['buildManifest', 'createHandler', 'createResponder', 'loadIndex', 'parseConfig'];
+
 /**
  * Lists what npm would put in the tarball, without building nor writing anything.
  *
@@ -55,6 +58,8 @@ describe('the package', () => {
             'dist/bin.js',
             'dist/index.js',
             'dist/index.d.ts',
+            'dist/core.js',
+            'dist/core.d.ts',
         ]) {
             assert.ok(files.includes(path), `${path} is not in the tarball`);
         }
@@ -71,7 +76,13 @@ describe('the package', () => {
     });
 
     test('points its entries at files of the tarball, the command starting with a shebang', () => {
-        const targets = [manifest.main, manifest.types, manifest.bin.dropr, ...Object.values(manifest.exports['.'])];
+        const targets = [
+            manifest.main,
+            manifest.types,
+            manifest.bin.dropr,
+            ...Object.values(manifest.exports['.']),
+            ...Object.values(manifest.exports['./core']),
+        ];
 
         for (const target of targets) assert.ok(files.includes(target.replace(/^\.\//, '')), target);
         assert.ok(fs.readFileSync(join(rootDir, 'dist', 'bin.js'), 'utf-8').startsWith('#!/usr/bin/env node\n'));
@@ -91,6 +102,14 @@ describe('the package', () => {
         const entry = await import('../dist/index.js');
 
         assert.deepEqual(Object.keys(entry).sort(), API);
+    });
+
+    test('exports the core entry, which is the same code as the main entry gives', async () => {
+        const core = await import('../dist/core.js');
+        const main = await import('../dist/index.js');
+
+        assert.deepEqual(Object.keys(core).sort(), CORE);
+        for (const name of CORE) assert.equal(core[name], main[name], name);
     });
 
     test('builds a fetch handler from its exports alone', async () => {

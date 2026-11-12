@@ -9,7 +9,7 @@ import { fileURLToPath } from 'url';
 import { rootDir } from './server.mjs';
 import { readArchive } from './tar.mjs';
 
-const ENTRIES = ['dist/lib/respond.js', 'dist/lib/packages.js', 'dist/manifest.js'];
+const ENTRIES = ['dist/core.js'];
 const LIMITER = fileURLToPath(import.meta.resolve('@moxon/limiter'));
 const HELPER = join(rootDir, 'test', 'sandbox.mjs');
 
