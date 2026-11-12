@@ -89,6 +89,8 @@ describe('the command line', () => {
             [['index', '--port', '4000'], /^--port belongs to serve\.\n\nUsage: /],
             [['check', '--out', 'index.json'], /^--out belongs to index\.\n\nUsage: /],
             [['serve', '--out', 'index.json'], /^--out belongs to index\.\n\nUsage: /],
+            [['check', '--index', 'index.json'], /^--index belongs to serve\.\n\nUsage: /],
+            [['index', '--index', 'index.json'], /^--index belongs to serve\.\n\nUsage: /],
             [['index', 'a.json', 'b.json'], /^Only one config file can be named\.\n\nUsage: /],
         ];
 
@@ -445,6 +447,65 @@ describe('the command line', () => {
             assert.equal(code, 0);
         } finally {
             if (fs.existsSync(sibling)) fs.unlinkSync(sibling);
+        }
+    });
+
+    test('lists --index in the usage', async () => {
+        const { out } = await run(['--help'], fixture.root);
+
+        assert.match(out[0], /^ {4}--index <file> {8}Index to serve \(serve\)/m);
+    });
+
+    test('refuses an empty --index, and an index that is missing or does not match the packages, before listening', async () => {
+        const folder = configFolder();
+        const file = join(folder.root, 'index.json');
+
+        try {
+            assert.deepEqual(await run(['serve', '--index', ''], folder.root), {
+                code: 1,
+                out: [],
+                err: ['--index must not be empty.'],
+            });
+
+            const missing = await run(['serve', '--packages', packages, '--index', 'index.json'], folder.root);
+            assert.equal(missing.code, 1);
+            assert.match(missing.err[0], /^Cannot read the index .*ENOENT/);
+            assert.ok(missing.err[0].includes(`index ${file}:`), missing.err[0]);
+
+            await run(['index', '--packages', packages, '--out', file], folder.root);
+            const stale = await run(
+                ['serve', '--packages', join(packages, 'npm'), '--index', 'index.json'],
+                folder.root,
+            );
+            assert.equal(stale.code, 1);
+            assert.deepEqual(stale.out, []);
+            assert.match(stale.err[0], /does not match .*, \d+ problems:\n/);
+        } finally {
+            if (fs.existsSync(file)) fs.unlinkSync(file);
+            folder.remove();
+        }
+    });
+
+    test('refuses an index with a type that an asset of the config takes, as the scan skips it', async () => {
+        const folder = configFolder({
+            packagesDir: packages,
+            manifest: { baseUrl: 'https://cdn.example.com' },
+            assets: { '/config/robots.txt': 'missing.txt' },
+        });
+        const file = join(folder.root, 'index.json');
+
+        try {
+            const written = await run(['index', '--packages', packages, '--out', file], fixture.root);
+            assert.equal(written.code, 0);
+
+            const { code, out, err } = await run(['serve', '--index', file], folder.root);
+
+            assert.equal(code, 1);
+            assert.deepEqual(out, []);
+            assert.match(err[0], /, 1 problem:\nconfig: reserved name\n/);
+        } finally {
+            if (fs.existsSync(file)) fs.unlinkSync(file);
+            folder.remove();
         }
     });
 });
