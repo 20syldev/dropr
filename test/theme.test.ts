@@ -147,8 +147,16 @@ describe('uiOf', () => {
     test('turns the pages off for false and for nothing, and on with no personalization for true', () => {
         assert.equal(uiOf(undefined), null);
         assert.equal(uiOf(false), null);
-        assert.deepEqual(uiOf(true), { accent: null, logo: null, favicon: null });
-        assert.deepEqual(uiOf({}), { accent: null, logo: null, favicon: null });
+        assert.deepEqual(uiOf(true), { accent: null, logo: null, favicon: null, docs: false });
+        assert.deepEqual(uiOf({}), { accent: null, logo: null, favicon: null, docs: false });
+    });
+
+    test('turns the docs on only for the value true', () => {
+        assert.equal(uiOf({ docs: true })?.docs, true);
+        assert.equal(uiOf({ docs: false })?.docs, false);
+        for (const value of ['true', 1, {}, null]) {
+            assert.equal(uiOf({ docs: value as never })?.docs, false, String(value));
+        }
     });
 
     test('keeps a good accent in lower case, a path or an https address, and drops the rest to null', () => {
@@ -156,6 +164,7 @@ describe('uiOf', () => {
             accent: '#ff4a1c',
             logo: '/logo.svg',
             favicon: 'https://cdn.example.com/f.ico',
+            docs: false,
         });
 
         const bad = [
@@ -182,14 +191,16 @@ describe('uiOf', () => {
                     accent: null,
                     logo: null,
                     favicon: null,
+                    docs: false,
                 },
                 value,
             );
         }
-        assert.deepEqual(uiOf({ accent: null, logo: null, favicon: null }), {
+        assert.deepEqual(uiOf({ accent: null, logo: null, favicon: null, docs: false }), {
             accent: null,
             logo: null,
             favicon: null,
+            docs: false,
         });
     });
 });

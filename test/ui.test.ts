@@ -456,7 +456,7 @@ describe('the README on a page', () => {
 });
 
 describe('the branded pages', () => {
-    const SETTINGS = { accent: '#1d4ed8', logo: '/favicon.svg', favicon: '/favicon.ico' };
+    const SETTINGS = { accent: '#1d4ed8', logo: '/favicon.svg', favicon: '/favicon.ico', docs: false };
     let fixture: Fixture;
     let plain: TestServer;
     let branded: TestServer;

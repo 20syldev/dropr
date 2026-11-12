@@ -86,12 +86,15 @@ describe('parseConfig', () => {
     });
 
     test('the pages are off unless ui is given, and true or an empty object gives the default look', () => {
-        const plain = { accent: null, logo: null, favicon: null };
+        const plain = { accent: null, logo: null, favicon: null, docs: false };
 
         assert.equal(parseConfig({ ...MINIMAL, ui: false }).ui, false);
         assert.deepEqual(parseConfig({ ...MINIMAL, ui: true }).ui, plain);
         assert.deepEqual(parseConfig({ ...MINIMAL, ui: {} }).ui, plain);
-        assert.deepEqual(parseConfig({ ...MINIMAL, ui: { accent: null, logo: null, favicon: null } }).ui, plain);
+        assert.deepEqual(
+            parseConfig({ ...MINIMAL, ui: { accent: null, logo: null, favicon: null, docs: null } }).ui,
+            plain,
+        );
     });
 
     test('ui can set an accent, written in any case and kept in lower case, and name assets as logo and favicon', () => {
@@ -101,11 +104,12 @@ describe('parseConfig', () => {
             accent: '#1d4ed8',
             logo: null,
             favicon: null,
+            docs: false,
         });
         assert.deepEqual(
             parseConfig({ ...MINIMAL, assets, ui: { accent: '#00ff7f', logo: '/logo.svg', favicon: '/favicon.ico' } })
                 .ui,
-            { accent: '#00ff7f', logo: '/logo.svg', favicon: '/favicon.ico' },
+            { accent: '#00ff7f', logo: '/logo.svg', favicon: '/favicon.ico', docs: false },
         );
     });
 
@@ -118,11 +122,33 @@ describe('parseConfig', () => {
         }
     });
 
-    test('ui refuses an unknown key, docs included until the docs exist', () => {
-        for (const key of ['docs', 'color', 'Accent']) {
+    test('ui refuses an unknown key', () => {
+        for (const key of ['color', 'Accent', 'doc', 'Docs']) {
             assert.throws(
                 () => parseConfig({ ...MINIMAL, ui: { [key]: true } }),
                 new RegExp(`^Error: Invalid config: ui\\.${key} is not a known key$`),
+            );
+        }
+    });
+
+    test('ui.docs turns the docs on with true, is off by default, and must be true or false', () => {
+        assert.deepEqual(parseConfig({ ...MINIMAL, ui: { docs: true } }).ui, {
+            accent: null,
+            logo: null,
+            favicon: null,
+            docs: true,
+        });
+        assert.deepEqual(parseConfig({ ...MINIMAL, ui: { docs: false } }).ui, {
+            accent: null,
+            logo: null,
+            favicon: null,
+            docs: false,
+        });
+
+        for (const bad of ['yes', 1, 0, {}, []]) {
+            assert.throws(
+                () => parseConfig({ ...MINIMAL, ui: { docs: bad } }),
+                /^Error: Invalid config: ui\.docs must be true or false$/,
             );
         }
     });
