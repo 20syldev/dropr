@@ -1,3 +1,5 @@
+import { escapeHtml } from './html.js';
+
 /**
  * What renderMarkdown needs besides the text.
  */
@@ -105,16 +107,6 @@ const EMPHASIS = /([*_~])\1*/y;
 const REFERENCE = /&(?:#(\d{1,7})|#[xX]([0-9a-fA-F]{1,6})|([a-zA-Z]{2,8}));/y;
 const AUTOLINK = /<((?:https?:\/\/|mailto:)[^\s<>]+)>/iy;
 const BARE = /https?:\/\/[^\s<>]+/iy;
-
-/**
- * Writes text so that it can stand in HTML content or in a quoted attribute.
- *
- * @param text - Any text
- * @returns The text with & < > " and ' written as numeric entities
- */
-function escapeHtml(text: string): string {
-    return text.replace(/[&<>"']/g, (mark) => `&#${mark.charCodeAt(0)};`);
-}
 
 /**
  * Tells whether a text holds a space or a control character.

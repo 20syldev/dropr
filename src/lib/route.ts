@@ -27,7 +27,7 @@ interface Scope {
     headers: Record<string, string>;
 }
 
-interface Found {
+export interface Found {
     version: CatalogVersion;
     pinned: boolean;
 }
@@ -137,7 +137,7 @@ function projectDownloads(type: CatalogType): Record<string, unknown> {
  * @param entries - Entries of the folder, in byte order
  * @returns Entries with a trailing slash on folder names and their size in bytes, cumulative for a folder
  */
-function listing(version: CatalogVersion, entries: CatalogNode[]): FileEntry[] {
+export function listing(version: CatalogVersion, entries: CatalogNode[]): FileEntry[] {
     return entries.flatMap((node) => {
         const target = node.kind === 'link' ? followLink(version, node) : node;
         if (!target) return [];
@@ -155,7 +155,7 @@ function listing(version: CatalogVersion, entries: CatalogNode[]): FileEntry[] {
  * @param asked - Exact, partial or latest version, as the path wrote it after the last '@'
  * @returns The version and whether it was asked exactly, or undefined when none matches
  */
-function pickVersion(project: CatalogProject, asked: string): Found | undefined {
+export function pickVersion(project: CatalogProject, asked: string): Found | undefined {
     if (asked === 'latest') return { version: project.latest, pinned: false };
 
     const exact = project.versions.get(asked);
