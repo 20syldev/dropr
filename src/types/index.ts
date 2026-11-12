@@ -159,6 +159,7 @@ export type Match =
     | { id: 'search' }
     | { id: 'health' }
     | { id: 'manifest' }
+    | { id: 'docs'; page: string | null }
     | { id: 'downloads' }
     | { id: 'typeDownloads'; type: string }
     | { id: 'archive'; type: string; name: string; version: string | null }

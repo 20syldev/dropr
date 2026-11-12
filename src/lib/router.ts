@@ -91,6 +91,12 @@ export function matchPath(pathname: string): Match {
         return { id: 'archive', type: second, name, version };
     }
 
+    if (first === '-' && second === 'docs') {
+        if (length === 2) return { id: 'docs', page: null };
+
+        return length === 3 && !slash ? { id: 'docs', page: third } : { id: 'unknown' };
+    }
+
     if (length === 1) return { id: 'type', type: first };
 
     const [name, version] = splitProject(second);

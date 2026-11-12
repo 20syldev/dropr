@@ -473,6 +473,8 @@ export function route(request: RouteInput, catalog: Catalog, site: Site): RouteR
             return json(200, site.health());
         case 'manifest':
             return json(200, site.manifest, { 'Cache-Control': 'public, max-age=300' });
+        case 'docs':
+            return unknownRoute(scope);
         case 'downloads':
             return downloadsRoute(scope);
         case 'typeDownloads':
