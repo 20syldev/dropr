@@ -270,6 +270,12 @@ export interface UiSettings {
     docs: boolean;
 }
 
+export interface Guide {
+    slug: string;
+    title: string;
+    markdown: string;
+}
+
 export type UiInput =
     boolean | { accent?: string | null; logo?: string | null; favicon?: string | null; docs?: boolean };
 
