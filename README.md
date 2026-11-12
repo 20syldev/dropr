@@ -57,6 +57,7 @@ curl -OJ http://localhost:4000/download/bash/hello@1.0.6  # the whole version, a
 ```bash
 dropr serve [config] [--port 4000] [--packages ./packages]   # index the packages and listen
 dropr check [config] [--packages ./packages]                 # check the config and the packages
+dropr index [config] [--packages ./packages] [--out file]    # print the index of the packages as JSON
 ```
 
 - The config is the file named, else `dropr.config.json` of the working folder, else the defaults. A named file must
@@ -66,7 +67,11 @@ dropr check [config] [--packages ./packages]                 # check the config 
 - Exit codes: `0` on success, `1` for an invalid config, an invalid `--port`, `PORT` or `--packages`, or a port that
   cannot be taken, `2` for a command line that is not understood. `check` also exits with `1` when the packages folder
   is not a folder or cannot be read, while `serve` only logs `No packages folder at ...` and starts with an empty index;
-  entries `check` skips are only reported.
+  entries `check` skips are only reported. `index` exits with `1` in those two cases too, and when `--out` cannot be
+  written; `--port` belongs to `serve` and `--out` to `index`.
+- `index` prints the index that `serve` builds at startup, or writes it to `--out` (relative to the working folder, its
+  folders made when missing, outside the packages folder). What the scan skips goes to the error output and stays out of the index, which is read back
+  through `loadIndex` before it is printed, so the same tree gives the same bytes.
 
 ## Configuration
 
@@ -191,8 +196,8 @@ folder. `createResponder` takes the same options and returns the status, headers
 
 `dropr/core` exports `parseConfig`, `loadIndex`, `createHandler`, `createResponder` and `buildManifest` with their types,
 and imports no Node module, so a runtime that has a `fetch` API and no disk can load it. Write the index ahead with
-`JSON.stringify(scan(...))`, read it with `loadIndex(JSON.parse(text))`, and give `createHandler` a `read` function of
-your own; the rest of the options are those above.
+`dropr index --out index.json` (or `JSON.stringify(scan(...))`), read it with `loadIndex(JSON.parse(text))`, and give
+`createHandler` a `read` function of your own; the rest of the options are those above.
 
 - The rate limit and the uptime of `/health` live in the handler, so they are those of one instance, and use `Date.now()`.
 - `/download` needs `CompressionStream`, and `parseConfig` needs `URL.canParse`.
@@ -219,7 +224,7 @@ Node.js, strict TypeScript (ESM), [@moxon/limiter](https://github.com/moxondev/l
 
 ```
 src/lib/        Node-free core: router, routes, packages, semver, checksums, HTTP rules, CORS, tar archive, responder
-src/            Command line and Node adapter: bin, cli, serve, check, startup, app, scan, assets, config, disk, index
+src/            Command line and Node adapter: bin, cli, serve, check, indexer, folder, startup, app, scan, assets, config, disk, index
 src/manifest.ts Route texts of /manifest, also Node-free
 src/core.ts     Entry of the core alone, exported as dropr/core
 test/           Snapshots on a generated tree, unit and HTTP tests, the ledger of decided changes of a release
