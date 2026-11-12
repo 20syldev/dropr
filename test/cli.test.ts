@@ -5,6 +5,9 @@ import os from 'os';
 import { join } from 'path';
 
 import { main } from '../dist/cli.js';
+import { reservedNames } from '../dist/config.js';
+import { countPackages, loadIndex } from '../dist/lib/packages.js';
+import { scan } from '../dist/scan.js';
 import { choosePort, configure } from '../dist/startup.js';
 
 import { createFixture } from './fixture.ts';
@@ -83,6 +86,10 @@ describe('the command line', () => {
             [['serve', '--nope'], /--nope[\s\S]*\n\nUsage: /],
             [['serve', 'a.json', 'b.json'], /^Only one config file can be named\.\n\nUsage: /],
             [['check', '--port', '4000'], /^--port belongs to serve\.\n\nUsage: /],
+            [['index', '--port', '4000'], /^--port belongs to serve\.\n\nUsage: /],
+            [['check', '--out', 'index.json'], /^--out belongs to index\.\n\nUsage: /],
+            [['serve', '--out', 'index.json'], /^--out belongs to index\.\n\nUsage: /],
+            [['index', 'a.json', 'b.json'], /^Only one config file can be named\.\n\nUsage: /],
         ];
 
         for (const [argv, message] of cases) {
@@ -284,6 +291,160 @@ describe('the command line', () => {
         } finally {
             fs.rmdirSync(sealed);
             folder.remove();
+        }
+    });
+
+    test('lists the index command and --out in the usage', async () => {
+        const { out } = await run(['--help'], fixture.root);
+
+        assert.match(out[0], /^ {4}index \[config\] {4}Print the index of the packages as JSON/m);
+        assert.match(out[0], /^ {4}--out <file> {10}File to write the index to/m);
+    });
+
+    test('prints the index of the packages as JSON, what a server would skip going to the error output', async () => {
+        const { code, out, err } = await run(['index', '--packages', 'packages'], fixture.root);
+
+        assert.equal(code, 0);
+        assert.equal(out.length, 1);
+        assert.ok(!out[0].endsWith('\n'), 'console.log adds the final newline');
+        assert.ok(err.includes("Skipping type 'download': reserved name."), err.join('\n'));
+        assert.equal(countPackages(loadIndex(JSON.parse(out[0]))), 7);
+
+        const silent = { error: () => undefined };
+        const config = configure(undefined, fixture.root, 'packages', undefined).config;
+        assert.equal(out[0], JSON.stringify(scan(packages, silent, reservedNames(config))));
+    });
+
+    test('prints the same bytes every time for the same tree', async () => {
+        const first = await run(['index', '--packages', 'packages'], fixture.root);
+        const second = await run(['index', '--packages', 'packages'], fixture.root);
+
+        assert.equal(second.out[0], first.out[0]);
+    });
+
+    test('writes the index to --out, relative to the working folder, with the folders it needs', async () => {
+        const folder = configFolder();
+        const nested = join(folder.root, 'worker');
+        const file = join(nested, 'index.json');
+
+        try {
+            const { code, out, err } = await run(
+                ['index', '--packages', packages, '--out', 'worker/index.json'],
+                folder.root,
+            );
+            const printed = await run(['index', '--packages', packages], folder.root);
+
+            assert.equal(code, 0);
+            assert.deepEqual(out, [`Indexed 7 packages from ${packages} into ${file}.`]);
+            assert.ok(err.length > 0, 'the skipped entries are still reported');
+            assert.equal(fs.readFileSync(file, 'utf-8'), `${printed.out[0]}\n`);
+        } finally {
+            if (fs.existsSync(file)) fs.unlinkSync(file);
+            if (fs.existsSync(nested)) fs.rmdirSync(nested);
+            folder.remove();
+        }
+    });
+
+    test('replaces the file of an earlier run', async () => {
+        const folder = configFolder();
+        const file = join(folder.root, 'index.json');
+        fs.writeFileSync(file, 'old');
+
+        try {
+            const { code } = await run(['index', '--packages', packages, '--out', file], folder.root);
+
+            assert.equal(code, 0);
+            assert.equal(countPackages(loadIndex(JSON.parse(fs.readFileSync(file, 'utf-8')))), 7);
+        } finally {
+            fs.unlinkSync(file);
+            folder.remove();
+        }
+    });
+
+    test('reads the config of the working folder for the index, like the other commands', async () => {
+        const folder = configFolder({ packagesDir: packages, manifest: { baseUrl: 'https://cdn.example.com' } });
+
+        try {
+            const { code, out } = await run(['index'], folder.root);
+
+            assert.equal(code, 0);
+            assert.equal(countPackages(loadIndex(JSON.parse(out[0]))), 7);
+        } finally {
+            folder.remove();
+        }
+    });
+
+    test('fails the index of a packages folder that is not a folder, printing and writing nothing', async () => {
+        const folder = configFolder();
+        const file = join(folder.root, 'index.json');
+        const missing = join(folder.root, 'nowhere');
+
+        try {
+            const { code, out, err } = await run(['index', '--packages', missing, '--out', file], folder.root);
+
+            assert.equal(code, 1);
+            assert.deepEqual(out, []);
+            assert.deepEqual(err, [`Packages folder ${missing} is not a folder.`]);
+            assert.equal(fs.existsSync(file), false);
+        } finally {
+            folder.remove();
+        }
+    });
+
+    test('reports an --out that cannot be written with 1, after the index was checked', async () => {
+        const { code, out, err } = await run(['index', '--packages', packages, '--out', fixture.root], fixture.root);
+
+        assert.equal(code, 1);
+        assert.deepEqual(out, []);
+        assert.match(err.at(-1) ?? '', /EISDIR/);
+    });
+
+    test('refuses an empty --out, which would name the working folder', async () => {
+        assert.deepEqual(await run(['index', '--out', ''], fixture.root), {
+            code: 1,
+            out: [],
+            err: ['--out must not be empty.'],
+        });
+    });
+
+    test('leaves out the types that an asset of the config takes, as a server does', async () => {
+        const folder = configFolder({
+            packagesDir: packages,
+            manifest: { baseUrl: 'https://cdn.example.com' },
+            assets: { '/config/robots.txt': 'missing.txt' },
+        });
+
+        try {
+            const { code, out, err } = await run(['index'], folder.root);
+
+            assert.equal(code, 0);
+            assert.ok(err.includes("Skipping type 'config': reserved name."), err.join('\n'));
+            assert.equal(countPackages(loadIndex(JSON.parse(out[0]))), 6);
+        } finally {
+            folder.remove();
+        }
+    });
+
+    test('refuses an --out inside the packages folder, where the next scan would index it', async () => {
+        const cases = [join(packages, 'index.json'), join(packages, 'npm', 'lib', '1.0.0', 'index.json'), packages];
+
+        for (const out of cases) {
+            const result = await run(['index', '--packages', packages, '--out', out], fixture.root);
+
+            assert.deepEqual(result, { code: 1, out: [], err: ['--out must not be inside the packages folder.'] }, out);
+            assert.equal(fs.existsSync(join(packages, 'index.json')), false);
+        }
+    });
+
+    test('accepts an --out next to the packages folder whose name starts with the same letters', async () => {
+        const sibling = `${packages}-index.json`;
+
+        try {
+            const { code } = await run(['index', '--packages', packages, '--out', sibling], fixture.root);
+
+            assert.equal(code, 0);
+        } finally {
+            if (fs.existsSync(sibling)) fs.unlinkSync(sibling);
         }
     });
 });
