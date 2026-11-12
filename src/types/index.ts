@@ -273,6 +273,7 @@ export interface ResponderOptions {
     rateLimit: RateLimit;
     memory?: () => Memory;
     logger: ErrorLogger;
+    ui?: boolean;
 }
 
 export type Respond = (request: RouteInput, client: string) => Promise<Answer>;
@@ -310,6 +311,7 @@ export interface Config {
     rateLimit: RateLimit;
     manifest: ManifestConfig;
     assets: Record<string, string>;
+    ui: boolean;
 }
 
 export interface AppDeps {
