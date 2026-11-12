@@ -1,6 +1,8 @@
+import { resolve } from 'path';
 import { parseArgs } from 'util';
 
 import { check } from './check.js';
+import { emitIndex } from './indexer.js';
 import { serve } from './serve.js';
 import { choosePort, configure, readVersion } from './startup.js';
 
@@ -10,10 +12,12 @@ const USAGE = `Usage: dropr <command> [config] [options]
 Commands:
     serve [config]    Index the packages and serve them
     check [config]    Check the config and the packages, without listening
+    index [config]    Print the index of the packages as JSON, or write it with --out
 
 Options:
     --port <port>         Port to listen on (serve), before the PORT variable and the config
     --packages <folder>   Packages folder, before the one of the config
+    --out <file>          File to write the index to (index), the standard output otherwise
     -h, --help            Show this help
     -v, --version         Show the version
 
@@ -27,6 +31,22 @@ export interface Context {
     cwd: string;
     out: (text: string) => void;
     err: (text: string) => void;
+}
+
+/**
+ * Finds what a command line asks for that its command does not take.
+ *
+ * @param command - Command that was named
+ * @param files - How many config files were named
+ * @param values - Options that were given
+ * @returns The message of the first fault, null when the command takes everything it was given
+ */
+function findMisuse(command: string, files: number, values: { port?: string; out?: string }): string | null {
+    if (files > 1) return 'Only one config file can be named.';
+    if (command !== 'serve' && values.port !== undefined) return '--port belongs to serve.';
+    if (command !== 'index' && values.out !== undefined) return '--out belongs to index.';
+
+    return null;
 }
 
 /**
@@ -48,6 +68,7 @@ export async function main(argv: string[], context: Context): Promise<number> {
             options: {
                 port: { type: 'string' },
                 packages: { type: 'string' },
+                out: { type: 'string' },
                 help: { type: 'boolean', short: 'h' },
                 version: { type: 'boolean', short: 'v' },
             },
@@ -66,20 +87,26 @@ export async function main(argv: string[], context: Context): Promise<number> {
         return 0;
     }
 
-    if (command !== 'serve' && command !== 'check') {
+    if (command !== 'serve' && command !== 'check' && command !== 'index') {
         err(`${command ? `Unknown command '${command}'.` : 'A command is needed.'}\n\n${USAGE}`);
 
         return 2;
     }
-    if (rest.length > 1 || (command === 'check' && values.port !== undefined)) {
-        err(`${rest.length > 1 ? 'Only one config file can be named.' : '--port belongs to serve.'}\n\n${USAGE}`);
+    const misuse = findMisuse(command, rest.length, values);
+    if (misuse !== null) {
+        err(`${misuse}\n\n${USAGE}`);
 
         return 2;
     }
 
     try {
+        if (values.out === '') throw new Error('--out must not be empty.');
+
         const { config, file } = configure(rest[0], cwd, values.packages, choosePort(values.port, env.PORT));
         if (command === 'check') return check(config, file, out, err);
+        if (command === 'index') {
+            return emitIndex(config, values.out === undefined ? null : resolve(cwd, values.out), out, err);
+        }
 
         await serve(config, readVersion(), out);
 

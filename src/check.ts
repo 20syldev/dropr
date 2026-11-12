@@ -1,7 +1,6 @@
-import fs from 'fs';
-
 import { scanAssets } from './assets.js';
 import { reservedNames } from './config.js';
+import { readableFolder } from './folder.js';
 import { countPackages, loadIndex } from './lib/packages.js';
 import { scan } from './scan.js';
 import type { Config } from './types/index.js';
@@ -32,18 +31,7 @@ export function check(
     };
 
     out(`Config: ${file ?? 'defaults, no dropr.config.json in the working folder'}`);
-    if (!fs.existsSync(config.packagesDir) || !fs.statSync(config.packagesDir).isDirectory()) {
-        err(`Packages folder ${config.packagesDir} is not a folder.`);
-
-        return 1;
-    }
-    try {
-        fs.accessSync(config.packagesDir, fs.constants.R_OK | fs.constants.X_OK);
-    } catch {
-        err(`Packages folder ${config.packagesDir} cannot be read.`);
-
-        return 1;
-    }
+    if (!readableFolder(config.packagesDir, err)) return 1;
 
     const catalog = loadIndex(scan(config.packagesDir, logger, reservedNames(config)));
     const assets = Object.keys(scanAssets(config.assets, logger));
