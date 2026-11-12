@@ -159,7 +159,7 @@ The answers of those paths carry `Vary: Accept`.
 | Path                                                          | Page                                                          |
 | ------------------------------------------------------------- | ------------------------------------------------------------- |
 | `/`                                                           | Every type with its first projects, and a search box          |
-| `/search?q=<term>`                                            | The results; an empty search is a page, not a `400`           |
+| `/search?q=<term>`                                            | The results; an empty search lists every package, not a `400` |
 | `/<type>`                                                     | The projects of the type                                      |
 | `/<type>/<project>`                                           | How to use it, its versions, the deprecation and the README   |
 | `/<type>/<project>@<version>`                                 | The files of the version, its archive and checksums, README   |
@@ -175,7 +175,7 @@ shows the file of the version. A README that cannot be read is left out and logg
 
 A page is one document with its style inline, no script and no font, and carries a `Content-Security-Policy` that allows
 nothing else (images of a README may come from `https`), `nosniff` and `Referrer-Policy: same-origin`. Its look is
-neutral for now: the name from the config is its title, and it shows no logo.
+neutral for now: the name from the config is its title, it shows no logo, and its footer links to the home of dropr.
 
 ## Use as a library
 
