@@ -1,24 +1,21 @@
 export { createApp } from './app.js';
 export { scanAssets } from './assets.js';
 export { loadConfig } from './config.js';
+export { buildManifest, createHandler, createResponder, loadIndex, parseConfig } from './core.js';
 export { createReader } from './disk.js';
-export { parseConfig } from './lib/config.js';
-export { loadIndex } from './lib/packages.js';
-export { createHandler, createResponder } from './lib/respond.js';
-export { buildManifest } from './manifest.js';
 export { scan } from './scan.js';
 export type {
     Answer,
-    AppDeps,
     Asset,
     Catalog,
     Config,
+    ErrorLogger,
     Handler,
     Index,
-    Logger,
     Manifest,
     RateLimit,
     ReadFile,
     Respond,
     ResponderOptions,
-} from './types/index.js';
+} from './core.js';
+export type { AppDeps, Logger } from './types/index.js';
