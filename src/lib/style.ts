@@ -48,6 +48,9 @@ pre code { background: none; border: 0; padding: 0; }
 .top { display: flex; flex-wrap: wrap; gap: 0.75rem 1.5rem; align-items: center; justify-content: space-between; max-width: 46rem; margin: 0 auto; padding: 1.25rem 1rem 0; }
 .brand { font-weight: 800; font-size: 1.35rem; letter-spacing: -0.03em; color: var(--ink); text-decoration: none; }
 .logo { height: 1.5em; width: auto; max-width: 8em; vertical-align: -0.3em; margin-right: 0.5rem; }
+.docs { margin: 0 0 1.5rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--line); }
+.docs ul { display: flex; flex-wrap: wrap; gap: 0.25rem 1.25rem; list-style: none; margin: 0; padding: 0; }
+.docs a[aria-current] { color: var(--ink); font-weight: 600; text-decoration: none; }
 .search { position: relative; flex: 0 1 15rem; min-width: 0; }
 .search input { width: 100%; padding: 0.3rem 2.2rem 0.3rem 0.85rem; font-size: 0.9rem; line-height: 1.4; border-radius: 999px; -webkit-appearance: none; appearance: none; }
 .search input::placeholder { color: var(--muted); }
@@ -87,6 +90,7 @@ dd { margin: 0; overflow-wrap: anywhere; }
 .markdown { overflow-wrap: anywhere; }
 .markdown img { max-width: 100%; height: auto; }
 .markdown table { display: block; overflow-x: auto; }
+.markdown td code, .markdown th code { white-space: nowrap; }
 .markdown blockquote { margin: 1rem 0; padding: 0 1rem; border-left: 3px solid var(--line); color: var(--muted); }
 footer a { color: inherit; text-decoration-color: var(--muted); text-underline-offset: 0.2em; transition: color 0.15s, text-decoration-color 0.15s; }
 footer a:hover { color: var(--accent-text); text-decoration-color: currentColor; }

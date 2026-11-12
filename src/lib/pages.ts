@@ -21,6 +21,7 @@ export interface SiteInfo {
     style?: string;
     logo?: string | null;
     favicon?: string | null;
+    docs?: boolean;
 }
 
 // Where the footer sends the reader: the home of dropr
@@ -217,12 +218,52 @@ export function homePage(site: SiteInfo, types: CatalogType[]): string {
         count === 0
             ? 'No packages yet.'
             : `${count} package${count === 1 ? '' : 's'} in ${types.length} type${types.length === 1 ? '' : 's'}.`;
-    const links = '<a href="/manifest">Routes</a> - <a href="/health">Health</a> - <a href="/download">Archives</a>';
+    const docs = site.docs ? '<a href="/-/docs">Docs</a> - ' : '';
+    const links = `${docs}<a href="/manifest">Routes</a> - <a href="/health">Health</a> - <a href="/download">Archives</a>`;
 
     return layout(
         site,
         '',
         `<h1>Packages</h1>\n<p class="lead">${lead}</p>\n<p class="meta">${links}</p>\n${sections.join('')}`,
+    );
+}
+
+/**
+ * Writes a page of the docs of dropr: the list of the pages, with the current one marked, then the page itself.
+ *
+ * @param site - Name, version and look of the server
+ * @param guides - Slug and title of every page of the docs, the first one being the overview that the index shows
+ * @param current - Slug of the page shown
+ * @param html - HTML of the page from renderMarkdown
+ * @returns The document
+ */
+export function docsPage(
+    site: SiteInfo,
+    guides: { slug: string; title: string }[],
+    current: string,
+    html: string,
+): string {
+    const title = guides.find((guide) => guide.slug === current)?.title ?? 'Docs';
+    const trail =
+        current === guides[0]?.slug
+            ? crumbs([['All packages', '/']], 'Docs')
+            : crumbs(
+                  [
+                      ['All packages', '/'],
+                      ['Docs', '/-/docs'],
+                  ],
+                  title,
+              );
+    const items = guides.map((guide) => {
+        const mark = guide.slug === current ? ' aria-current="page"' : '';
+
+        return `<li><a href="/-/docs/${encodeSegment(guide.slug)}"${mark}>${escapeHtml(guide.title)}</a></li>\n`;
+    });
+
+    return layout(
+        site,
+        title,
+        `${trail}<nav class="docs" aria-label="Docs">\n<ul>\n${items.join('')}</ul>\n</nav>\n<section class="markdown">\n${html}</section>\n`,
     );
 }
 

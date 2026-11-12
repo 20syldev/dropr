@@ -9,8 +9,9 @@ import type {
     SearchResult,
 } from '../types/index.js';
 
+import { GUIDES } from './guides.js';
 import { renderMarkdown } from './markdown.js';
-import { errorPage, homePage, projectPage, searchPage, typePage, versionPage } from './pages.js';
+import { docsPage, errorPage, homePage, projectPage, searchPage, typePage, versionPage } from './pages.js';
 import type { SiteInfo } from './pages.js';
 import { searchPackages } from './packages.js';
 import { deprecationHeaders } from './deprecations.js';
@@ -119,15 +120,16 @@ export function prefersHtml(accept: string | null): boolean {
  * @param status - HTTP status
  * @param html - The document
  * @param extra - Headers set before the others, such as the Deprecation and Link of a deprecated project
+ * @param vary - Whether the answer to this path depends on Accept, which is false for a path that has no JSON form
  * @returns The page with the headers of a document: type, length, security, and a short cache for a 200
  */
-function pageOf(status: number, html: string, extra: Record<string, string> = {}): UiPage {
+function pageOf(status: number, html: string, extra: Record<string, string> = {}, vary = true): UiPage {
     const headers: Record<string, string> = {
         ...extra,
         'Content-Type': 'text/html; charset=utf-8',
         'Content-Length': String(encoder.encode(html).length),
         ...SECURITY,
-        Vary: 'Accept',
+        ...(vary ? { Vary: 'Accept' } : {}),
     };
     if (status === 200) headers['Cache-Control'] = 'public, max-age=300';
 
@@ -296,6 +298,38 @@ function hasPage(match: Extract<Match, { id: 'file' }>, catalog: Catalog): boole
 }
 
 /**
+ * Answers a path of the docs of dropr.
+ * A page of the docs has no JSON form, so it is sent to every client and does not vary. When the docs are off or the
+ * page does not exist, the path is a route that does not exist, which answers as every such route does.
+ *
+ * @param match - A docs match of the router
+ * @param request - Request to answer, a GET or a HEAD
+ * @param url - Request URL
+ * @param options - Catalog, site texts, read port and logger
+ * @returns The page of the docs, the error page for a browser, or nothing for a client that wants JSON
+ */
+function docsResult(
+    match: Extract<Match, { id: 'docs' }>,
+    request: RouteInput,
+    url: URL,
+    options: UiOptions,
+): UiResult {
+    const { site } = options;
+    const guide = site.docs
+        ? GUIDES.find((entry) => (match.page === null ? entry === GUIDES[0] : entry.slug === match.page))
+        : undefined;
+
+    if (guide) {
+        const html = docsPage(site, GUIDES, guide.slug, renderMarkdown(guide.markdown, { base: '/-/docs/' }));
+
+        return { page: pageOf(200, html, {}, false), vary: false };
+    }
+    if (!prefersHtml(request.headers.get('accept'))) return { page: null, vary: true };
+
+    return { page: failed(site, 404, `Route '${url.pathname}' does not exist.`), vary: true };
+}
+
+/**
  * Answers a request with a page when the client asks for one and the path has one.
  * The pages sit on the paths of the JSON listings, so a path that has both says so with Vary: Accept, whoever asks.
  *
@@ -312,6 +346,7 @@ export async function uiResult(request: RouteInput, options: UiOptions): Promise
     if (url === null) return none;
 
     const match = matchPath(url.pathname);
+    if (match.id === 'docs') return docsResult(match, request, url, options);
     if (!NEGOTIATED.includes(match.id)) return none;
     if (match.id === 'file' && !hasPage(match, options.catalog)) return none;
     if (!prefersHtml(request.headers.get('accept'))) return { page: null, vary: true };

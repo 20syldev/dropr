@@ -280,6 +280,7 @@ export function createResponder(options: ResponderOptions): Respond {
                   style: styleOf(ui.accent),
                   logo: ui.logo,
                   favicon: ui.favicon,
+                  docs: ui.docs,
               },
               read,
               logger,
