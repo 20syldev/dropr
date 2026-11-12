@@ -173,5 +173,5 @@ export function uiOf(input: UiInput | undefined): UiSettings | null {
     const own = input === true ? {} : input;
     const accent = typeof own.accent === 'string' && COLOR.test(own.accent) ? own.accent.toLowerCase() : null;
 
-    return { accent, logo: addressOf(own.logo), favicon: addressOf(own.favicon) };
+    return { accent, logo: addressOf(own.logo), favicon: addressOf(own.favicon), docs: own.docs === true };
 }

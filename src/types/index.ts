@@ -266,9 +266,11 @@ export interface UiSettings {
     accent: string | null;
     logo: string | null;
     favicon: string | null;
+    docs: boolean;
 }
 
-export type UiInput = boolean | { accent?: string | null; logo?: string | null; favicon?: string | null };
+export type UiInput =
+    boolean | { accent?: string | null; logo?: string | null; favicon?: string | null; docs?: boolean };
 
 export interface ResponderOptions {
     catalog: Catalog;

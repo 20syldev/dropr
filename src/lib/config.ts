@@ -93,7 +93,7 @@ function readUi(value: unknown, assets: Record<string, unknown>): Config['ui'] {
     if (value !== true && (typeof value !== 'object' || value === null || Array.isArray(value))) {
         fail('ui', 'must be true, false or an object');
     }
-    const own = value === true ? {} : section(value, 'ui', ['accent', 'logo', 'favicon']);
+    const own = value === true ? {} : section(value, 'ui', ['accent', 'logo', 'favicon', 'docs']);
     const accent = own.accent ?? null;
     if (accent !== null && (typeof accent !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(accent))) {
         fail('ui.accent', 'must be a color written #rrggbb');
@@ -107,7 +107,10 @@ function readUi(value: unknown, assets: Record<string, unknown>): Config['ui'] {
         return path as string | null;
     });
 
-    return { accent: accent === null ? null : (accent as string).toLowerCase(), logo, favicon };
+    const docs = own.docs ?? false;
+    if (typeof docs !== 'boolean') fail('ui.docs', 'must be true or false');
+
+    return { accent: accent === null ? null : (accent as string).toLowerCase(), logo, favicon, docs };
 }
 
 /**
