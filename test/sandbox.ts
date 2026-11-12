@@ -59,6 +59,8 @@ export interface SandboxAnswers {
     folder: SandboxAnswer;
     missing: SandboxAnswer;
     data: SandboxAnswer;
+    branded: SandboxAnswer;
+    hostile: SandboxAnswer;
 }
 
 /**
@@ -258,6 +260,22 @@ async function run(entries: string[]): Promise<SandboxRun> {
             folder: await ask(pages, '/npm/lib@1.2.0/dist/', browser),
             missing: await ask(pages, '/nope', browser),
             data: await ask(pages, '/npm/lib', { headers: { accept: 'application/json' } }),
+            branded: await ask(
+                core.createHandler({
+                    ...options,
+                    ui: { accent: '#1D4ED8', logo: 'https://cdn.example.com/logo.svg', favicon: '/favicon.ico' },
+                }),
+                '/',
+                browser,
+            ),
+            hostile: await ask(
+                core.createHandler({
+                    ...options,
+                    ui: { accent: 'red;} body{display:none', logo: '//evil.example/x.png', favicon: '/a"onerror="x' },
+                }),
+                '/',
+                browser,
+            ),
         };
         const strict = core.createHandler({ ...options, rateLimit: { window: 10, client: 2, global: null } });
         for (let count = 0; count < 2; count++) await ask(strict, '/health');

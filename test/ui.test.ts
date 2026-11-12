@@ -3,6 +3,8 @@ import fs from 'fs';
 import { after, before, describe, test } from 'node:test';
 import { join } from 'path';
 
+import { STYLE } from '../dist/lib/style.js';
+import { styleOf } from '../dist/lib/theme.js';
 import { prefersHtml } from '../dist/lib/ui.js';
 
 import { createDocsTree } from './docs.ts';
@@ -449,6 +451,71 @@ describe('the README on a page', () => {
             assert.equal(page.status, 404, path);
             assert.equal(data.status, 404, path);
             assert.match(textOf(page), message, path);
+        }
+    });
+});
+
+describe('the branded pages', () => {
+    const SETTINGS = { accent: '#1d4ed8', logo: '/favicon.svg', favicon: '/favicon.ico' };
+    let fixture: Fixture;
+    let plain: TestServer;
+    let branded: TestServer;
+
+    before(async () => {
+        fixture = createFixture();
+        plain = await startServer(fixture.packagesDir, { ui: PAGES });
+        branded = await startServer(fixture.packagesDir, { ui: SETTINGS });
+    });
+
+    after(async () => {
+        await plain?.stop();
+        await branded?.stop();
+        fixture?.remove();
+    });
+
+    test('carry the style, the logo and the favicon of the config on every page, an error page included', async () => {
+        for (const path of NEGOTIATED) {
+            const html = textOf(await request(branded.port, 'GET', path, BROWSER));
+
+            assert.ok(html.includes(`<style>${styleOf('#1d4ed8')}</style>`), path);
+            assert.ok(html.includes('<link rel="icon" href="/favicon.ico">'), path);
+            assert.ok(html.includes('<a class="brand" href="/"><img class="logo" src="/favicon.svg" alt="">'), path);
+        }
+    });
+
+    test('keep the default look when the config sets nothing: the same style, no logo, no icon link', async () => {
+        for (const path of NEGOTIATED) {
+            const html = textOf(await request(plain.port, 'GET', path, BROWSER));
+
+            assert.ok(html.includes(`<style>${STYLE}</style>`), path);
+            assert.doesNotMatch(html, /<link|<img class="logo"/, path);
+        }
+    });
+
+    test('keep the policy of a page as it is, since the logo and the icon are images of this site', async () => {
+        const reply = await request(branded.port, 'GET', '/', BROWSER);
+
+        assert.equal(reply.headers['content-security-policy'], POLICY);
+    });
+
+    test('serve the logo and the favicon as the assets that they are, to a browser as to anyone', async () => {
+        for (const path of ['/favicon.svg', '/favicon.ico']) {
+            const reply = await request(branded.port, 'GET', path, BROWSER);
+
+            assert.equal(reply.status, 200, path);
+            assert.doesNotMatch(String(reply.headers['content-type']), /html/, path);
+        }
+    });
+
+    test('change the pages only: the JSON answers are the same as without settings', async () => {
+        for (const path of ['/', '/npm/lib', '/search?q=lib', '/manifest']) {
+            const [first, second] = [
+                await request(plain.port, 'GET', path, { accept: 'application/json' }),
+                await request(branded.port, 'GET', path, { accept: 'application/json' }),
+            ];
+
+            assert.equal(first.status, second.status, path);
+            assert.equal(textOf(first), textOf(second), path);
         }
     });
 });

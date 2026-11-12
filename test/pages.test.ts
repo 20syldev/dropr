@@ -5,6 +5,8 @@ import { loadIndex } from '../dist/lib/packages.js';
 import { listing } from '../dist/lib/route.js';
 import { errorPage, homePage, projectPage, searchPage, typePage, versionPage } from '../dist/lib/pages.js';
 import type { SiteInfo } from '../dist/lib/pages.js';
+import { STYLE } from '../dist/lib/style.js';
+import { styleOf } from '../dist/lib/theme.js';
 import type {
     Catalog,
     CatalogDir,
@@ -551,6 +553,58 @@ describe('the pages', () => {
             /@supports \(scrollbar-color: auto\) \{ html, pre, \.markdown table \{ scrollbar-width: thin; scrollbar-color: var\(--muted\) transparent; \} \}/,
         );
         assert.doesNotMatch(html, /::-webkit-scrollbar/);
+    });
+
+    test('keep the look of the pages as it is without a style, a logo or a favicon', () => {
+        for (const html of [homePage(SITE, types), errorPage(SITE, 404, 'Gone.')]) {
+            assert.ok(html.includes(`<style>${STYLE}</style>`));
+            assert.doesNotMatch(html, /<link|<img/);
+            assert.match(html, /<a class="brand" href="\/">Acme &#60;CDN&#62;<\/a>/);
+        }
+    });
+
+    test('draw the focus ring with its own color, which is the accent unless the theme sets another', () => {
+        assert.ok(STYLE.includes('.search input:focus { outline: 2px solid var(--ring, var(--accent));'));
+        assert.doesNotMatch(STYLE, /--ring:/);
+        assert.match(STYLE, /\n\.logo \{[^}]*height: 1\.5em;[^}]*\}/);
+    });
+
+    test('put the style of the theme, the logo and the favicon on every page', () => {
+        const style = styleOf('#1d4ed8');
+        const site: SiteInfo = { ...SITE, style, logo: '/logo.svg', favicon: 'https://cdn.example.com/f.ico?a=1&b=2' };
+        const html = [homePage(site, types), errorPage(site, 404, 'Gone.'), searchPage(site, 'lib', [], latest)];
+
+        assert.notEqual(style, STYLE);
+        for (const page of html) {
+            assert.ok(page.includes(`<style>${style}</style>`));
+            assert.ok(
+                page.includes('<link rel="icon" href="https://cdn.example.com/f.ico?a=1&#38;b=2">\n</head>'),
+                page.slice(0, 400),
+            );
+            assert.ok(
+                page.includes(
+                    '<a class="brand" href="/"><img class="logo" src="/logo.svg" alt="">Acme &#60;CDN&#62;</a>',
+                ),
+            );
+        }
+    });
+
+    test('put only the logo, or only the favicon, when only one is given', () => {
+        const logo = homePage({ ...SITE, logo: '/logo.svg' }, types);
+        const favicon = homePage({ ...SITE, favicon: '/f.ico' }, types);
+
+        assert.match(logo, /<img class="logo" src="\/logo\.svg" alt="">/);
+        assert.doesNotMatch(logo, /<link/);
+        assert.match(favicon, /<link rel="icon" href="\/f\.ico">/);
+        assert.doesNotMatch(favicon, /<img/);
+    });
+
+    test('escape an address that holds a quote or a bracket, though the theme already refuses them', () => {
+        const html = homePage({ ...SITE, logo: '/a"><b>', favicon: '/c"><i>' }, types);
+
+        assert.doesNotMatch(html, /<b>|<i>/);
+        assert.ok(html.includes('src="/a&#34;&#62;&#60;b&#62;"'));
+        assert.ok(html.includes('href="/c&#34;&#62;&#60;i&#62;"'));
     });
 
     test('write an error with its status and its escaped message', () => {

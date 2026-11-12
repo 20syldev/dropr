@@ -106,6 +106,7 @@ describe('the core without Node', () => {
             'dist/lib/ui.js',
             'dist/lib/pages.js',
             'dist/lib/markdown.js',
+            'dist/lib/theme.js',
         ]) {
             assert.ok(paths.includes(join(rootDir, path)), path);
         }
@@ -151,6 +152,17 @@ describe('the core without Node', () => {
         assert.match(bytesOf(missing).toString(), /Package type &#39;nope&#39; does not exist\./);
         assert.match(String(data.headers['content-type']), /^application\/json/);
         assert.equal(data.headers.vary, 'Accept');
+    });
+
+    test('brands the pages with the accent, the logo and the favicon, and ignores what is not safe', () => {
+        const { branded, hostile, home } = result.answers;
+        const html = bytesOf(branded).toString();
+
+        assert.equal(branded.status, 200);
+        assert.ok(html.includes('--accent: #1d4ed8; --accent-text: #1d4ed8;'));
+        assert.ok(html.includes('<img class="logo" src="https://cdn.example.com/logo.svg" alt="">'));
+        assert.ok(html.includes('<link rel="icon" href="/favicon.ico">'));
+        assert.deepEqual(bytesOf(hostile), bytesOf(home));
     });
 
     test('serves a file whole, a range of it, a conditional hit and a HEAD', () => {
