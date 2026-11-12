@@ -30,6 +30,9 @@ export const config = parseConfig({
 // Pages in their default look, for the tests that turn the pages on
 export const PAGES: UiSettings = { accent: null, logo: null, favicon: null, docs: false };
 
+// The same pages with the docs of dropr turned on
+export const DOCS: UiSettings = { ...PAGES, docs: true };
+
 // Version of dropr, which /health and /manifest report
 export const { version } = JSON.parse(fs.readFileSync(join(rootDir, 'package.json'), 'utf-8')) as { version: string };
 

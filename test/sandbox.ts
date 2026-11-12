@@ -61,6 +61,8 @@ export interface SandboxAnswers {
     data: SandboxAnswer;
     branded: SandboxAnswer;
     hostile: SandboxAnswer;
+    docs: SandboxAnswer;
+    nodocs: SandboxAnswer;
 }
 
 /**
@@ -268,6 +270,10 @@ async function run(entries: string[]): Promise<SandboxRun> {
                 '/',
                 browser,
             ),
+            docs: await ask(core.createHandler({ ...options, ui: { docs: true } }), '/-/docs/config', {
+                headers: { accept: 'application/json' },
+            }),
+            nodocs: await ask(pages, '/-/docs/config', browser),
             hostile: await ask(
                 core.createHandler({
                     ...options,

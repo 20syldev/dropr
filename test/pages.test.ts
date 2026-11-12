@@ -3,7 +3,7 @@ import { describe, test } from 'node:test';
 
 import { loadIndex } from '../dist/lib/packages.js';
 import { listing } from '../dist/lib/route.js';
-import { errorPage, homePage, projectPage, searchPage, typePage, versionPage } from '../dist/lib/pages.js';
+import { docsPage, errorPage, homePage, projectPage, searchPage, typePage, versionPage } from '../dist/lib/pages.js';
 import type { SiteInfo } from '../dist/lib/pages.js';
 import { STYLE } from '../dist/lib/style.js';
 import { styleOf } from '../dist/lib/theme.js';
@@ -605,6 +605,58 @@ describe('the pages', () => {
         assert.doesNotMatch(html, /<b>|<i>/);
         assert.ok(html.includes('src="/a&#34;&#62;&#60;b&#62;"'));
         assert.ok(html.includes('href="/c&#34;&#62;&#60;i&#62;"'));
+    });
+
+    test('write a docs page: the list of the pages with the current one marked, the trail, and the text as given', () => {
+        const guides = [
+            { slug: 'overview', title: 'Overview' },
+            { slug: 'config', title: 'Config <& "keys"' },
+        ];
+        const html = docsPage(SITE, guides, 'config', '<h1 id="config">Config</h1>\n<p>Text.</p>\n');
+
+        assert.ok(html.includes('<title>Config &#60;&#38; &#34;keys&#34; - Acme &#60;CDN&#62;</title>'));
+        assert.ok(
+            html.includes(
+                '<nav class="crumbs"><a href="/">All packages</a> / <a href="/-/docs">Docs</a> / Config &#60;&#38; &#34;keys&#34;</nav>',
+            ),
+        );
+        assert.ok(html.includes('<nav class="docs" aria-label="Docs">'));
+        assert.ok(html.includes('<li><a href="/-/docs/overview">Overview</a></li>'));
+        assert.ok(
+            html.includes('<li><a href="/-/docs/config" aria-current="page">Config &#60;&#38; &#34;keys&#34;</a></li>'),
+        );
+        assert.equal(html.match(/aria-current="page"/g)?.length, 1);
+        assert.ok(html.includes('<section class="markdown">\n<h1 id="config">Config</h1>\n<p>Text.</p>\n</section>'));
+        assert.doesNotMatch(html, /<script/i);
+    });
+
+    test('write the docs page of the overview with the trail that stops at Docs, whichever way it was reached', () => {
+        const guides = [{ slug: 'overview', title: 'Overview' }];
+        const html = docsPage(SITE, guides, 'overview', '<h1>Overview</h1>\n');
+
+        assert.ok(html.includes('<a href="/">All packages</a> / Docs</nav>'));
+        assert.ok(html.includes('<li><a href="/-/docs/overview" aria-current="page">Overview</a></li>'));
+    });
+
+    test('carry the style, the logo and the favicon on a docs page, and a rule for the list of pages', () => {
+        const site: SiteInfo = { ...SITE, style: styleOf('#1d4ed8'), logo: '/logo.svg', favicon: '/f.ico' };
+        const html = docsPage(site, [{ slug: 'overview', title: 'Overview' }], 'overview', '');
+
+        assert.ok(html.includes(`<style>${styleOf('#1d4ed8')}</style>`));
+        assert.ok(html.includes('<img class="logo" src="/logo.svg" alt="">'));
+        assert.ok(html.includes('<link rel="icon" href="/f.ico">'));
+        assert.match(STYLE, /\n\.docs \{[^}]*\}/);
+        assert.match(STYLE, /\n\.docs a\[aria-current\] \{[^}]*\}/);
+    });
+
+    test('keep the code of a table cell on one line, so that a narrow column does not cut a key in two', () => {
+        assert.match(STYLE, /\n\.markdown td code, \.markdown th code \{[^}]*white-space: nowrap;[^}]*\}/);
+    });
+
+    test('link to the docs from the front page only when the site has them', () => {
+        assert.doesNotMatch(homePage(SITE, types), /\/-\/docs/);
+        assert.doesNotMatch(homePage({ ...SITE, docs: false }, types), /\/-\/docs/);
+        assert.ok(homePage({ ...SITE, docs: true }, types).includes('<a href="/-/docs">Docs</a>'));
     });
 
     test('write an error with its status and its escaped message', () => {

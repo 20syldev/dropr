@@ -107,6 +107,7 @@ describe('the core without Node', () => {
             'dist/lib/pages.js',
             'dist/lib/markdown.js',
             'dist/lib/theme.js',
+            'dist/lib/guides.js',
         ]) {
             assert.ok(paths.includes(join(rootDir, path)), path);
         }
@@ -163,6 +164,17 @@ describe('the core without Node', () => {
         assert.ok(html.includes('<img class="logo" src="https://cdn.example.com/logo.svg" alt="">'));
         assert.ok(html.includes('<link rel="icon" href="/favicon.ico">'));
         assert.deepEqual(bytesOf(hostile), bytesOf(home));
+    });
+
+    test('serves the docs to every client when they are on, and answers an unknown route when they are off', () => {
+        const { docs, nodocs } = result.answers;
+
+        assert.equal(docs.status, 200);
+        assert.equal(docs.headers['content-type'], 'text/html; charset=utf-8');
+        assert.equal(docs.headers.vary, null);
+        assert.match(bytesOf(docs).toString(), /<h1 id="configuration">Configuration<\/h1>/);
+        assert.equal(nodocs.status, 404);
+        assert.match(bytesOf(nodocs).toString(), /Route &#39;\/-\/docs\/config&#39; does not exist\./);
     });
 
     test('serves a file whole, a range of it, a conditional hit and a HEAD', () => {

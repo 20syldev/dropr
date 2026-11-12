@@ -4,6 +4,7 @@ import { after, before, describe, test } from 'node:test';
 import { join } from 'path';
 
 import { STYLE } from '../dist/lib/style.js';
+import { GUIDES } from '../dist/lib/guides.js';
 import { styleOf } from '../dist/lib/theme.js';
 import { prefersHtml } from '../dist/lib/ui.js';
 
@@ -11,7 +12,7 @@ import { createDocsTree } from './docs.ts';
 import type { DocsTree } from './docs.ts';
 import { createFixture } from './fixture.ts';
 import type { Fixture } from './fixture.ts';
-import { PAGES, request, startServer } from './server.ts';
+import { DOCS, PAGES, request, startServer } from './server.ts';
 import type { TestServer } from './server.ts';
 
 // What a browser sends to open a page
@@ -516,6 +517,210 @@ describe('the branded pages', () => {
 
             assert.equal(first.status, second.status, path);
             assert.equal(textOf(first), textOf(second), path);
+        }
+    });
+});
+
+describe('the docs', () => {
+    const ACCEPTS: (string | undefined)[] = [BROWSER.accept, '*/*', undefined, 'application/json'];
+    let fixture: Fixture;
+    let tree: DocsTree;
+    let on: TestServer;
+    let off: TestServer;
+    let none: TestServer;
+
+    before(async () => {
+        fixture = createFixture();
+        tree = createDocsTree();
+        on = await startServer(fixture.packagesDir, { ui: DOCS });
+        off = await startServer(fixture.packagesDir, { ui: PAGES });
+        none = await startServer(fixture.packagesDir);
+    });
+
+    after(async () => {
+        await on?.stop();
+        await off?.stop();
+        await none?.stop();
+        fixture?.remove();
+        tree?.remove();
+    });
+
+    test('answer a page for every client at the index and at each page, without Vary since there is no JSON form', async () => {
+        const paths = ['/-/docs', '/-/docs/', ...GUIDES.map(({ slug }) => `/-/docs/${slug}`)];
+
+        for (const path of paths) {
+            for (const accept of ACCEPTS) {
+                const reply = await request(on.port, 'GET', path, accept === undefined ? {} : { accept });
+
+                assert.equal(reply.status, 200, `${path} ${accept}`);
+                assert.equal(reply.headers['content-type'], 'text/html; charset=utf-8', path);
+                assert.equal(reply.headers.vary, undefined, path);
+                assert.equal(reply.headers['cache-control'], 'public, max-age=300', path);
+                assert.equal(reply.headers['content-security-policy'], POLICY, path);
+                assert.equal(reply.headers['x-content-type-options'], 'nosniff', path);
+                assert.equal(reply.headers['access-control-allow-origin'], '*', path);
+                assert.equal(reply.headers['content-length'], String(reply.body.length), path);
+            }
+        }
+    });
+
+    test('answer a HEAD with the headers of the page and no body', async () => {
+        for (const path of ['/-/docs', '/-/docs/config']) {
+            const get = await request(on.port, 'GET', path, BROWSER);
+            const head = await request(on.port, 'HEAD', path, BROWSER);
+
+            assert.equal(head.status, 200, path);
+            assert.equal(head.body.length, 0, path);
+            assert.equal(head.headers['content-length'], get.headers['content-length'], path);
+            assert.equal(head.headers['content-type'], 'text/html; charset=utf-8', path);
+        }
+    });
+
+    test('show the overview at the index, each guide at its slug, and the list of the guides on every page', async () => {
+        const index = textOf(await request(on.port, 'GET', '/-/docs', BROWSER));
+
+        assert.match(index, /<h1 id="overview">Overview<\/h1>/);
+        assert.ok(index.includes('<a href="/-/docs/overview" aria-current="page">Overview</a>'));
+
+        for (const { slug, title } of GUIDES) {
+            const html = textOf(await request(on.port, 'GET', `/-/docs/${slug}`, BROWSER));
+
+            assert.match(html, new RegExp(`<h1 id="[^"]+">${title}</h1>`), slug);
+            assert.equal(html.match(/aria-current="page"/g)?.length, 1, slug);
+            for (const guide of GUIDES)
+                assert.ok(html.includes(`<a href="/-/docs/${guide.slug}"`), `${slug} ${guide.slug}`);
+            if (slug === 'overview') assert.ok(html.includes('All packages</a> / Docs</nav>'), slug);
+            else assert.ok(html.includes('All packages</a> / <a href="/-/docs">Docs</a> / '), slug);
+            assert.doesNotMatch(html, /<script|\son[a-z]+=/i, slug);
+        }
+    });
+
+    test('write the links between the guides as paths of the docs, and the code samples as text', async () => {
+        const html = textOf(await request(on.port, 'GET', '/-/docs/overview', BROWSER));
+
+        assert.ok(html.includes('href="/-/docs/config"'));
+        assert.ok(html.includes('href="/-/docs/routes"'));
+        assert.ok(html.includes('<pre><code'));
+    });
+
+    test('are off unless ui.docs is true: a browser gets the page of an unknown route, the others the JSON', async () => {
+        for (const path of ['/-/docs', '/-/docs/config']) {
+            const page = await request(off.port, 'GET', path, BROWSER);
+            const data = await request(off.port, 'GET', path, { accept: 'application/json' });
+
+            assert.equal(page.status, 404, path);
+            assert.equal(page.headers['content-type'], 'text/html; charset=utf-8', path);
+            assert.equal(page.headers.vary, 'Accept', path);
+            assert.match(textOf(page), /Route &#39;\/-\/docs/, path);
+            assert.equal(data.status, 404, path);
+            assert.match(String(data.headers['content-type']), /^application\/json/, path);
+            assert.equal(data.headers.vary, 'Accept', path);
+            assert.match(JSON.parse(textOf(data)).message, /^Route '\/-\/docs/, path);
+        }
+    });
+
+    test('are not there without ui: the JSON of an unknown route, whoever asks, and no Vary', async () => {
+        for (const path of ['/-/docs', '/-/docs/config']) {
+            const reply = await request(none.port, 'GET', path, BROWSER);
+
+            assert.equal(reply.status, 404, path);
+            assert.match(String(reply.headers['content-type']), /^application\/json/, path);
+            assert.equal(reply.headers.vary, undefined, path);
+        }
+    });
+
+    test('answer an unknown page, a nested path and a trailing slash as a missing route, as a page or as JSON', async () => {
+        for (const path of ['/-/docs/nope', '/-/docs/config/', '/-/docs/a/b', '/-/docs/%E0', '/-/docs/Config']) {
+            const page = await request(on.port, 'GET', path, BROWSER);
+            const data = await request(on.port, 'GET', path, { accept: 'application/json' });
+
+            assert.ok([400, 404].includes(page.status), path);
+            assert.equal(page.headers['content-type'], 'text/html; charset=utf-8', path);
+            assert.equal(page.headers.vary, 'Accept', path);
+            assert.equal(data.status, page.status, path);
+            assert.match(String(data.headers['content-type']), /^application\/json/, path);
+        }
+    });
+
+    test('leave the other methods to the JSON route, which refuses them', async () => {
+        for (const method of ['POST', 'PUT', 'DELETE']) {
+            const reply = await request(on.port, method, '/-/docs', BROWSER);
+
+            assert.equal(reply.status, 405, method);
+            assert.match(String(reply.headers['content-type']), /^application\/json/, method);
+        }
+    });
+
+    test('carry the accent, the logo and the favicon of the config, like every page', async () => {
+        const branded = await startServer(fixture.packagesDir, {
+            ui: { accent: '#1d4ed8', logo: '/favicon.svg', favicon: '/favicon.ico', docs: true },
+        });
+
+        try {
+            const html = textOf(await request(branded.port, 'GET', '/-/docs/config', BROWSER));
+
+            assert.ok(html.includes(`<style>${styleOf('#1d4ed8')}</style>`));
+            assert.ok(html.includes('<img class="logo" src="/favicon.svg" alt="">'));
+            assert.ok(html.includes('<link rel="icon" href="/favicon.ico">'));
+        } finally {
+            await branded.stop();
+        }
+    });
+
+    test('count against the rate limit like any other answer', async () => {
+        const limited = await startServer(fixture.packagesDir, {
+            ui: DOCS,
+            rateLimit: { window: 10, client: 2, global: null },
+        });
+
+        try {
+            const headers = { 'x-test-client': 'docs-limit' };
+            const statuses = [];
+            for (let count = 0; count < 3; count++) {
+                statuses.push((await request(limited.port, 'GET', '/-/docs', headers)).status);
+            }
+
+            assert.deepEqual(statuses, [200, 200, 429]);
+        } finally {
+            await limited.stop();
+        }
+    });
+
+    test('link to the docs from the front page when they are on, and not when they are off', async () => {
+        const home = textOf(await request(on.port, 'GET', '/', BROWSER));
+        const bare = textOf(await request(off.port, 'GET', '/', BROWSER));
+
+        assert.ok(home.includes('<a href="/-/docs">Docs</a>'));
+        assert.doesNotMatch(bare, /\/-\/docs/);
+    });
+
+    test('leave a type named docs alone: its pages, its README and its files are served as before', async () => {
+        const server = await startServer(tree.packagesDir, { ui: DOCS });
+
+        try {
+            const type = await request(server.port, 'GET', '/docs', BROWSER);
+            const project = await request(server.port, 'GET', '/docs/readme@1.0.0', BROWSER);
+            const file = await request(server.port, 'GET', '/docs/old@1.0.0/index.js', BROWSER);
+
+            assert.equal(type.status, 200);
+            assert.match(textOf(type), /<h1>docs<\/h1>/);
+            assert.match(textOf(project), /<h2>README<\/h2>/);
+            assert.equal(file.status, 200);
+            assert.equal(textOf(file), 'export default 1;\n');
+        } finally {
+            await server.stop();
+        }
+    });
+
+    test('keep the pages and the JSON of every other path as they are, docs on or off', async () => {
+        for (const path of ['/', '/npm', '/npm/lib', '/search?q=lib']) {
+            const [first, second] = [
+                await request(on.port, 'GET', path, BROWSER),
+                await request(off.port, 'GET', path, BROWSER),
+            ];
+
+            assert.equal(first.status, second.status, path);
+            assert.equal(first.headers.vary, 'Accept', path);
         }
     });
 });
