@@ -39,7 +39,7 @@ export const STYLE = `
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 var(--sans); }
-a { color: var(--accent-text); text-underline-offset: 0.15em; }
+a { color: var(--accent-text); text-underline-offset: 0.15em; transition: color 0.15s ease; }
 a:hover { color: var(--ink); }
 code, pre { font-family: var(--mono); font-size: 0.9em; }
 code { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 0.1em 0.35em; }
@@ -47,8 +47,15 @@ pre { background: var(--surface); border: 1px solid var(--line); border-radius: 
 pre code { background: none; border: 0; padding: 0; }
 .top { display: flex; flex-wrap: wrap; gap: 0.75rem 1.5rem; align-items: center; justify-content: space-between; max-width: 46rem; margin: 0 auto; padding: 1.25rem 1rem 0; }
 .brand { font-weight: 800; font-size: 1.35rem; letter-spacing: -0.03em; color: var(--ink); text-decoration: none; }
-.top form { display: flex; gap: 0.5rem; flex: 1 1 14rem; max-width: 22rem; min-width: 0; }
-input { flex: 1; font: inherit; padding: 0.35rem 0.6rem; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; min-width: 0; }
+.search { position: relative; flex: 0 1 15rem; min-width: 0; }
+.search input { width: 100%; padding: 0.3rem 2.2rem 0.3rem 0.85rem; font-size: 0.9rem; line-height: 1.4; border-radius: 999px; -webkit-appearance: none; appearance: none; }
+.search input::placeholder { color: var(--muted); }
+.search input::-webkit-search-cancel-button { -webkit-appearance: none; }
+.search input:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+@media (pointer: coarse) { .search input { font-size: 1rem; } }
+.search button { position: absolute; top: 50%; right: 0.2rem; transform: translateY(-50%); display: grid; place-items: center; width: 1.65rem; height: 1.65rem; padding: 0; border-radius: 50%; background: none; color: var(--muted); transition: color 0.15s, background-color 0.15s; }
+.search button:hover, .search button:focus-visible { color: var(--accent-ink); background: var(--accent); }
+input { transition: border-color 0.15s ease; font: inherit; padding: 0.35rem 0.6rem; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; min-width: 0; }
 button { font: inherit; font-weight: 600; padding: 0.35rem 0.8rem; background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 6px; cursor: pointer; }
 main { max-width: 46rem; margin: 0 auto; padding: 1rem 1rem 3rem; }
 h1 { font-size: 2rem; line-height: 1.15; letter-spacing: -0.03em; margin: 1.5rem 0 0.5rem; overflow-wrap: anywhere; }
@@ -80,5 +87,9 @@ dd { margin: 0; overflow-wrap: anywhere; }
 .markdown img { max-width: 100%; height: auto; }
 .markdown table { display: block; overflow-x: auto; }
 .markdown blockquote { margin: 1rem 0; padding: 0 1rem; border-left: 3px solid var(--line); color: var(--muted); }
+footer a { color: inherit; text-decoration-color: var(--muted); text-underline-offset: 0.2em; transition: color 0.15s, text-decoration-color 0.15s; }
+footer a:hover { color: var(--accent-text); text-decoration-color: currentColor; }
+@supports (scrollbar-color: auto) { html, pre, .markdown table { scrollbar-width: thin; scrollbar-color: var(--muted) transparent; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 footer { max-width: 46rem; margin: 0 auto; padding: 0 1rem 2rem; font-size: 0.85rem; }
 `;

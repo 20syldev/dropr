@@ -325,7 +325,7 @@ export async function uiResult(request: RouteInput, options: UiOptions): Promise
         case 'search': {
             const values = url.searchParams.getAll('q');
             const query = values.length === 1 ? values[0].trim() : '';
-            const found = query === '' ? [] : searchPackages(catalog, query);
+            const found = searchPackages(catalog, query);
 
             page = pageOf(
                 200,

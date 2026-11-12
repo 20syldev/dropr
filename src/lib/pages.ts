@@ -20,6 +20,13 @@ export interface SiteInfo {
     baseUrl: string;
 }
 
+// Where the footer sends the reader: the home of dropr
+const HOME = 'https://github.com/20syldev/dropr';
+
+// Magnifying glass of the search button, drawn inline so that the page loads nothing
+const LENS =
+    '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><circle cx="6.5" cy="6.5" r="4.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M10 10l4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
+
 // Projects of a type that the front page lists before it sends the reader to the page of the type
 const FRONT_LIMIT = 30;
 
@@ -86,14 +93,14 @@ function layout(site: SiteInfo, title: string, body: string, query = ''): string
 <body>
 <header class="top">
 <a class="brand" href="/">${name}</a>
-<form action="/search" method="get" role="search">
-<input type="search" name="q" value="${escapeHtml(query)}" placeholder="Search packages" aria-label="Search packages" required>
-<button type="submit">Search</button>
+<form class="search" action="/search" method="get" role="search">
+<input type="search" name="q" value="${escapeHtml(query)}" placeholder="Search packages" aria-label="Search packages">
+<button type="submit" aria-label="Search">${LENS}</button>
 </form>
 </header>
 <main>
 ${body}</main>
-<footer>Powered by dropr ${escapeHtml(site.version)}</footer>
+<footer>Powered by <a href="${HOME}">dropr ${escapeHtml(site.version)}</a></footer>
 </body>
 </html>
 `;
@@ -212,7 +219,7 @@ export function homePage(site: SiteInfo, types: CatalogType[]): string {
     return layout(
         site,
         '',
-        `<h1>${escapeHtml(site.name)}</h1>\n<p class="lead">${lead}</p>\n<p class="meta">${links}</p>\n${sections.join('')}`,
+        `<h1>Packages</h1>\n<p class="lead">${lead}</p>\n<p class="meta">${links}</p>\n${sections.join('')}`,
     );
 }
 
@@ -220,7 +227,7 @@ export function homePage(site: SiteInfo, types: CatalogType[]): string {
  * Writes the results of a search.
  *
  * @param site - Name, version and base URL of the server
- * @param query - Text that was searched, empty when the box was empty
+ * @param query - Text that was searched, empty when the box was empty, which lists every package
  * @param results - Projects found
  * @param latestOf - Name of the latest version of a result, which the other pages show too
  * @returns The document
@@ -237,10 +244,9 @@ export function searchPage(
 
         return `<li><a href="/${encodeSegment(result.type)}/${encodeSegment(result.name)}">${escapeHtml(result.type)}/${escapeHtml(result.name)}</a>${flag}<span class="dots"></span><span class="end">${escapeHtml(latest)}</span></li>\n`;
     });
+    const count = `${results.length} ${query === '' ? 'package' : 'result'}${results.length === 1 ? '' : 's'}`;
     const lead =
-        query === ''
-            ? 'Type a name to search the packages.'
-            : `${results.length} result${results.length === 1 ? '' : 's'} for ${escapeHtml(query)}.`;
+        query === '' ? (results.length === 0 ? 'No packages yet.' : `${count}.`) : `${count} for ${escapeHtml(query)}.`;
 
     return layout(
         site,
