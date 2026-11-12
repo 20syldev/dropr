@@ -1,6 +1,8 @@
 import { ROUTES } from '../manifest.js';
 import type { Config } from '../types/index.js';
 
+import { isAddress } from './theme.js';
+
 // Longest rate limit window in seconds, a year, which keeps the window in milliseconds an exact integer
 const MAX_WINDOW = 31_536_000;
 
@@ -77,6 +79,35 @@ function count(value: unknown, path: string, fallback: number, max = Number.MAX_
     }
 
     return value;
+}
+
+/**
+ * Reads the ui key, which turns the pages on and can personalize them.
+ *
+ * @param value - Value read from the file, undefined standing for an absent key
+ * @param assets - Assets of the config, whose URL paths a logo or a favicon must be taken from
+ * @returns False for no pages, else the settings, each left null when not given
+ */
+function readUi(value: unknown, assets: Record<string, unknown>): Config['ui'] {
+    if (value === undefined || value === false) return false;
+    if (value !== true && (typeof value !== 'object' || value === null || Array.isArray(value))) {
+        fail('ui', 'must be true, false or an object');
+    }
+    const own = value === true ? {} : section(value, 'ui', ['accent', 'logo', 'favicon']);
+    const accent = own.accent ?? null;
+    if (accent !== null && (typeof accent !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(accent))) {
+        fail('ui.accent', 'must be a color written #rrggbb');
+    }
+    const [logo, favicon] = (['logo', 'favicon'] as const).map((key) => {
+        const path = own[key] ?? null;
+        if (path !== null && (typeof path !== 'string' || !Object.hasOwn(assets, path) || !isAddress(path))) {
+            fail(`ui.${key}`, 'must be the URL path of an asset');
+        }
+
+        return path as string | null;
+    });
+
+    return { accent: accent === null ? null : (accent as string).toLowerCase(), logo, favicon };
 }
 
 /**
@@ -170,8 +201,7 @@ export function parseConfig(input: unknown): Config {
         if (typeof file !== 'string' || !file) fail(`assets.${url}`, 'must be a file path');
     }
 
-    const ui = root.ui === undefined ? false : root.ui;
-    if (typeof ui !== 'boolean') fail('ui', 'must be true or false');
+    const ui = readUi(root.ui, assets);
 
     return {
         name,

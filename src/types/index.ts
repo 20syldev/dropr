@@ -319,7 +319,7 @@ export interface Config {
     rateLimit: RateLimit;
     manifest: ManifestConfig;
     assets: Record<string, string>;
-    ui: boolean;
+    ui: UiSettings | false;
 }
 
 export interface AppDeps {
