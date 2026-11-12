@@ -3,7 +3,7 @@ import { describe, test } from 'node:test';
 
 import { loadIndex, resolveVersion } from '../dist/lib/packages.js';
 import { route } from '../dist/lib/route.js';
-import { matchPath, RESERVED } from '../dist/lib/router.js';
+import { isName, matchPath, RESERVED } from '../dist/lib/router.js';
 import { ROUTES } from '../dist/manifest.js';
 import { scan } from '../dist/scan.js';
 
@@ -206,6 +206,22 @@ describe('matchPath', () => {
         ['//%E0', { id: 'encoding' }],
         ['/npm//%E0', { id: 'encoding' }],
         ['/%C2%85/%E0', { id: 'encoding' }],
+        ['/-/docs', { id: 'docs', page: null }],
+        ['/-/docs/', { id: 'docs', page: null }],
+        ['/-/docs/config', { id: 'docs', page: 'config' }],
+        ['/%2D/docs/config', { id: 'docs', page: 'config' }],
+        ['/-/%64ocs', { id: 'docs', page: null }],
+        ['/-/docs/config/', { id: 'unknown' }],
+        ['/-/docs/a/b', { id: 'unknown' }],
+        ['/-/docs//', { id: 'unknown' }],
+        ['/-/docs/%E0', { id: 'encoding' }],
+        ['/-', { id: 'type', type: '-' }],
+        ['/-/doc', { id: 'versions', type: '-', name: 'doc' }],
+        ['/-/Docs', { id: 'versions', type: '-', name: 'Docs' }],
+        ['/-/docs@1/x', { id: 'file', type: '-', name: 'docs', version: '1', path: 'x', slash: false }],
+        ['/docs', { id: 'type', type: 'docs' }],
+        ['/docs/config', { id: 'versions', type: 'docs', name: 'config' }],
+        ['/docs/-/docs', { id: 'beneath', type: 'docs', name: '-' }],
         ['//', { id: 'unknown' }],
         ['//npm', { id: 'unknown' }],
         ['/npm//lib', { id: 'unknown' }],
@@ -230,6 +246,13 @@ describe('matchPath', () => {
         const literals = ROUTES.map(({ path }) => path.split(/[/?]/)[1]).filter((word) => word && word[0] !== '{');
 
         assert.deepEqual([...new Set(literals)].sort(), [...RESERVED].sort());
+    });
+
+    test('the docs path starts with a segment that no type, project or file route can have', () => {
+        assert.equal(isName('-'), false);
+        assert.equal(isName('-docs'), false);
+        assert.ok(!RESERVED.includes('-'));
+        assert.deepEqual(matchPath('/-/docs/config'), { id: 'docs', page: 'config' });
     });
 
     test('a reserved path never matches a package type', () => {
@@ -335,6 +358,31 @@ describe('URL and router together', () => {
         assert.equal(matchPath(pathname('/npm\\lib')).id, 'versions');
         assert.equal((matchPath(pathname('/npm/lib@1/dist\\index.mjs#x')) as FileMatch).path, 'dist/index.mjs');
         assert.equal(matchPath(pathname('/npm/lib@1/dist%5Cindex.mjs')).id, 'unknown');
+    });
+});
+
+describe('route() on the docs path', () => {
+    test('answers the JSON 404 of an unknown route, whose text names the path, since the docs are a page only', () => {
+        const fixture = createFixture();
+
+        try {
+            const catalog = readableCatalog(fixture.packagesDir);
+
+            for (const path of ['/-/docs', '/-/docs/', '/-/docs/config', '/%2D/docs/config']) {
+                const response = route(
+                    { method: 'GET', url: `http://localhost${path}`, headers: new Headers() },
+                    catalog,
+                    ANSWERING,
+                );
+
+                assert.equal(response.status, 404, path);
+                assert.equal(response.body.kind, 'json');
+                const { message } = JSON.parse((response.body as { text: string }).text);
+                assert.equal(message, `Route '${new URL(`http://localhost${path}`).pathname}' does not exist.`);
+            }
+        } finally {
+            fixture.remove();
+        }
     });
 });
 
