@@ -4,7 +4,14 @@ import { after, describe, test } from 'node:test';
 import os from 'os';
 import { join } from 'path';
 
+import { parseConfig } from '../dist/lib/config.js';
+import { GUIDES } from '../dist/lib/guides.js';
+import { renderMarkdown } from '../dist/lib/markdown.js';
+import { RESERVED } from '../dist/lib/router.js';
+import { ROUTES } from '../dist/manifest.js';
+
 import { readGuides, render } from '../scripts/docs.ts';
+import { rootDir } from './server.ts';
 
 /**
  * Writes the files of a folder of guides, the folder being created.
@@ -145,5 +152,118 @@ describe('render', () => {
 
         assert.equal(before.length, after.length);
         assert.deepEqual(changed, ['            "One.",']);
+    });
+});
+
+/**
+ * Finds a guide of the docs.
+ *
+ * @param slug - Slug of the guide
+ * @returns The guide, which the test fails without
+ */
+function guide(slug: string): { slug: string; title: string; markdown: string } {
+    const found = GUIDES.find((entry) => entry.slug === slug);
+    assert.ok(found, slug);
+
+    return found;
+}
+
+/**
+ * Lists the keys that the config parser knows, read from the source of the parser.
+ *
+ * @returns The dotted path of every key whose section lists its keys in a literal
+ */
+function configKeys(): string[] {
+    const source = fs.readFileSync(join(rootDir, 'src', 'lib', 'config.ts'), 'utf-8');
+    const keys: string[] = [];
+
+    for (const [, path, list] of source.matchAll(/section\(\s*[^,]+,\s*'([^']*)',\s*\[([^\]]*)\]/g)) {
+        for (const [, name] of list.matchAll(/'([^']+)'/g)) keys.push(path ? `${path}.${name}` : name);
+    }
+
+    return keys;
+}
+
+describe('the guides of dropr', () => {
+    test('are the ones written in docs/, as the generated module holds them', () => {
+        assert.deepEqual(GUIDES, readGuides(join(rootDir, 'docs')));
+    });
+
+    test('have a unique slug each and a title, and start with the overview', () => {
+        const slugs = GUIDES.map(({ slug }) => slug);
+
+        assert.equal(new Set(slugs).size, slugs.length);
+        assert.deepEqual(slugs.slice(0, 3), ['overview', 'config', 'routes']);
+        for (const { title, markdown } of GUIDES) assert.ok(markdown.includes(`# ${title}`), title);
+    });
+
+    test('write every key that the config parser knows, so that a new key cannot go undocumented', () => {
+        const keys = configKeys();
+        const { markdown } = guide('config');
+
+        assert.ok(keys.length >= 15, keys.join());
+        for (const key of ['ui.accent', 'ui.logo', 'ui.favicon', 'ui.docs', 'rateLimit.global', 'clientIp.header']) {
+            assert.ok(keys.includes(key), key);
+        }
+        for (const key of [...keys, 'ui']) {
+            assert.ok(markdown.includes(`\`${key}\``) || markdown.includes(`\`${key}.`), key);
+        }
+    });
+
+    test('hold config samples that the parser accepts', () => {
+        let samples = 0;
+
+        for (const { markdown } of GUIDES) {
+            for (const [, text] of markdown.matchAll(/```json\n([\s\S]*?)```/g)) {
+                assert.doesNotThrow(() => parseConfig(JSON.parse(text)), text);
+                samples++;
+            }
+        }
+        assert.ok(samples >= 1);
+    });
+
+    test('list every route of the manifest, and every name that a type cannot take', () => {
+        const { markdown } = guide('routes');
+
+        for (const { path } of ROUTES) {
+            const written = path.replaceAll('{file}', '<path>').replaceAll(/\{(\w+)\}/g, '<$1>');
+
+            assert.ok(markdown.includes(`\`${written}\``) || markdown.includes(written), written);
+        }
+        for (const name of RESERVED) assert.ok(markdown.includes(`\`${name}\``), name);
+        assert.ok(markdown.includes('/-/docs'));
+    });
+
+    test('link to each other by slug only, to pages and to headings that exist', () => {
+        const ids = new Map<string, string[]>();
+        const links: [string, string][] = [];
+
+        for (const { slug, markdown } of GUIDES) {
+            const html = renderMarkdown(markdown, { base: '/-/docs/', offset: 1 });
+
+            ids.set(
+                slug,
+                [...html.matchAll(/ id="([^"]+)"/g)].map(([, id]) => id),
+            );
+            for (const [, href] of html.matchAll(/ href="([^"]*)"/g)) links.push([slug, href]);
+        }
+
+        assert.ok(links.length > 0);
+        for (const [from, href] of links) {
+            if (href.startsWith('https://') || href.startsWith('http://')) continue;
+            const [, page, id] = /^\/-\/docs\/([a-z0-9-]*)(?:#(.+))?$/.exec(href) ?? [];
+
+            assert.notEqual(page, undefined, `${from} links to ${href}`);
+            const target = page === '' ? from : page;
+            assert.ok(ids.has(target), `${from} links to the page ${target}`);
+            if (id) assert.ok(ids.get(target)!.includes(id), `${from} links to ${href}`);
+        }
+    });
+
+    test('are plain ASCII and name no host of the instance', () => {
+        for (const { slug, markdown } of GUIDES) {
+            assert.doesNotMatch(markdown, /[^\t\n -~]/, slug);
+            assert.doesNotMatch(markdown, /\b(render|cloudflare|netlify|vercel|heroku)\b/i, slug);
+        }
     });
 });
