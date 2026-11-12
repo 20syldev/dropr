@@ -17,5 +17,7 @@ export type {
     ReadFile,
     Respond,
     ResponderOptions,
+    UiInput,
+    UiSettings,
 } from './core.js';
 export type { AppDeps, Logger } from './types/index.js';

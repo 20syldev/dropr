@@ -15,4 +15,6 @@ export type {
     ReadFile,
     Respond,
     ResponderOptions,
+    UiInput,
+    UiSettings,
 } from './types/index.js';

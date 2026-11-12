@@ -262,6 +262,14 @@ export interface Answer {
     body: string | ReadableStream<Uint8Array<ArrayBuffer>> | null;
 }
 
+export interface UiSettings {
+    accent: string | null;
+    logo: string | null;
+    favicon: string | null;
+}
+
+export type UiInput = boolean | { accent?: string | null; logo?: string | null; favicon?: string | null };
+
 export interface ResponderOptions {
     catalog: Catalog;
     name: string;
@@ -273,7 +281,7 @@ export interface ResponderOptions {
     rateLimit: RateLimit;
     memory?: () => Memory;
     logger: ErrorLogger;
-    ui?: boolean;
+    ui?: UiInput;
 }
 
 export type Respond = (request: RouteInput, client: string) => Promise<Answer>;
