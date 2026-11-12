@@ -19,8 +19,8 @@ and needs no database.
 - A rate limit per client and overall (`429` with `Retry-After`; preflights and configured assets are not counted), CORS
   open to every origin with the useful response headers exposed, and one JSON error body (`status`, `error`, `message`)
   for every error the server answers itself.
-- A core that uses no Node API (`src/lib/`, checked by `tsc -p tsconfig.core.json`): only the scan, the file reader and
-  the command line depend on Node.
+- A core that uses no Node API, importable alone as `dropr/core` (`src/lib/`, checked by `tsc -p tsconfig.core.json` and
+  run in a context that has only the web globals): only the scan, the file reader and the command line depend on Node.
 
 ## Installation
 
@@ -187,6 +187,17 @@ file, and `read(path, range?)` is any function that returns a stream of the file
 folder. `createResponder` takes the same options and returns the status, headers and body without building a `Response`.
 `parseConfig` and the types of the API are exported too.
 
+### Without Node
+
+`dropr/core` exports `parseConfig`, `loadIndex`, `createHandler`, `createResponder` and `buildManifest` with their types,
+and imports no Node module, so a runtime that has a `fetch` API and no disk can load it. Write the index ahead with
+`JSON.stringify(scan(...))`, read it with `loadIndex(JSON.parse(text))`, and give `createHandler` a `read` function of
+your own; the rest of the options are those above.
+
+- The rate limit and the uptime of `/health` live in the handler, so they are those of one instance, and use `Date.now()`.
+- `/download` needs `CompressionStream`, and `parseConfig` needs `URL.canParse`.
+- `memory` is optional: without it, `/health` leaves the memory out.
+
 ## Stack
 
 Node.js, strict TypeScript (ESM), [@moxon/limiter](https://github.com/moxondev/limiter),
@@ -210,5 +221,6 @@ Node.js, strict TypeScript (ESM), [@moxon/limiter](https://github.com/moxondev/l
 src/lib/        Node-free core: router, routes, packages, semver, checksums, HTTP rules, CORS, tar archive, responder
 src/            Command line and Node adapter: bin, cli, serve, check, startup, app, scan, assets, config, disk, index
 src/manifest.ts Route texts of /manifest, also Node-free
+src/core.ts     Entry of the core alone, exported as dropr/core
 test/           Snapshots on a generated tree, unit and HTTP tests, the ledger of decided changes of a release
 ```
