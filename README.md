@@ -106,7 +106,7 @@ dropr index [config] [--packages ./packages] [--out file]                   # pr
 | `manifest.baseUrl` | required     | Base URL of the instance, `http` or `https`, with no trailing slash; without a config file, `http://localhost:<port>` |
 | `manifest.params`  | `{}`         | Overrides of the texts of `/manifest` (`manifest.routes` does the same per route)                                     |
 | `assets`           | `{}`         | A URL path mapped to the file served there, read at startup                                                           |
-| `ui`               | `false`      | `true` to answer a browser with pages (see Pages); the JSON stays what every other client gets                        |
+| `ui`               | `false`      | `true`, or an object, to answer a browser with pages (see Pages); the JSON stays what every other client gets         |
 
 Unknown keys are refused. Without `clientIp.header` the client is the socket address, and `X-Forwarded-For` is never
 read. A refused request does not count against the limit, and a `429` tells in `Retry-After` how many seconds to wait.
@@ -155,6 +155,12 @@ With `"ui": true`, a browser gets a page where every other client gets the JSON,
 `Accept` header: a page is sent when `text/html` (or `application/xhtml+xml`) is named with a higher quality than
 `application/json`, so `curl`, `fetch()` and scripts, which send `*/*` or no `Accept`, keep the JSON they always had.
 The answers of those paths carry `Vary: Accept`.
+
+`ui` can be an object that sets the look, as in `{ "accent": "#1d4ed8", "logo": "/logo.svg", "favicon": "/favicon.ico" }`.
+`accent` is a color written `#rrggbb`, and `logo` and `favicon` are the URL path of an entry of `assets`. The accent
+colors the buttons and the focus ring; the links and the ring get the closest shade that reads at 4.5:1 on the light and
+the dark theme, and a button gets a white or a dark label, whichever reads better. The logo is shown before the name,
+which stays the title. An empty object, like `true`, keeps the default look.
 
 | Path                                                          | Page                                                          |
 | ------------------------------------------------------------- | ------------------------------------------------------------- |
@@ -226,8 +232,9 @@ const response = await handler(new Request('http://localhost/health'), '127.0.0.
 The second argument is the address of the client. `loadIndex` takes the index that `scan` builds or one read from a JSON
 file, and `read(path, range?)` is any function that returns a stream of the file; `createReader` is the one over a
 folder. `createResponder` takes the same options and returns the status, headers and body without building a `Response`.
-Add `ui: true` to the options to answer a browser with the pages, the READMEs being read through `read`. `parseConfig` and
-the types of the API are exported too.
+Add `ui: true` to the options to answer a browser with the pages, the READMEs being read through `read`; the same
+`accent`, `logo` and `favicon` can be given as an object, where a value that is not safe is ignored. `Config.ui` is
+`false` or those three settings. `parseConfig` and the types of the API are exported too.
 
 ### Without Node
 
