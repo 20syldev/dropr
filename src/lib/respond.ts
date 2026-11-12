@@ -20,6 +20,7 @@ import { conditionsOf, decide } from './http.js';
 import { countPackages } from './packages.js';
 import { failure, INTERNAL, route } from './route.js';
 import { exact, watch } from './stream.js';
+import { uiResult } from './ui.js';
 
 type Source = ReadableStream<Uint8Array<ArrayBuffer>>;
 
@@ -233,7 +234,8 @@ async function answerOf(
  * memory from the option that gives it.
  *
  * @param options - Catalog the package routes answer from, name and version of the server, manifest, read port, assets
- * by pathname, name of the client IP header, rate limit, optional memory reader, and logger of the failures
+ * by pathname, name of the client IP header, rate limit, optional memory reader, logger of the failures, and ui to
+ * answer a browser with pages on the paths of the listings
  * @returns The function that answers a request: it never rejects, and the body of the answer is a string, a stream or null
  */
 export function createResponder(options: ResponderOptions): Respond {
@@ -265,6 +267,11 @@ export function createResponder(options: ResponderOptions): Respond {
         },
     };
 
+    const baseUrl = options.manifest.baseUrl;
+    const pages = options.ui
+        ? { catalog, site: { name: options.name, version: options.version, baseUrl }, read, logger }
+        : null;
+
     return async (request, address) => {
         try {
             if (request.method === 'OPTIONS') return preflight();
@@ -278,7 +285,16 @@ export function createResponder(options: ResponderOptions): Respond {
             const decision = limiter.check(clientOf(request, options.clientHeader, address), Date.now());
             if (!decision.ok) return plain(tooMany(decision, rateLimit.window));
 
-            return await answerOf(route(request, catalog, site), head, read, logger);
+            const negotiated = pages ? await uiResult(request, pages) : null;
+            if (negotiated?.page) {
+                const { status, html } = negotiated.page;
+
+                return { status, headers: withCors(negotiated.page), body: head ? null : html };
+            }
+
+            const answer = await answerOf(route(request, catalog, site), head, read, logger);
+
+            return negotiated?.vary ? { ...answer, headers: { ...answer.headers, Vary: 'Accept' } } : answer;
         } catch (error) {
             logger.error((error as Error).stack);
 

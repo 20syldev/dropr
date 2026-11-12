@@ -427,7 +427,7 @@ function unknownRoute(scope: Scope): RouteResponse {
  * @returns The URL, or null when it does not parse or its scheme is neither http nor https, so that a URL with no
  * path such as data: or mailto: is never routed
  */
-function parseUrl(text: string): URL | null {
+export function parseUrl(text: string): URL | null {
     try {
         const url = new URL(text);
 

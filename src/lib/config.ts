@@ -88,7 +88,16 @@ function count(value: unknown, path: string, fallback: number, max = Number.MAX_
  * @returns The complete config; throws an Error whose message starts with "Invalid config:" and names the key
  */
 export function parseConfig(input: unknown): Config {
-    const root = section(input, '', ['name', 'port', 'packagesDir', 'clientIp', 'rateLimit', 'manifest', 'assets']);
+    const root = section(input, '', [
+        'name',
+        'port',
+        'packagesDir',
+        'clientIp',
+        'rateLimit',
+        'manifest',
+        'assets',
+        'ui',
+    ]);
     const clientIp = section(root.clientIp, 'clientIp', ['header']);
     const rateLimit = section(root.rateLimit, 'rateLimit', ['window', 'client', 'global']);
     const manifest = section(root.manifest, 'manifest', ['baseUrl', 'params', 'routes']);
@@ -161,6 +170,9 @@ export function parseConfig(input: unknown): Config {
         if (typeof file !== 'string' || !file) fail(`assets.${url}`, 'must be a file path');
     }
 
+    const ui = root.ui === undefined ? false : root.ui;
+    if (typeof ui !== 'boolean') fail('ui', 'must be true or false');
+
     return {
         name,
         port,
@@ -169,5 +181,6 @@ export function parseConfig(input: unknown): Config {
         rateLimit: limits,
         manifest: { baseUrl, params, routes } as Config['manifest'],
         assets: assets as Record<string, string>,
+        ui,
     };
 }
