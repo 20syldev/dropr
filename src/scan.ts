@@ -357,7 +357,7 @@ function scanProjects(typePath: string, logger: ErrorLogger): IndexProject[] {
  * @returns True when a route of the server or an asset answers the path of that name before the listing of a package
  * type could
  */
-function isReserved(name: string, assets: string[]): boolean {
+export function isReserved(name: string, assets: string[]): boolean {
     return RESERVED.includes(name) || assets.includes(name);
 }
 

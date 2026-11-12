@@ -18,6 +18,7 @@ Options:
     --port <port>         Port to listen on (serve), before the PORT variable and the config
     --packages <folder>   Packages folder, before the one of the config
     --out <file>          File to write the index to (index), the standard output otherwise
+    --index <file>        Index to serve (serve), written by dropr index, instead of scanning the packages
     -h, --help            Show this help
     -v, --version         Show the version
 
@@ -41,10 +42,15 @@ export interface Context {
  * @param values - Options that were given
  * @returns The message of the first fault, null when the command takes everything it was given
  */
-function findMisuse(command: string, files: number, values: { port?: string; out?: string }): string | null {
+function findMisuse(
+    command: string,
+    files: number,
+    values: { port?: string; out?: string; index?: string },
+): string | null {
     if (files > 1) return 'Only one config file can be named.';
     if (command !== 'serve' && values.port !== undefined) return '--port belongs to serve.';
     if (command !== 'index' && values.out !== undefined) return '--out belongs to index.';
+    if (command !== 'serve' && values.index !== undefined) return '--index belongs to serve.';
 
     return null;
 }
@@ -69,6 +75,7 @@ export async function main(argv: string[], context: Context): Promise<number> {
                 port: { type: 'string' },
                 packages: { type: 'string' },
                 out: { type: 'string' },
+                index: { type: 'string' },
                 help: { type: 'boolean', short: 'h' },
                 version: { type: 'boolean', short: 'v' },
             },
@@ -101,6 +108,7 @@ export async function main(argv: string[], context: Context): Promise<number> {
 
     try {
         if (values.out === '') throw new Error('--out must not be empty.');
+        if (values.index === '') throw new Error('--index must not be empty.');
 
         const { config, file } = configure(rest[0], cwd, values.packages, choosePort(values.port, env.PORT));
         if (command === 'check') return check(config, file, out, err);
@@ -108,7 +116,7 @@ export async function main(argv: string[], context: Context): Promise<number> {
             return emitIndex(config, values.out === undefined ? null : resolve(cwd, values.out), out, err);
         }
 
-        await serve(config, readVersion(), out);
+        await serve(config, readVersion(), out, values.index === undefined ? null : resolve(cwd, values.index));
 
         return 0;
     } catch (error) {

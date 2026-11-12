@@ -7,6 +7,7 @@ import { createApp } from './app.js';
 import { scanAssets } from './assets.js';
 import { reservedNames } from './config.js';
 import { scan } from './scan.js';
+import { readIndex } from './stored.js';
 import type { Config, Logger } from './types/index.js';
 
 /**
@@ -17,10 +18,17 @@ import type { Config, Logger } from './types/index.js';
  * @param config - Validated config, its paths absolute and its port the one to listen on
  * @param version - Version of dropr, which /health and /manifest report
  * @param out - Receives the banner once the server listens
+ * @param indexFile - Absolute path of an index that dropr index wrote, served instead of scanning the packages folder;
+ * null to scan
  * @returns The server, which keeps the process alive, once it listens; rejects with the error of the server when it
- * cannot listen
+ * cannot listen or when the index file does not match the packages folder
  */
-export function serve(config: Config, version: string, out: (text: string) => void): Promise<http.Server> {
+export async function serve(
+    config: Config,
+    version: string,
+    out: (text: string) => void,
+    indexFile: string | null = null,
+): Promise<http.Server> {
     const colored = createLogger({ theme: 'colored', order: 'desc' });
     const logger: Logger = {
         request: ({ method, url, status, duration }) =>
@@ -29,7 +37,10 @@ export function serve(config: Config, version: string, out: (text: string) => vo
     };
 
     const { packagesDir } = config;
-    const index = scan(packagesDir, logger, reservedNames(config));
+    const index =
+        indexFile === null
+            ? scan(packagesDir, logger, reservedNames(config))
+            : readIndex(indexFile, packagesDir, reservedNames(config));
     const assets = scanAssets(config.assets, logger);
     const server = http.createServer(createApp(config, { index, packagesDir, version, logger, assets }));
 
