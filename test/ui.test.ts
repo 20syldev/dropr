@@ -174,14 +174,20 @@ describe('the pages', () => {
         assert.match(textOf(await request(on.port, 'GET', '/npm/lib@1', BROWSER)), /<h1>lib@1\.10\.0<\/h1>/);
     });
 
-    test('search from the page, an empty search being a page and not an error', async () => {
+    test('search from the page, an empty search listing every package and not being an error', async () => {
         const found = textOf(await request(on.port, 'GET', '/search?q=lib', BROWSER));
         assert.match(found, /<input type="search" name="q" value="lib"/);
         assert.match(found, /<a href="\/npm\/lib">npm\/lib<\/a>/);
 
         const blank = await request(on.port, 'GET', '/search', BROWSER);
         assert.equal(blank.status, 200);
-        assert.match(textOf(blank), /Type a name to search the packages\./);
+        assert.match(textOf(blank), /<p class="lead">\d+ packages\.<\/p>/);
+        assert.match(textOf(blank), /<a href="\/npm\/lib">npm\/lib<\/a>/);
+        assert.match(textOf(blank), /<a href="\/bash\/gft">bash\/gft<\/a>/);
+
+        const spaces = await request(on.port, 'GET', '/search?q=%20%20', BROWSER);
+        assert.equal(spaces.status, 200);
+        assert.match(textOf(spaces), /<a href="\/npm\/lib">npm\/lib<\/a>/);
         assert.equal((await request(on.port, 'GET', '/search', {})).status, 400);
 
         const hostile = textOf(await request(on.port, 'GET', '/search?q=%3Cscript%3E', BROWSER));

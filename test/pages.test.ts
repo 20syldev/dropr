@@ -129,8 +129,11 @@ describe('the pages', () => {
             assert.match(html, /^<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">/);
             assert.match(html, /<title>[^<]*Acme &#60;CDN&#62;<\/title>/);
             assert.match(html, /<a class="brand" href="\/">Acme &#60;CDN&#62;<\/a>/);
-            assert.match(html, /<form action="\/search" method="get" role="search">/);
-            assert.match(html, /<footer>Powered by dropr 4\.3\.0<\/footer>\n<\/body>\n<\/html>\n$/);
+            assert.match(html, /<form class="search" action="\/search" method="get" role="search">/);
+            assert.match(
+                html,
+                /<footer>Powered by <a href="https:\/\/github\.com\/20syldev\/dropr">dropr 4\.3\.0<\/a><\/footer>\n<\/body>\n<\/html>\n$/,
+            );
             assert.ok(!html.includes('<CDN>'));
             assert.equal(danger(html), null);
         }
@@ -184,7 +187,15 @@ describe('the pages', () => {
             /<a href="\/npm\/lib">npm\/lib<\/a> <span class="mark dep">Deprecated<\/span><span class="dots"><\/span><span class="end">1\.1\.0<\/span>/,
         );
         assert.match(searchPage(SITE, 'zzz', [], latest), /<p class="lead">0 results for zzz\.<\/p>/);
-        assert.match(searchPage(SITE, '', [], latest), /<p class="lead">Type a name to search the packages\.<\/p>/);
+        assert.match(searchPage(SITE, '', [], latest), /<p class="lead">No packages yet\.<\/p>/);
+
+        const all = [
+            { type: 'npm', name: 'lib', versions: ['latest', '1.1.0'], url: '/npm/lib' },
+            { type: 'npm', name: 'next', versions: ['latest', '1.0.0'], url: '/npm/next' },
+        ];
+        assert.match(searchPage(SITE, '', all, latest), /<p class="lead">2 packages\.<\/p>/);
+        assert.match(searchPage(SITE, '', all.slice(0, 1), latest), /<p class="lead">1 package\.<\/p>/);
+        assert.match(searchPage(SITE, '', all, latest), /<a href="\/npm\/next">npm\/next<\/a>/);
         assert.match(searchPage(SITE, '', [], latest), /<title>Search - /);
     });
 
@@ -470,7 +481,7 @@ describe('the pages', () => {
             ],
         });
         const project = projectOf(odd, 'npm', 'lib');
-        const site: SiteInfo = { name: '"><svg onload=x>', version: "1'<i>", baseUrl: 'https://x.y/"><b>' };
+        const site: SiteInfo = { name: '"><u onload=x>', version: "1'<i>", baseUrl: 'https://x.y/"><b>' };
         const pages = [
             homePage(site, [...odd.types.values()]),
             typePage(site, odd.types.get('npm')!),
@@ -483,12 +494,63 @@ describe('the pages', () => {
 
         for (const html of pages) {
             assert.equal(danger(html), null);
-            assert.doesNotMatch(html.replace(/<style>[\s\S]*<\/style>/, ''), /<svg|<b>|<i>|<q>|<m>/);
+            assert.doesNotMatch(html.replace(/<style>[\s\S]*<\/style>/, ''), /<u |<b>|<i>|<q>|<m>/);
         }
         assert.ok(pages[4].includes('href="/npm/lib@1.0.0/"'));
         assert.ok(pages[4].includes('href="/npm/lib@1.0.0/a%3Cb%3E/"'));
         assert.ok(pages[4].includes('<h1>lib@1.0.0/a&#60;b&#62;/c d</h1>'));
         assert.ok(pages[2].includes('href="/npm/s&#38;t"'));
+    });
+
+    test('write a search box that a keyboard and a screen reader can use, and a footer that links to dropr', () => {
+        const html = homePage(SITE, types);
+        const form = /<form class="search"[\s\S]*?<\/form>/.exec(html)?.[0] ?? '';
+
+        assert.match(
+            form,
+            /<input type="search" name="q" value="" placeholder="Search packages" aria-label="Search packages">/,
+        );
+        assert.match(form, /<button type="submit" aria-label="Search"><svg [^>]*aria-hidden="true"[^>]*>/);
+        assert.doesNotMatch(form, />Search<\/button>/);
+        assert.doesNotMatch(form, /required/);
+        assert.match(
+            html,
+            /<footer>Powered by <a href="https:\/\/github\.com\/20syldev\/dropr">dropr 4\.3\.0<\/a><\/footer>/,
+        );
+
+        assert.match(homePage(SITE, types), /@media \(pointer: coarse\) \{ \.search input \{ font-size: 1rem; \} \}/);
+        assert.match(homePage(SITE, types), /footer a \{ color: inherit; text-decoration-color: var\(--muted\);/);
+
+        const odd = homePage({ ...SITE, version: '1"><b>' }, types);
+        assert.ok(odd.includes('>dropr 1&#34;&#62;&#60;b&#62;</a>'));
+    });
+
+    test('title the front page by what it lists, so that the name of the server shows once above the list', () => {
+        const html = homePage(SITE, types);
+        const main = html.slice(html.indexOf('<main>'));
+
+        assert.match(main, /^<main>\n<h1>Packages<\/h1>\n<p class="lead">3 packages in 2 types\.<\/p>/);
+        assert.ok(!main.includes('Acme'));
+        assert.match(html, /<a class="brand" href="\/">Acme &#60;CDN&#62;<\/a>/);
+        assert.match(html, /<title>Acme &#60;CDN&#62;<\/title>/);
+    });
+
+    test('fade the color of every link on hover, and no longer when the reader asks for less motion', () => {
+        const html = homePage(SITE, types);
+
+        assert.match(html, /\na \{[^}]*transition: color 0\.15s ease;[^}]*\}/);
+        assert.match(html, /\ninput \{[^}]*transition: border-color 0\.15s ease[^}]*\}/);
+        assert.match(html, /@media \(prefers-reduced-motion: reduce\) \{ \* \{ transition: none !important; \} \}/);
+    });
+
+    test('give the scroll bars a thin look of the theme only where the browser knows how, the others keeping theirs', () => {
+        const html = homePage(SITE, types);
+
+        assert.match(
+            html,
+            /@supports \(scrollbar-color: auto\) \{ html, pre, \.markdown table \{ scrollbar-width: thin; scrollbar-color: var\(--muted\) transparent; \} \}/,
+        );
+        assert.doesNotMatch(html, /::-webkit-scrollbar/);
     });
 
     test('write an error with its status and its escaped message', () => {
