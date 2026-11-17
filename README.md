@@ -22,7 +22,7 @@ and needs no database.
 - A rate limit per client and overall (`429` with `Retry-After`; preflights and configured assets are not counted), CORS
   open to every origin with the useful response headers exposed, and one JSON error body (`status`, `error`, `message`)
   for every error the server answers itself.
-- A core that uses no Node API, importable alone as `dropr/core` (`src/lib/`, checked by `tsc -p tsconfig.core.json` and
+- A core that uses no Node API, importable alone as `dropr/core` (`src/core/`, checked by `tsc -p tsconfig.core.json` and
   run in a context that has only the web globals): only the scan, the file reader and the command line depend on Node.
 
 ## Installation
@@ -264,7 +264,8 @@ Node.js, strict TypeScript (ESM), [@moxon/limiter](https://github.com/moxondev/l
 | --------------------- | --------------------------------------------------------------------------------------------- |
 | `npm run dev`         | Dev server, reloaded on change (tsx watch)                                                    |
 | `npm run build`       | Compile TypeScript to `dist/`                                                                 |
-| `npm run docs`        | Write `src/lib/guides.ts` from `docs/*.md`; the other scripts run it first                    |
+| `npm run docs`        | Write `src/core/pages/guides.ts` from `docs/*.md`; the other scripts run it first             |
+| `npm run styles`      | Write `src/core/pages/style.ts` from the CSS files; `prepack` writes it minified              |
 | `npm start`           | Production server (`dropr serve`, after `npm run build`) on the port of the config or `$PORT` |
 | `npm run check`       | Type checks (Node-free core included), ESLint, Prettier                                       |
 | `npm test`            | Route snapshots, config, router, core, HTTP rules, CLI, package                               |
@@ -274,10 +275,15 @@ Node.js, strict TypeScript (ESM), [@moxon/limiter](https://github.com/moxondev/l
 ## Structure
 
 ```
-src/lib/        Node-free core: router, routes, packages, semver, checksums, HTTP rules, CORS, tar archive, responder, pages, Markdown
-src/            Command line and Node adapter: bin, cli, serve, check, indexer, folder, stored, startup, app, scan, assets, config, disk, index
-src/manifest.ts Route texts of /manifest, also Node-free
-src/core.ts     Entry of the core alone, exported as dropr/core
-docs/           The docs of dropr in Markdown, turned into src/lib/guides.ts (not committed) by scripts/docs.ts
-test/           Snapshots on a generated tree, unit and HTTP tests, the ledger of decided changes of a release
+src/core/              Node-free core, exported as dropr/core: index (entry), config, manifest (route texts of /manifest)
+src/core/http/         Router, routes, HTTP rules, CORS, errors, paths, responder
+src/core/pages/        Pages, UI negotiation, theme, Markdown, HTML escaping, guides
+src/core/pages/styles/ The CSS of the pages in numbered files, turned into style.ts (not committed) by scripts/styles.ts
+src/core/packages/     Packages, tar archive, semver, ordering, dates, deprecations, checksums, MIME types, streams
+src/node/              Node adapter: app, scan, assets, config, disk, folder, indexer, stored, serve, startup
+src/cli/               Command line: bin, cli, check
+src/types/             Types shared by the core and the adapter
+src/index.ts           Entry of the package
+docs/                  The docs of dropr in Markdown, turned into src/core/pages/guides.ts (not committed) by scripts/docs.ts
+test/                  Snapshots on a generated tree, unit and HTTP tests, the ledger of decided changes of a release
 ```
