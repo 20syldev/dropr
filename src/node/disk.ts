@@ -1,7 +1,7 @@
 import fs from 'fs';
 import { join } from 'path';
 
-import type { ByteRange, ReadFile } from './types/index.js';
+import type { ByteRange, ReadFile } from '../types/index.js';
 
 // Bytes asked from the disk by a pull, the most a download keeps in memory per stream
 const CHUNK = 64 * 1024;

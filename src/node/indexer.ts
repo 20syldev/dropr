@@ -1,11 +1,12 @@
 import fs from 'fs';
 import { dirname, isAbsolute, relative, sep } from 'path';
 
+import { countPackages, loadIndex } from '../core/packages/packages.js';
+import type { Config } from '../types/index.js';
+
 import { reservedNames } from './config.js';
 import { readableFolder } from './folder.js';
-import { countPackages, loadIndex } from './lib/packages.js';
 import { scan } from './scan.js';
-import type { Config } from './types/index.js';
 
 /**
  * Scans the packages folder of a config and prints its index as JSON, so that a host without a disk can serve it.

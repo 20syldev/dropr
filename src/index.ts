@@ -1,9 +1,9 @@
-export { createApp } from './app.js';
-export { scanAssets } from './assets.js';
-export { loadConfig } from './config.js';
-export { buildManifest, createHandler, createResponder, loadIndex, parseConfig } from './core.js';
-export { createReader } from './disk.js';
-export { scan } from './scan.js';
+export { createApp } from './node/app.js';
+export { scanAssets } from './node/assets.js';
+export { loadConfig } from './node/config.js';
+export { buildManifest, createHandler, createResponder, loadIndex, parseConfig } from './core/index.js';
+export { createReader } from './node/disk.js';
+export { scan } from './node/scan.js';
 export type {
     Answer,
     Asset,
@@ -19,5 +19,5 @@ export type {
     ResponderOptions,
     UiInput,
     UiSettings,
-} from './core.js';
+} from './core/index.js';
 export type { AppDeps, Logger } from './types/index.js';

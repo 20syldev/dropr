@@ -1,9 +1,10 @@
 import fs from 'fs';
 import { join } from 'path';
 
-import { loadIndex } from './lib/packages.js';
+import { loadIndex } from '../core/packages/packages.js';
+import type { Index, IndexNode } from '../types/index.js';
+
 import { isReserved } from './scan.js';
-import type { Index, IndexNode } from './types/index.js';
 
 // Problems that readIndex names in its message, the rest being counted
 const SHOWN = 5;

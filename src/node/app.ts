@@ -2,11 +2,12 @@ import type { IncomingMessage, RequestListener, ServerResponse } from 'http';
 import { Readable } from 'stream';
 import type { ReadableStream as NodeReadableStream } from 'stream/web';
 
+import { createResponder } from '../core/http/respond.js';
+import { buildManifest } from '../core/manifest.js';
+import { loadIndex } from '../core/packages/packages.js';
+import type { AppDeps, Config, Logger, Respond, RouteInput } from '../types/index.js';
+
 import { createReader } from './disk.js';
-import { loadIndex } from './lib/packages.js';
-import { createResponder } from './lib/respond.js';
-import { buildManifest } from './manifest.js';
-import type { AppDeps, Config, Logger, Respond, RouteInput } from './types/index.js';
 
 // Scheme and authority that an absolute-form target holds before its path, cut off whatever the authority looks like
 const ORIGIN = /^[a-z][a-z\d+.-]*:\/\/[^/?#]*/i;

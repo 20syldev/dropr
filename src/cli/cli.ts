@@ -1,10 +1,11 @@
 import { resolve } from 'path';
 import { parseArgs } from 'util';
 
+import { emitIndex } from '../node/indexer.js';
+import { serve } from '../node/serve.js';
+import { choosePort, configure, readVersion } from '../node/startup.js';
+
 import { check } from './check.js';
-import { emitIndex } from './indexer.js';
-import { serve } from './serve.js';
-import { choosePort, configure, readVersion } from './startup.js';
 
 // Text of --help and of a usage error
 const USAGE = `Usage: dropr <command> [config] [options]

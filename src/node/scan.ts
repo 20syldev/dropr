@@ -2,11 +2,11 @@ import crypto from 'crypto';
 import fs from 'fs';
 import { join, sep } from 'path';
 
-import { parseDay } from './lib/dates.js';
-import { parseDeprecation } from './lib/deprecations.js';
-import { compareBytes } from './lib/order.js';
-import { isName, isProjectName, isSegment, RESERVED } from './lib/router.js';
-import { compareVersions, isVersion } from './lib/semver.js';
+import { isName, isProjectName, isSegment, RESERVED } from '../core/http/router.js';
+import { parseDay } from '../core/packages/dates.js';
+import { parseDeprecation } from '../core/packages/deprecations.js';
+import { compareBytes } from '../core/packages/order.js';
+import { compareVersions, isVersion } from '../core/packages/semver.js';
 import type {
     Deprecation,
     ErrorLogger,
@@ -16,7 +16,7 @@ import type {
     IndexProject,
     IndexType,
     IndexVersion,
-} from './types/index.js';
+} from '../types/index.js';
 
 /**
  * Reads the .deprecated.json notice of a project, if any.

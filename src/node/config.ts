@@ -1,8 +1,8 @@
 import fs from 'fs';
 import { dirname, resolve } from 'path';
 
-import { parseConfig } from './lib/config.js';
-import type { Config } from './types/index.js';
+import { parseConfig } from '../core/config.js';
+import type { Config } from '../types/index.js';
 
 /**
  * Reads a config file, validates it and resolves its paths against the folder of the file.

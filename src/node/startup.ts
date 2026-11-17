@@ -2,9 +2,10 @@ import fs from 'fs';
 import { dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';
 
+import { parseConfig } from '../core/config.js';
+import type { Config } from '../types/index.js';
+
 import { loadConfig } from './config.js';
-import { parseConfig } from './lib/config.js';
-import type { Config } from './types/index.js';
 
 // Name of the config file that is looked for in the working folder when none is named
 export const CONFIG_FILE = 'dropr.config.json';
@@ -88,7 +89,7 @@ export function configure(
  * @returns The version, such as 4.0.0
  */
 export function readVersion(): string {
-    const manifest = join(dirname(fileURLToPath(import.meta.url)), '..', 'package.json');
+    const manifest = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'package.json');
 
     return JSON.parse(fs.readFileSync(manifest, 'utf-8')).version;
 }

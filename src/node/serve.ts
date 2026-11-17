@@ -3,12 +3,13 @@ import type { AddressInfo } from 'net';
 
 import { createLogger } from '@20syldev/logger.ts';
 
+import type { Config, Logger } from '../types/index.js';
+
 import { createApp } from './app.js';
 import { scanAssets } from './assets.js';
 import { reservedNames } from './config.js';
 import { scan } from './scan.js';
 import { readIndex } from './stored.js';
-import type { Config, Logger } from './types/index.js';
 
 /**
  * Starts the server of a config: indexes the packages and the assets, then listens.

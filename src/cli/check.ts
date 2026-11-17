@@ -1,9 +1,9 @@
-import { scanAssets } from './assets.js';
-import { reservedNames } from './config.js';
-import { readableFolder } from './folder.js';
-import { countPackages, loadIndex } from './lib/packages.js';
-import { scan } from './scan.js';
-import type { Config } from './types/index.js';
+import { countPackages, loadIndex } from '../core/packages/packages.js';
+import { scanAssets } from '../node/assets.js';
+import { reservedNames } from '../node/config.js';
+import { readableFolder } from '../node/folder.js';
+import { scan } from '../node/scan.js';
+import type { Config } from '../types/index.js';
 
 /**
  * Checks that a config can start a server, without listening.

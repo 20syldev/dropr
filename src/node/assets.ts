@@ -2,9 +2,10 @@ import { createHash } from 'crypto';
 import fs from 'fs';
 import { basename, dirname } from 'path';
 
+import { contentType } from '../core/packages/mime.js';
+import type { Asset, ErrorLogger } from '../types/index.js';
+
 import { createReader } from './disk.js';
-import { contentType } from './lib/mime.js';
-import type { Asset, ErrorLogger } from './types/index.js';
 
 // Bytes hashed at a time, so that an asset is never held whole in memory
 const CHUNK = 64 * 1024;
