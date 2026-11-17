@@ -18,7 +18,7 @@ const ALLOWED: Record<string, string[]> = {
     ol: ['start'],
     code: ['class'],
     th: ['class'],
-    td: ['class'],
+    td: ['class', 'data-label'],
     p: [],
     ul: [],
     li: [],
@@ -43,11 +43,11 @@ const ALLOWED: Record<string, string[]> = {
  * @returns The first fault found, or null when the HTML is sound
  */
 function fault(html: string): string | null {
-    if (/[<>"']/.test(html.replace(/<\/?[a-z0-9]+(?: [a-z]+="[^"<>]*")*>/g, '')))
+    if (/[<>"']/.test(html.replace(/<\/?[a-z0-9]+(?: [a-z-]+="[^"<>]*")*>/g, '')))
         return 'a mark is left outside an element';
 
-    for (const [tag, name, value] of [...html.matchAll(/<([a-z0-9]+)((?: [a-z]+="[^"<>]*")*)>/g)].flatMap((match) => {
-        const attributes = [...match[2].matchAll(/ ([a-z]+)="([^"<>]*)"/g)];
+    for (const [tag, name, value] of [...html.matchAll(/<([a-z0-9]+)((?: [a-z-]+="[^"<>]*")*)>/g)].flatMap((match) => {
+        const attributes = [...match[2].matchAll(/ ([a-z-]+)="([^"<>]*)"/g)];
 
         return attributes.length > 0 ? attributes.map((a) => [match[1], a[1], a[2]]) : [[match[1], '', '']];
     })) {
@@ -130,13 +130,13 @@ describe('renderMarkdown', () => {
         assert.equal(
             render('| a | b |\n|:-:|--:|\n| 1 |\n| 2 | 3 | 4 |'),
             '<table><thead><tr><th class="center">a</th><th class="right">b</th></tr></thead>' +
-                '<tbody><tr><td class="center">1</td><td class="right"></td></tr>' +
-                '<tr><td class="center">2</td><td class="right">3</td></tr></tbody></table>\n',
+                '<tbody><tr><td class="center" data-label="a">1</td><td class="right" data-label="b"></td></tr>' +
+                '<tr><td class="center" data-label="a">2</td><td class="right" data-label="b">3</td></tr></tbody></table>\n',
         );
         assert.equal(render('a | b\n- | -'), '<table><thead><tr><th>a</th><th>b</th></tr></thead></table>\n');
         assert.equal(
             render('| a |\n|---|\n| x \\| y |'),
-            '<table><thead><tr><th>a</th></tr></thead><tbody><tr><td>x | y</td></tr></tbody></table>\n',
+            '<table><thead><tr><th>a</th></tr></thead><tbody><tr><td data-label="a">x | y</td></tr></tbody></table>\n',
         );
     });
 
@@ -242,10 +242,18 @@ describe('renderMarkdown', () => {
         assert.equal(render('a\tb'), '<p>a   b</p>\n');
     });
 
+    test('labels the cells of a table with their header, without its marks or its quotes', () => {
+        assert.equal(
+            render('| `k` **"x"** |\n|---|\n| v |'),
+            '<table><thead><tr><th><code>k</code> <strong>&#34;x&#34;</strong></th></tr></thead>' +
+                '<tbody><tr><td data-label="k &#34;x&#34;">v</td></tr></tbody></table>\n',
+        );
+    });
+
     test('starts a table in the middle of a paragraph, and ends a quote at the next block', () => {
         assert.equal(
             render('intro\n| a | b |\n|---|---|\n| 1 | 2 |'),
-            '<p>intro</p>\n<table><thead><tr><th>a</th><th>b</th></tr></thead><tbody><tr><td>1</td><td>2</td></tr></tbody></table>\n',
+            '<p>intro</p>\n<table><thead><tr><th>a</th><th>b</th></tr></thead><tbody><tr><td data-label="a">1</td><td data-label="b">2</td></tr></tbody></table>\n',
         );
         assert.equal(
             render('> a\n# h\n- x'),

@@ -653,6 +653,11 @@ describe('the pages', () => {
         assert.match(STYLE, /\n\.markdown td code, \.markdown th code \{[^}]*white-space: nowrap;[^}]*\}/);
     });
 
+    test('stack the rows of a table of a README on a narrow screen, each cell under its header', () => {
+        assert.match(STYLE, /@media \(max-width: 40rem\) \{\n\.markdown table, [^\n]*display: block;/);
+        assert.match(STYLE, /\.markdown td\[data-label\]::before \{[^}]*content: attr\(data-label\);/);
+    });
+
     test('link to the docs from the front page only when the site has them', () => {
         assert.doesNotMatch(homePage(SITE, types), /\/-\/docs/);
         assert.doesNotMatch(homePage({ ...SITE, docs: false }, types), /\/-\/docs/);
