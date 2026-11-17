@@ -542,14 +542,26 @@ function startsTable(line: string, next: string | undefined): boolean {
  * @param line - The row
  * @param tag - th or td
  * @param align - Class attribute of each column, empty when it has no alignment
+ * @param labels - Text of each column header, written on the cells of a body row for the narrow layout
  * @param context - Base folder and references
  * @param depth - Nesting depth
  * @returns The tr element, with as many cells as the header has
  */
-function tableRow(line: string, tag: string, align: string[], context: Context, depth: number): string {
+function tableRow(
+    line: string,
+    tag: string,
+    align: string[],
+    labels: string[],
+    context: Context,
+    depth: number,
+): string {
     const content = cells(line).slice(0, align.length);
     while (content.length < align.length) content.push('');
-    const html = content.map((cell, n) => `<${tag}${align[n]}>${renderInline(cell, context, depth + 1)}</${tag}>`);
+    const html = content.map((cell, n) => {
+        const label = tag === 'td' && labels[n] ? ` data-label="${labels[n]}"` : '';
+
+        return `<${tag}${align[n]}${label}>${renderInline(cell, context, depth + 1)}</${tag}>`;
+    });
 
     return `<tr>${html.join('')}</tr>`;
 }
@@ -569,8 +581,11 @@ function renderTable(rows: string[], context: Context, depth: number): string {
 
         return '';
     });
-    const head = `<thead>${tableRow(rows[0], 'th', align, context, depth)}</thead>`;
-    const body = rows.slice(2).map((line) => tableRow(line, 'td', align, context, depth));
+    const labels = cells(rows[0])
+        .slice(0, align.length)
+        .map((cell) => renderInline(cell, context, depth + 1).replace(/<[^>]*>/g, ''));
+    const head = `<thead>${tableRow(rows[0], 'th', align, labels, context, depth)}</thead>`;
+    const body = rows.slice(2).map((line) => tableRow(line, 'td', align, labels, context, depth));
 
     return `<table>${head}${body.length > 0 ? `<tbody>${body.join('')}</tbody>` : ''}</table>\n`;
 }
