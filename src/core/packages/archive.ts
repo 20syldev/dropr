@@ -1,4 +1,4 @@
-import type { CatalogDir, CatalogVersion, ReadFile, TarEntry } from '../types/index.js';
+import type { CatalogDir, CatalogVersion, ReadFile, TarEntry } from '../../types/index.js';
 
 import { exact } from './stream.js';
 

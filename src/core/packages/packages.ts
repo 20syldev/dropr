@@ -12,12 +12,12 @@ import type {
     IndexType,
     IndexVersion,
     SearchResult,
-} from '../types/index.js';
+} from '../../types/index.js';
+import { isName, isProjectName, isSegment } from '../http/router.js';
 
 import { parseDay } from './dates.js';
 import { parseDeprecation } from './deprecations.js';
 import { compareBytes } from './order.js';
-import { isName, isProjectName, isSegment } from './router.js';
 import { compareVersions, isRelease, isVersion } from './semver.js';
 
 interface Load {

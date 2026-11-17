@@ -1,4 +1,4 @@
-import type { CatalogDir, CatalogVersion, IndexFile, IndexLink, Resolved } from '../types/index.js';
+import type { CatalogDir, CatalogVersion, IndexFile, IndexLink, Resolved } from '../../types/index.js';
 
 // Link crossings a path may take, which bounds the work of one request: the length of the URL alone allows thousands
 export const MAX_LINKS = 40;

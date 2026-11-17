@@ -1,6 +1,5 @@
-import type { CatalogDir, CatalogVersion } from '../types/index.js';
-
-import { followLink } from './paths.js';
+import type { CatalogDir, CatalogVersion } from '../../types/index.js';
+import { followLink } from '../http/paths.js';
 
 /**
  * Adds the SHA-256 of every file below a folder of a version to a list, in pre-order and byte order.

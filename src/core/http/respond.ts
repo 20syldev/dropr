@@ -12,16 +12,16 @@ import type {
     RouteInput,
     RouteResponse,
     Site,
-} from '../types/index.js';
+} from '../../types/index.js';
+import { archiveStream } from '../packages/archive.js';
+import { countPackages } from '../packages/packages.js';
+import { exact, watch } from '../packages/stream.js';
+import { styleOf, uiOf } from '../pages/theme.js';
+import { uiResult } from '../pages/ui.js';
 
-import { archiveStream } from './archive.js';
 import { CORS_HEADERS, preflight } from './cors.js';
 import { conditionsOf, decide } from './http.js';
-import { countPackages } from './packages.js';
 import { failure, INTERNAL, route } from './route.js';
-import { exact, watch } from './stream.js';
-import { styleOf, uiOf } from './theme.js';
-import { uiResult } from './ui.js';
 
 type Source = ReadableStream<Uint8Array<ArrayBuffer>>;
 

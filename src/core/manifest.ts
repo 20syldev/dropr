@@ -6,7 +6,7 @@ import type {
     ParamText,
     RouteSpec,
     RouteText,
-} from './types/index.js';
+} from '../types/index.js';
 
 const TYPE: ParamSpec = { key: 'type', in: 'path', required: true };
 const PROJECT: ParamSpec = { key: 'project', in: 'path', required: true };

@@ -1,4 +1,4 @@
-import type { Deprecation } from '../types/index.js';
+import type { Deprecation } from '../../types/index.js';
 
 import { parseDay } from './dates.js';
 

@@ -7,18 +7,18 @@ import type {
     ReadFile,
     RouteInput,
     SearchResult,
-} from '../types/index.js';
+} from '../../types/index.js';
+import { resolvePath } from '../http/paths.js';
+import { listing, parseUrl, pickVersion } from '../http/route.js';
+import { matchPath } from '../http/router.js';
+import { deprecationHeaders } from '../packages/deprecations.js';
+import { searchPackages } from '../packages/packages.js';
 
 import { GUIDES } from './guides.js';
+import { encodeSegment } from './html.js';
 import { renderMarkdown } from './markdown.js';
 import { docsPage, errorPage, homePage, projectPage, searchPage, typePage, versionPage } from './pages.js';
 import type { SiteInfo } from './pages.js';
-import { searchPackages } from './packages.js';
-import { deprecationHeaders } from './deprecations.js';
-import { encodeSegment } from './html.js';
-import { resolvePath } from './paths.js';
-import { listing, parseUrl, pickVersion } from './route.js';
-import { matchPath } from './router.js';
 
 /**
  * What the pages are made from.

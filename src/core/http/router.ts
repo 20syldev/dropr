@@ -1,4 +1,4 @@
-import type { Match } from '../types/index.js';
+import type { Match } from '../../types/index.js';
 
 // First segments that name a route of their own, so a package type cannot use them
 export const RESERVED = ['download', 'health', 'manifest', 'search'];

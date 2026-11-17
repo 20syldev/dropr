@@ -8,15 +8,15 @@ import type {
     RouteInput,
     RouteResponse,
     Site,
-} from '../types/index.js';
+} from '../../types/index.js';
+import { archiveEntries } from '../packages/archive.js';
+import { checksums } from '../packages/checksum.js';
+import { deprecationHeaders } from '../packages/deprecations.js';
+import { contentType } from '../packages/mime.js';
+import { getProject, resolveVersion, searchPackages } from '../packages/packages.js';
 
-import { archiveEntries } from './archive.js';
-import { checksums } from './checksum.js';
-import { deprecationHeaders } from './deprecations.js';
 import { errorBody } from './errors.js';
 import { conditionsOf, decide } from './http.js';
-import { contentType } from './mime.js';
-import { getProject, resolveVersion, searchPackages } from './packages.js';
 import { followLink, resolvePath } from './paths.js';
 import { matchPath } from './router.js';
 

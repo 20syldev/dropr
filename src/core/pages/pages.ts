@@ -5,10 +5,10 @@ import type {
     Deprecation,
     FileEntry,
     SearchResult,
-} from '../types/index.js';
+} from '../../types/index.js';
+import { isRelease } from '../packages/semver.js';
 
 import { encodeSegment, escapeHtml } from './html.js';
-import { isRelease } from './semver.js';
 import { STYLE } from './style.js';
 
 /**

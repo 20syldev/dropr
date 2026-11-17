@@ -1,4 +1,4 @@
-import type { ErrorBody } from '../types/index.js';
+import type { ErrorBody } from '../../types/index.js';
 
 // Reason phrases of the error statuses the server answers itself
 const REASONS: Record<number, string> = {

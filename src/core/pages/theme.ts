@@ -1,4 +1,4 @@
-import type { UiInput, UiSettings } from '../types/index.js';
+import type { UiInput, UiSettings } from '../../types/index.js';
 
 import { STYLE } from './style.js';
 

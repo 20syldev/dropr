@@ -1,4 +1,4 @@
-import type { ByteRange, Conditions, Decision, RouteInput, Validators } from '../types/index.js';
+import type { ByteRange, Conditions, Decision, RouteInput, Validators } from '../../types/index.js';
 
 type Ranges = 'ignore' | 'unsatisfiable' | ByteRange[];
 

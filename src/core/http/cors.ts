@@ -1,4 +1,4 @@
-import type { Answer } from '../types/index.js';
+import type { Answer } from '../../types/index.js';
 
 // Request headers that a script may send to read a file in parts or only when it changed; the others need no listing
 const ALLOWED = ['If-Match', 'If-Modified-Since', 'If-None-Match', 'If-Range', 'If-Unmodified-Since', 'Range'];

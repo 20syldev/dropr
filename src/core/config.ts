@@ -1,7 +1,7 @@
-import { ROUTES } from '../manifest.js';
 import type { Config } from '../types/index.js';
 
-import { isAddress } from './theme.js';
+import { ROUTES } from './manifest.js';
+import { isAddress } from './pages/theme.js';
 
 // Longest rate limit window in seconds, a year, which keeps the window in milliseconds an exact integer
 const MAX_WINDOW = 31_536_000;

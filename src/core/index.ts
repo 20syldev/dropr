@@ -1,6 +1,6 @@
-export { parseConfig } from './lib/config.js';
-export { loadIndex } from './lib/packages.js';
-export { createHandler, createResponder } from './lib/respond.js';
+export { parseConfig } from './config.js';
+export { loadIndex } from './packages/packages.js';
+export { createHandler, createResponder } from './http/respond.js';
 export { buildManifest } from './manifest.js';
 export type {
     Answer,
@@ -17,4 +17,4 @@ export type {
     ResponderOptions,
     UiInput,
     UiSettings,
-} from './types/index.js';
+} from '../types/index.js';
