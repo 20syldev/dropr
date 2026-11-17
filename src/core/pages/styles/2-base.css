@@ -1,0 +1,45 @@
+* {
+    box-sizing: border-box;
+}
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.6 var(--sans);
+}
+a {
+    color: var(--accent-text);
+    text-underline-offset: 0.15em;
+    transition: color 0.15s ease;
+}
+a:hover {
+    color: var(--ink);
+}
+code,
+pre {
+    font-family: var(--mono);
+    font-size: 0.9em;
+}
+code {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 0.1em 0.35em;
+}
+pre {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 0.8em 1em;
+    overflow-x: auto;
+}
+pre code {
+    background: none;
+    border: 0;
+    padding: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+    * {
+        transition: none !important;
+    }
+}

@@ -1,0 +1,61 @@
+input {
+    transition: border-color 0.15s ease;
+    font: inherit;
+    padding: 0.35rem 0.6rem;
+    background: var(--surface);
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    min-width: 0;
+}
+button {
+    font: inherit;
+    font-weight: 600;
+    padding: 0.35rem 0.8rem;
+    background: var(--accent);
+    color: var(--accent-ink);
+    border: 0;
+    border-radius: 6px;
+    cursor: pointer;
+}
+main {
+    max-width: 46rem;
+    margin: 0 auto;
+    padding: 1rem 1rem 3rem;
+}
+h1 {
+    font-size: 2rem;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+    margin: 1.5rem 0 0.5rem;
+    overflow-wrap: anywhere;
+}
+h2 {
+    font-size: 1.15rem;
+    margin: 2rem 0 0.5rem;
+}
+h3 {
+    font-size: 1.05rem;
+    margin: 1.5rem 0 0.4rem;
+}
+h4,
+h5,
+h6 {
+    font-size: 1rem;
+    margin: 1.25rem 0 0.4rem;
+}
+h5,
+h6 {
+    color: var(--muted);
+}
+.lead,
+.meta,
+.crumbs,
+footer {
+    color: var(--muted);
+}
+.crumbs {
+    margin: 1rem 0 0;
+    font-size: 0.9rem;
+    overflow-wrap: anywhere;
+}

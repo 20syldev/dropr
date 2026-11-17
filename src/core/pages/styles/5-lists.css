@@ -1,0 +1,93 @@
+.index {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.index li {
+    display: flex;
+    gap: 0.5rem;
+    align-items: baseline;
+    padding: 0.2rem 0;
+}
+.index li > a {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.index .dots {
+    flex: 1;
+    border-bottom: 1px dotted var(--line);
+    transform: translateY(-0.3em);
+    min-width: 1rem;
+}
+.index .end {
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 0.85em;
+    white-space: nowrap;
+}
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+th,
+td {
+    overflow-wrap: anywhere;
+    text-align: left;
+    padding: 0.35rem 0.6rem 0.35rem 0;
+    border-bottom: 1px solid var(--line);
+    vertical-align: baseline;
+}
+th {
+    color: var(--muted);
+    font-weight: 500;
+    font-size: 0.85rem;
+}
+.right {
+    text-align: right;
+    white-space: nowrap;
+}
+.center {
+    text-align: center;
+}
+.mark {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0 0.45em;
+    border-radius: 3px;
+    margin-left: 0.2em;
+    vertical-align: 0.1em;
+}
+.dep {
+    color: var(--dep);
+    background: var(--dep-bg);
+}
+.pre {
+    color: var(--pre);
+    background: var(--pre-bg);
+}
+.latest {
+    color: var(--ok);
+    background: var(--ok-bg);
+}
+.notice {
+    border-left: 3px solid var(--dep);
+    background: var(--dep-bg);
+    color: var(--ink);
+    padding: 0.6rem 1rem;
+    border-radius: 0 6px 6px 0;
+    margin: 1rem 0;
+}
+dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0.35rem 1rem;
+}
+dt {
+    color: var(--muted);
+}
+dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
