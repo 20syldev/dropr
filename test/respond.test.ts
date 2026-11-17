@@ -3,10 +3,10 @@ import fs from 'fs';
 import { after, before, describe, test } from 'node:test';
 import { join } from 'path';
 
-import { buildManifest } from '../dist/manifest.js';
-import { loadIndex } from '../dist/lib/packages.js';
-import { createHandler, createResponder } from '../dist/lib/respond.js';
-import { scan } from '../dist/scan.js';
+import { createHandler, createResponder } from '../dist/core/http/respond.js';
+import { buildManifest } from '../dist/core/manifest.js';
+import { loadIndex } from '../dist/core/packages/packages.js';
+import { scan } from '../dist/node/scan.js';
 import type { Answer, ByteRange, Catalog, ReadFile, Respond, ResponderOptions } from '../dist/types/index.js';
 
 import { createFixture } from './fixture.ts';

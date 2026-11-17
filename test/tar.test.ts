@@ -6,8 +6,8 @@ import os from 'os';
 import { join } from 'path';
 import zlib from 'zlib';
 
-import { archiveEntries, archiveStream } from '../dist/lib/archive.js';
-import { loadIndex } from '../dist/lib/packages.js';
+import { archiveEntries, archiveStream } from '../dist/core/packages/archive.js';
+import { loadIndex } from '../dist/core/packages/packages.js';
 import type { IndexDir, IndexFile, IndexLink, IndexVersion, TarEntry } from '../dist/types/index.js';
 
 import { memoryPort } from './port.ts';

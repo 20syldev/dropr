@@ -1,7 +1,7 @@
 import assert from 'assert/strict';
 import { describe, test } from 'node:test';
 
-import { compareVersions, isRelease, isVersion } from '../dist/lib/semver.js';
+import { compareVersions, isRelease, isVersion } from '../dist/core/packages/semver.js';
 
 import { ACCEPTED, REFUSED } from './names.ts';
 

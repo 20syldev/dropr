@@ -8,10 +8,10 @@ import type { AddressInfo } from 'net';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
-import { createApp } from '../dist/app.js';
-import { scanAssets } from '../dist/assets.js';
-import { parseConfig } from '../dist/lib/config.js';
-import { scan } from '../dist/scan.js';
+import { parseConfig } from '../dist/core/config.js';
+import { createApp } from '../dist/node/app.js';
+import { scanAssets } from '../dist/node/assets.js';
+import { scan } from '../dist/node/scan.js';
 import type { AppDeps, Config, Logger, UiSettings } from '../dist/types/index.js';
 
 export const rootDir = join(dirname(fileURLToPath(import.meta.url)), '..');

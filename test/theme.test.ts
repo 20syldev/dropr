@@ -1,8 +1,8 @@
 import assert from 'assert/strict';
 import { describe, test } from 'node:test';
 
-import { STYLE } from '../dist/lib/style.js';
-import { SURFACES, contrast, styleOf, uiOf } from '../dist/lib/theme.js';
+import { STYLE } from '../dist/core/pages/style.js';
+import { SURFACES, contrast, styleOf, uiOf } from '../dist/core/pages/theme.js';
 
 import { mulberry32 } from './random.ts';
 

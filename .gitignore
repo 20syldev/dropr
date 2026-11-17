@@ -1,4 +1,4 @@
 dist/
 node_modules/
-packages/
-src/lib/guides.ts
+/packages/
+src/core/pages/guides.ts

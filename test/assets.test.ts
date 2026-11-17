@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, test } from 'node:test';
 import os from 'os';
 import { join } from 'path';
 
-import { scanAssets } from '../dist/assets.js';
+import { scanAssets } from '../dist/node/assets.js';
 
 import { sha256 } from './server.ts';
 import { collect } from './tar.ts';

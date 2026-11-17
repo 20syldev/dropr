@@ -3,10 +3,10 @@ import fs from 'fs';
 import { after, before, describe, test } from 'node:test';
 import { join } from 'path';
 
-import { STYLE } from '../dist/lib/style.js';
-import { GUIDES } from '../dist/lib/guides.js';
-import { styleOf } from '../dist/lib/theme.js';
-import { prefersHtml } from '../dist/lib/ui.js';
+import { GUIDES } from '../dist/core/pages/guides.js';
+import { STYLE } from '../dist/core/pages/style.js';
+import { styleOf } from '../dist/core/pages/theme.js';
+import { prefersHtml } from '../dist/core/pages/ui.js';
 
 import { createDocsTree } from './docs.ts';
 import type { DocsTree } from './docs.ts';

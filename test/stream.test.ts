@@ -5,11 +5,10 @@ import { after, describe, test } from 'node:test';
 import os from 'os';
 import { join } from 'path';
 
-import { createReader } from '../dist/disk.js';
-import { archiveEntries, archiveStream } from '../dist/lib/archive.js';
-import { loadIndex } from '../dist/lib/packages.js';
-import { exact, watch } from '../dist/lib/stream.js';
-
+import { archiveEntries, archiveStream } from '../dist/core/packages/archive.js';
+import { loadIndex } from '../dist/core/packages/packages.js';
+import { exact, watch } from '../dist/core/packages/stream.js';
+import { createReader } from '../dist/node/disk.js';
 import type { ByteRange, Index, IndexDir, IndexFile, IndexNode, TarEntry } from '../dist/types/index.js';
 
 import { chunked, eventually, memoryPort } from './port.ts';

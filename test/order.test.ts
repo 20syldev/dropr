@@ -1,7 +1,7 @@
 import assert from 'assert/strict';
 import { describe, test } from 'node:test';
 
-import { compareBytes } from '../dist/lib/order.js';
+import { compareBytes } from '../dist/core/packages/order.js';
 
 // Code units around the edges of UTF-8: one, two and three bytes, the surrogate gap, and four bytes
 const UNITS = [

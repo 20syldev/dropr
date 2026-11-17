@@ -1,12 +1,11 @@
 import assert from 'assert/strict';
 import { describe, test } from 'node:test';
 
-import { loadIndex, resolveVersion } from '../dist/lib/packages.js';
-import { route } from '../dist/lib/route.js';
-import { isName, matchPath, RESERVED } from '../dist/lib/router.js';
-import { ROUTES } from '../dist/manifest.js';
-import { scan } from '../dist/scan.js';
-
+import { route } from '../dist/core/http/route.js';
+import { isName, matchPath, RESERVED } from '../dist/core/http/router.js';
+import { ROUTES } from '../dist/core/manifest.js';
+import { loadIndex, resolveVersion } from '../dist/core/packages/packages.js';
+import { scan } from '../dist/node/scan.js';
 import type { Catalog, CatalogProject, Match, Site } from '../dist/types/index.js';
 
 import { createFixture, SITE } from './fixture.ts';

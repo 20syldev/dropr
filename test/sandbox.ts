@@ -4,8 +4,8 @@ import { dirname, join, resolve } from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 import vm from 'vm';
 
-import type * as Core from '../dist/core.js';
-import { scan } from '../dist/scan.js';
+import type * as Core from '../dist/core/index.js';
+import { scan } from '../dist/node/scan.js';
 import type { Handler, ResponderOptions } from '../dist/types/index.js';
 
 import { createFixture } from './fixture.ts';

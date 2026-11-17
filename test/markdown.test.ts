@@ -1,7 +1,7 @@
 import assert from 'assert/strict';
 import { describe, test } from 'node:test';
 
-import { renderMarkdown } from '../dist/lib/markdown.js';
+import { renderMarkdown } from '../dist/core/pages/markdown.js';
 
 import { mulberry32 } from './random.ts';
 

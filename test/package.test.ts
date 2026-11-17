@@ -71,11 +71,11 @@ describe('the package', () => {
             'LICENSE',
             'README.md',
             'package.json',
-            'dist/bin.js',
+            'dist/cli/bin.js',
             'dist/index.js',
             'dist/index.d.ts',
-            'dist/core.js',
-            'dist/core.d.ts',
+            'dist/core/index.js',
+            'dist/core/index.d.ts',
         ]) {
             assert.ok(files.includes(path), `${path} is not in the tarball`);
         }
@@ -101,7 +101,7 @@ describe('the package', () => {
         ];
 
         for (const target of targets) assert.ok(files.includes(target.replace(/^\.\//, '')), target);
-        assert.ok(fs.readFileSync(join(rootDir, 'dist', 'bin.js'), 'utf-8').startsWith('#!/usr/bin/env node\n'));
+        assert.ok(fs.readFileSync(join(rootDir, 'dist', 'cli', 'bin.js'), 'utf-8').startsWith('#!/usr/bin/env node\n'));
     });
 
     test('holds no build output whose source is gone', () => {
@@ -121,7 +121,7 @@ describe('the package', () => {
     });
 
     test('exports the core entry, which is the same code as the main entry gives', async () => {
-        const core = await import('../dist/core.js');
+        const core = await import('../dist/core/index.js');
         const main = await import('../dist/index.js');
 
         assert.deepEqual(Object.keys(core).sort(), CORE);

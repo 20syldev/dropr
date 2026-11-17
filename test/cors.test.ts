@@ -1,7 +1,7 @@
 import assert from 'assert/strict';
 import { describe, test } from 'node:test';
 
-import { CORS_HEADERS, preflight } from '../dist/lib/cors.js';
+import { CORS_HEADERS, preflight } from '../dist/core/http/cors.js';
 
 describe('CORS headers', () => {
     test('let any origin read an answer, with no credentials', () => {

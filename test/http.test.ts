@@ -1,7 +1,7 @@
 import assert from 'assert/strict';
 import { describe, test } from 'node:test';
 
-import { conditionsOf, decide, parseHttpDate } from '../dist/lib/http.js';
+import { conditionsOf, decide, parseHttpDate } from '../dist/core/http/http.js';
 import type { ByteRange, Conditions, Decision } from '../dist/types/index.js';
 
 import { httpDate, imf, model } from './model.ts';

@@ -4,11 +4,11 @@ import { after, before, describe, test } from 'node:test';
 import os from 'os';
 import { join } from 'path';
 
-import { main } from '../dist/cli.js';
-import { reservedNames } from '../dist/config.js';
-import { countPackages, loadIndex } from '../dist/lib/packages.js';
-import { scan } from '../dist/scan.js';
-import { choosePort, configure } from '../dist/startup.js';
+import { main } from '../dist/cli/cli.js';
+import { countPackages, loadIndex } from '../dist/core/packages/packages.js';
+import { reservedNames } from '../dist/node/config.js';
+import { scan } from '../dist/node/scan.js';
+import { choosePort, configure } from '../dist/node/startup.js';
 
 import { createFixture } from './fixture.ts';
 import type { Fixture } from './fixture.ts';

@@ -1,7 +1,13 @@
 import assert from 'assert/strict';
 import { describe, test } from 'node:test';
 
-import { countPackages, getProject, loadIndex, resolveVersion, searchPackages } from '../dist/lib/packages.js';
+import {
+    countPackages,
+    getProject,
+    loadIndex,
+    resolveVersion,
+    searchPackages,
+} from '../dist/core/packages/packages.js';
 import type {
     CatalogDir,
     CatalogProject,

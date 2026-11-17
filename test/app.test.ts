@@ -8,12 +8,12 @@ import { after, before, describe, test } from 'node:test';
 import os from 'os';
 import { dirname, join } from 'path';
 
-import { createApp } from '../dist/app.js';
-import { scanAssets } from '../dist/assets.js';
-import { reservedNames } from '../dist/config.js';
-import { parseConfig } from '../dist/lib/config.js';
-import { ROUTES } from '../dist/manifest.js';
-import { scan } from '../dist/scan.js';
+import { parseConfig } from '../dist/core/config.js';
+import { ROUTES } from '../dist/core/manifest.js';
+import { createApp } from '../dist/node/app.js';
+import { scanAssets } from '../dist/node/assets.js';
+import { reservedNames } from '../dist/node/config.js';
+import { scan } from '../dist/node/scan.js';
 import type { Index, Logger, Manifest, ManifestRoute } from '../dist/types/index.js';
 
 import { createFixture } from './fixture.ts';
@@ -415,7 +415,7 @@ describe('createApp', () => {
     });
 });
 
-describe('dist/bin.js serve', () => {
+describe('dist/cli/bin.js serve', () => {
     let fixture: Fixture;
 
     before(() => (fixture = createFixture()));
@@ -438,7 +438,7 @@ describe('dist/bin.js serve', () => {
         cwd: string | undefined = undefined,
     ): Promise<Ran<T>> {
         return new Promise<Ran<T>>((resolve, reject) => {
-            const child = spawn(process.execPath, [join(rootDir, 'dist', 'bin.js'), 'serve', ...args], {
+            const child = spawn(process.execPath, [join(rootDir, 'dist', 'cli', 'bin.js'), 'serve', ...args], {
                 cwd,
                 env: { ...process.env, PORT: '', PACKAGES_DIR: '', ...env },
             });
@@ -447,7 +447,7 @@ describe('dist/bin.js serve', () => {
             let probed: Promise<unknown> | undefined;
             const timer = setTimeout(() => {
                 child.kill();
-                reject(new Error(`bin.js neither exited nor listened within 10 seconds: ${stderr}`));
+                reject(new Error(`cli/bin.js neither exited nor listened within 10 seconds: ${stderr}`));
             }, 10_000);
             child.stderr.on('data', (chunk) => (stderr += chunk));
             child.stdout.on('data', (chunk) => {
@@ -625,8 +625,10 @@ describe('dist/bin.js serve', () => {
         assert.match(stderr, /^Invalid config: /);
     });
 
-    test('importing dist/app.js reads nothing, prints nothing and leaves nothing listening', async () => {
-        const child = spawn(process.execPath, ['-e', `import('${join(rootDir, 'dist', 'app.js')}')`], { env: {} });
+    test('importing dist/node/app.js reads nothing, prints nothing and leaves nothing listening', async () => {
+        const child = spawn(process.execPath, ['-e', `import('${join(rootDir, 'dist', 'node', 'app.js')}')`], {
+            env: {},
+        });
         let output = '';
         child.stdout.on('data', (chunk) => (output += chunk));
         child.stderr.on('data', (chunk) => (output += chunk));

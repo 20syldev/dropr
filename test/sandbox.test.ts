@@ -10,7 +10,7 @@ import type { SandboxAnswer, SandboxRejection, SandboxRun } from './sandbox.ts';
 import { rootDir } from './server.ts';
 import { readArchive } from './tar.ts';
 
-const ENTRIES = ['dist/core.js'];
+const ENTRIES = ['dist/core/index.js'];
 const LIMITER = fileURLToPath(import.meta.resolve('@moxon/limiter'));
 const HELPER = join(rootDir, 'test', 'sandbox.ts');
 
@@ -100,14 +100,14 @@ describe('the core without Node', () => {
         const paths = [...reach.files];
 
         for (const path of [
-            'dist/lib/route.js',
-            'dist/lib/archive.js',
-            'dist/lib/respond.js',
-            'dist/lib/ui.js',
-            'dist/lib/pages.js',
-            'dist/lib/markdown.js',
-            'dist/lib/theme.js',
-            'dist/lib/guides.js',
+            'dist/core/http/route.js',
+            'dist/core/packages/archive.js',
+            'dist/core/http/respond.js',
+            'dist/core/pages/ui.js',
+            'dist/core/pages/pages.js',
+            'dist/core/pages/markdown.js',
+            'dist/core/pages/theme.js',
+            'dist/core/pages/guides.js',
         ]) {
             assert.ok(paths.includes(join(rootDir, path)), path);
         }

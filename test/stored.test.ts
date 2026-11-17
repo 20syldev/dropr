@@ -5,10 +5,10 @@ import { describe, test } from 'node:test';
 import os from 'os';
 import { dirname, join } from 'path';
 
-import { serve } from '../dist/serve.js';
-import { scan } from '../dist/scan.js';
-import { readIndex, verifyIndex } from '../dist/stored.js';
-import { configure } from '../dist/startup.js';
+import { scan } from '../dist/node/scan.js';
+import { serve } from '../dist/node/serve.js';
+import { configure } from '../dist/node/startup.js';
+import { readIndex, verifyIndex } from '../dist/node/stored.js';
 import type { Index } from '../dist/types/index.js';
 
 import { request, version } from './server.ts';

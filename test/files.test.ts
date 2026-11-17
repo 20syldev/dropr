@@ -4,7 +4,7 @@ import http from 'http';
 import { after, before, describe, test } from 'node:test';
 import { join } from 'path';
 
-import { createReader } from '../dist/disk.js';
+import { createReader } from '../dist/node/disk.js';
 import type { ByteRange, ReadFile } from '../dist/types/index.js';
 
 import { createFixture } from './fixture.ts';

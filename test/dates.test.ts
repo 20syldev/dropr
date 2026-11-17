@@ -1,8 +1,8 @@
 import assert from 'assert/strict';
 import { describe, test } from 'node:test';
 
-import { parseDay } from '../dist/lib/dates.js';
-import { parseDeprecation } from '../dist/lib/deprecations.js';
+import { parseDay } from '../dist/core/packages/dates.js';
+import { parseDeprecation } from '../dist/core/packages/deprecations.js';
 
 describe('parseDay', () => {
     test('reads a real YYYY-MM-DD day as 00:00:00 UTC', () => {

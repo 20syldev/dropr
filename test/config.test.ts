@@ -4,10 +4,9 @@ import { describe, test } from 'node:test';
 import os from 'os';
 import { join } from 'path';
 
-import { loadConfig } from '../dist/config.js';
-import { parseConfig } from '../dist/lib/config.js';
-import { buildManifest } from '../dist/manifest.js';
-
+import { parseConfig } from '../dist/core/config.js';
+import { buildManifest } from '../dist/core/manifest.js';
+import { loadConfig } from '../dist/node/config.js';
 import type { Manifest, ManifestConfig, ManifestRoute } from '../dist/types/index.js';
 
 import { config } from './server.ts';

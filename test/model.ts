@@ -1,4 +1,4 @@
-// Model of RFC 9110 sections 13 and 14 for a GET or HEAD of one file, written apart from src/lib/http.ts to check it
+// Model of RFC 9110 sections 13 and 14 for a GET or HEAD of one file, written apart from src/core/http/http.ts to check it
 
 // The request that model() answers: the headers are lower-case, trimmed, and '' or undefined stands for absent
 export interface ModelRequest {

@@ -3,6 +3,11 @@ import fs from 'fs';
 import { after, before, describe, mock, test } from 'node:test';
 import { join } from 'path';
 
+import { route } from '../dist/core/http/route.js';
+import { archiveEntries, archiveStream } from '../dist/core/packages/archive.js';
+import { loadIndex } from '../dist/core/packages/packages.js';
+import { exact } from '../dist/core/packages/stream.js';
+import { scan } from '../dist/node/scan.js';
 import type {
     Catalog,
     CatalogType,
@@ -23,11 +28,6 @@ import type {
     Site,
     TarEntry,
 } from '../dist/types/index.js';
-import { archiveEntries, archiveStream } from '../dist/lib/archive.js';
-import { loadIndex } from '../dist/lib/packages.js';
-import { route } from '../dist/lib/route.js';
-import { exact } from '../dist/lib/stream.js';
-import { scan } from '../dist/scan.js';
 
 import type { Case, Snapshot } from './cases.ts';
 import { caseName, CASES, HEADERS, readBody } from './cases.ts';

@@ -1,15 +1,14 @@
 import assert from 'assert/strict';
-import crypto from 'crypto';
 import { execFileSync } from 'child_process';
+import crypto from 'crypto';
 import fs from 'fs';
 import { afterEach, beforeEach, describe, test } from 'node:test';
 import os from 'os';
 import { join } from 'path';
 
-import { loadIndex } from '../dist/lib/packages.js';
-import { route } from '../dist/lib/route.js';
-import { scan } from '../dist/scan.js';
-
+import { route } from '../dist/core/http/route.js';
+import { loadIndex } from '../dist/core/packages/packages.js';
+import { scan } from '../dist/node/scan.js';
 import type { Index, IndexFile, JsonBody, Site } from '../dist/types/index.js';
 
 import { isReadable, SITE } from './fixture.ts';

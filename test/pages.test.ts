@@ -1,12 +1,20 @@
 import assert from 'assert/strict';
 import { describe, test } from 'node:test';
 
-import { loadIndex } from '../dist/lib/packages.js';
-import { listing } from '../dist/lib/route.js';
-import { docsPage, errorPage, homePage, projectPage, searchPage, typePage, versionPage } from '../dist/lib/pages.js';
-import type { SiteInfo } from '../dist/lib/pages.js';
-import { STYLE } from '../dist/lib/style.js';
-import { styleOf } from '../dist/lib/theme.js';
+import { listing } from '../dist/core/http/route.js';
+import { loadIndex } from '../dist/core/packages/packages.js';
+import {
+    docsPage,
+    errorPage,
+    homePage,
+    projectPage,
+    searchPage,
+    typePage,
+    versionPage,
+} from '../dist/core/pages/pages.js';
+import type { SiteInfo } from '../dist/core/pages/pages.js';
+import { STYLE } from '../dist/core/pages/style.js';
+import { styleOf } from '../dist/core/pages/theme.js';
 import type {
     Catalog,
     CatalogDir,
