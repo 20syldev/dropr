@@ -15,6 +15,7 @@ import {
 import type { SiteInfo } from '../dist/core/pages/pages.js';
 import { STYLE } from '../dist/core/pages/style.js';
 import { styleOf } from '../dist/core/pages/theme.js';
+import { minify } from '../scripts/styles.ts';
 import type {
     Catalog,
     CatalogDir,
@@ -25,6 +26,8 @@ import type {
 } from '../dist/types/index.js';
 
 const SITE: SiteInfo = { name: 'Acme <CDN>', version: '4.3.0', baseUrl: 'https://cdn.example.com' };
+
+const SHEET = minify(STYLE);
 const SHA = 'a'.repeat(64);
 
 /**
@@ -528,8 +531,8 @@ describe('the pages', () => {
             /<footer>Powered by <a href="https:\/\/github\.com\/20syldev\/dropr">dropr 4\.3\.0<\/a><\/footer>/,
         );
 
-        assert.match(homePage(SITE, types), /@media \(pointer: coarse\) \{ \.search input \{ font-size: 1rem; \} \}/);
-        assert.match(homePage(SITE, types), /footer a \{ color: inherit; text-decoration-color: var\(--muted\);/);
+        assert.match(SHEET, /@media \(pointer:coarse\)\{\.search input\{font-size:1rem\}\}/);
+        assert.match(SHEET, /footer a\{color:inherit;text-decoration-color:var\(--muted\);/);
 
         const odd = homePage({ ...SITE, version: '1"><b>' }, types);
         assert.ok(odd.includes('>dropr 1&#34;&#62;&#60;b&#62;</a>'));
@@ -546,21 +549,17 @@ describe('the pages', () => {
     });
 
     test('fade the color of every link on hover, and no longer when the reader asks for less motion', () => {
-        const html = homePage(SITE, types);
-
-        assert.match(html, /\na \{[^}]*transition: color 0\.15s ease;[^}]*\}/);
-        assert.match(html, /\ninput \{[^}]*transition: border-color 0\.15s ease[^}]*\}/);
-        assert.match(html, /@media \(prefers-reduced-motion: reduce\) \{ \* \{ transition: none !important; \} \}/);
+        assert.match(SHEET, /\}a\{[^}]*transition:color 0\.15s ease(?:;[^}]*)?\}/);
+        assert.match(SHEET, /\}input\{[^}]*transition:border-color 0\.15s ease[^}]*\}/);
+        assert.match(SHEET, /@media \(prefers-reduced-motion:reduce\)\{\*\{transition:none !important\}\}/);
     });
 
     test('give the scroll bars a thin look of the theme only where the browser knows how, the others keeping theirs', () => {
-        const html = homePage(SITE, types);
-
         assert.match(
-            html,
-            /@supports \(scrollbar-color: auto\) \{ html, pre, \.markdown table \{ scrollbar-width: thin; scrollbar-color: var\(--muted\) transparent; \} \}/,
+            SHEET,
+            /@supports \(scrollbar-color:auto\)\{html,pre,\.markdown table\{scrollbar-width:thin;scrollbar-color:var\(--muted\) transparent\}\}/,
         );
-        assert.doesNotMatch(html, /::-webkit-scrollbar/);
+        assert.doesNotMatch(SHEET, /::-webkit-scrollbar/);
     });
 
     test('keep the look of the pages as it is without a style, a logo or a favicon', () => {
@@ -572,9 +571,9 @@ describe('the pages', () => {
     });
 
     test('draw the focus ring with its own color, which is the accent unless the theme sets another', () => {
-        assert.ok(STYLE.includes('.search input:focus { outline: 2px solid var(--ring, var(--accent));'));
-        assert.doesNotMatch(STYLE, /--ring:/);
-        assert.match(STYLE, /\n\.logo \{[^}]*height: 1\.5em;[^}]*\}/);
+        assert.ok(SHEET.includes('.search input:focus{outline:2px solid var(--ring,var(--accent));'));
+        assert.doesNotMatch(SHEET, /--ring:/);
+        assert.match(SHEET, /\}\.logo\{[^}]*height:1\.5em;[^}]*\}/);
     });
 
     test('put the style of the theme, the logo and the favicon on every page', () => {
@@ -653,17 +652,20 @@ describe('the pages', () => {
         assert.ok(html.includes(`<style>${styleOf('#1d4ed8')}</style>`));
         assert.ok(html.includes('<img class="logo" src="/logo.svg" alt="">'));
         assert.ok(html.includes('<link rel="icon" href="/f.ico">'));
-        assert.match(STYLE, /\n\.docs \{[^}]*\}/);
-        assert.match(STYLE, /\n\.docs a\[aria-current\] \{[^}]*\}/);
+        assert.match(SHEET, /\}\.docs\{[^}]*\}/);
+        assert.match(SHEET, /\}\.docs a\[aria-current\]\{[^}]*\}/);
     });
 
     test('keep the code of a table cell on one line, so that a narrow column does not cut a key in two', () => {
-        assert.match(STYLE, /\n\.markdown td code, \.markdown th code \{[^}]*white-space: nowrap;[^}]*\}/);
+        assert.match(SHEET, /\}\.markdown td code,\.markdown th code\{[^}]*white-space:nowrap(?:;[^}]*)?\}/);
     });
 
     test('stack the rows of a table of a README on a narrow screen, each cell under its header', () => {
-        assert.match(STYLE, /@media \(max-width: 40rem\) \{\n\.markdown table, [^\n]*display: block;/);
-        assert.match(STYLE, /\.markdown td\[data-label\]::before \{[^}]*content: attr\(data-label\);/);
+        assert.match(
+            SHEET,
+            /@media \(max-width:40rem\)\{\.markdown table,\.markdown tbody,\.markdown tr,\.markdown td\{display:block;/,
+        );
+        assert.match(SHEET, /\.markdown td\[data-label\]::before\{[^}]*content:attr\(data-label\);/);
     });
 
     test('link to the docs from the front page only when the site has them', () => {

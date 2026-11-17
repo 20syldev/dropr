@@ -3,6 +3,7 @@ import { describe, test } from 'node:test';
 
 import { STYLE } from '../dist/core/pages/style.js';
 import { SURFACES, contrast, styleOf, uiOf } from '../dist/core/pages/theme.js';
+import { minify } from '../scripts/styles.ts';
 
 import { mulberry32 } from './random.ts';
 
@@ -47,17 +48,18 @@ describe('contrast', () => {
 
 describe('the surfaces of the theme', () => {
     test('are the colors of the style sheet, so that a change of the sheet fails here', () => {
-        const dark = STYLE.slice(STYLE.indexOf('@media (prefers-color-scheme: dark)'));
-        const light = STYLE.slice(0, STYLE.indexOf('@media (prefers-color-scheme: dark)'));
+        const sheet = minify(STYLE);
+        const dark = sheet.slice(sheet.indexOf('@media (prefers-color-scheme:dark)'));
+        const light = sheet.slice(0, sheet.indexOf('@media (prefers-color-scheme:dark)'));
         const [bg, surface, note] = ['--bg', '--surface', '--dep-bg'];
 
         assert.deepEqual(
             SURFACES.light,
-            [bg, surface, note].map((name) => new RegExp(`${name}: (#[0-9a-f]{6})`).exec(light)![1]),
+            [bg, surface, note].map((name) => new RegExp(`${name}:(#[0-9a-f]{6})`).exec(light)![1]),
         );
         assert.deepEqual(
             SURFACES.dark,
-            [bg, surface, note].map((name) => new RegExp(`${name}: (#[0-9a-f]{6})`).exec(dark)![1]),
+            [bg, surface, note].map((name) => new RegExp(`${name}:(#[0-9a-f]{6})`).exec(dark)![1]),
         );
     });
 });

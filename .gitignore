@@ -2,3 +2,4 @@ dist/
 node_modules/
 /packages/
 src/core/pages/guides.ts
+src/core/pages/style.ts
